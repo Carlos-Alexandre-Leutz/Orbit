@@ -31,6 +31,7 @@ main        ← production (only receives releases from staging)
 - T: Write `CONTRIBUTING.md` with gitflow, branch names and commit rules
 - T: Add commitlint and a hook that rejects `Co-authored-by`
 - T: Add a script that imports this backlog as issues
+- T: Ignore Python cache files
 
 ### PBI-02 [F1] Base from the SaaS template
 - T: Copy the template into the repository and record its origin in the README
