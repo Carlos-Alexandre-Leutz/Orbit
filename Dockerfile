@@ -7,7 +7,7 @@ WORKDIR /app
 
 FROM base AS pruner
 COPY . .
-RUN turbo prune @saas/api-tasks bff @saas/web --docker
+RUN turbo prune @orbit/api-tasks @orbit/bff @orbit/web --docker
 
 FROM base AS installer
 COPY .gitignore .gitignore
@@ -18,7 +18,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
-RUN pnpm --filter=@saas/api-tasks exec prisma generate --schema=./prisma/schema.prisma
+RUN pnpm --filter=@orbit/api-tasks exec prisma generate --schema=./prisma/schema.prisma
 
 RUN pnpm turbo build
 

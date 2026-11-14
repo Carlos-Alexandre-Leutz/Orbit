@@ -1,5 +1,5 @@
 {
-  "name": "bff",
+  "name": "@orbit/bff",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -32,14 +32,32 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.1.17",
-    "@prisma/config": "^7.5.0",
     "@swc/core": "^1.15.18",
     "@swc/jest": "^0.2.39",
     "@types/bcrypt": "^6.0.0",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "dotenv": "^17.3.1",
     "jest": "^30.3.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.0.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
   }
 }

@@ -13,7 +13,7 @@ async function bootstrap() {
   );
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-    : ['https://web-staging-sbjp.onrender.com'];
+    : ['http://localhost:3000'];
 
   app.enableCors({
     origin: allowedOrigins,
@@ -22,10 +22,9 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle('SaaS Business Manager API')
-    .setDescription('BFF para gerenciamento de negócios e tarefas')
+    .setTitle('Orbit BFF API')
+    .setDescription('Backend-for-frontend of the Orbit planning agent')
     .setVersion('1.0')
-    .addTag('business')
     .addBearerAuth()
     .build();
 
