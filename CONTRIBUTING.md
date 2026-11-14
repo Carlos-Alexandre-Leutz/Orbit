@@ -67,7 +67,7 @@ Every PR uses the template and states what was done, how it was tested (and what
 
 ## Local setup
 
-Requirements: Node 20 or newer, pnpm 9, Docker.
+Requirements: Node 20 or newer (`nvm use` reads `.nvmrc`), pnpm 9, Docker.
 
 ```bash
 pnpm install
