@@ -1,0 +1,8 @@
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('CUSTOMER', 'SELLER', 'ADMIN');
+
+-- AlterTable
+ALTER TABLE "User"
+  ADD COLUMN "role" "Role" NOT NULL DEFAULT 'CUSTOMER',
+  ADD COLUMN "isAnonymous" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "expiresAt" TIMESTAMP(3);
