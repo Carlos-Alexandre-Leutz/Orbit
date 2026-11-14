@@ -51,7 +51,7 @@ def parse_backlog(text):
             cut, name = m.groups()
             priority = "cuttable" if cut else pbi.priority
             index = len(pbi.children) + 1
-            task = Item("task", f"{pbi.key}/{index}", f"[{pbi.key}] {name}",
+            task = Item("task", f"{pbi.key}/{index}", name,
                         _labels("task", priority, epic.key, pbi.phase), parent=pbi.key, name=name)
             pbi.children.append(task.key)
             items.append(task)
