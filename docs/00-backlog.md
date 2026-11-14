@@ -34,6 +34,7 @@ main        ← production (only receives releases from staging)
 - T: Ignore Python cache files
 - T: Link issues as GitHub sub-issues and drop the PBI prefix from task titles
 - T: Spread the web interface over the PBIs that feed it
+- T: Add the support tickets with AI triage idea to the backlog
 - T: Add the parked cart recovery and WhatsApp ideas to the backlog
 
 ### PBI-02 [F1] Base from the SaaS template
@@ -339,6 +340,14 @@ Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ide
 ### PBI-53 [F4] Replenishment prediction and campaign
 ### PBI-54 [F4] Monthly subscription
 
+## E14. Support tickets with AI triage (parked, to refine later) [cut]
+
+Reminders only: these PBIs have no tasks and no acceptance criteria yet. The idea, the rules it must respect (an AI never deploys to `main` by itself, ticket text is data, every action is audited and side effects are approved by a person) and the open questions are in [`docs/ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md).
+
+### PBI-56 [F4] Support ticket screens inside the system
+### PBI-57 [F4] AI triage of a ticket against the documentation
+### PBI-58 [F4] From a confirmed bug to a fix, a QA pull request, an approved release and the reply
+
 ---
 
 ## Suggested execution order
@@ -347,6 +356,6 @@ Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ide
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
-- Parked, refine later: 47 to 54 (cart recovery and WhatsApp)
+- Parked, refine later: 47 to 54 (cart recovery and WhatsApp), 56 to 58 (support tickets with AI triage)
 
 Cut order if needed: Redis, second connector, MCP, stockout-risk model.

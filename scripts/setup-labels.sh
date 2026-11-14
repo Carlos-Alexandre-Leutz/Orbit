@@ -28,7 +28,7 @@ label F2 "bfdadc" "Phase 2: RAG, ML and evals"
 label F3 "bfdadc" "Phase 3: multi-agent and governance"
 label F4 "bfdadc" "Phase 4: docs and launch"
 
-# Epics E0 to E13
-for n in $(seq 0 13); do
+# Epics E0 to E14
+for n in $(seq 0 14); do
   label "E${n}" "c5def5" "Epic E${n}"
 done
