@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
 from app.main import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
@@ -12,5 +11,6 @@ def test_health_reports_ok():
 
 
 def test_has_no_other_endpoint_yet():
-    paths = {route.path for route in app.routes if route.path not in ("/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc")}
+    docs = ("/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc")
+    paths = {route.path for route in app.routes if route.path not in docs}
     assert paths == {"/health"}
