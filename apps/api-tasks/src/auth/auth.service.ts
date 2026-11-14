@@ -98,7 +98,12 @@ export class AuthService {
   /** Removes expired anonymous accounts. The scheduled job that calls it arrives with the retention PBI. */
   async deleteExpiredAnonymous() {
     const { count } = await this.prisma.user.deleteMany({
-      where: { isAnonymous: true, expiresAt: { lt: new Date() } },
+      where: {
+        isAnonymous: true,
+        expiresAt: { lt: new Date() },
+        // An account with orders is a record of a sale and is kept.
+        orders: { none: {} },
+      },
     });
     return count;
   }
