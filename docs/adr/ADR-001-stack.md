@@ -43,5 +43,5 @@ The agent code depends on ports (for example `LlmProvider`, `DataSourceConnector
 
 - Two languages (TypeScript and Python) mean two toolchains in CI and in the images.
 - Several stateful services (PostgreSQL, MongoDB, maybe Redis) on one small VPS need a resource check (PBI-42) and backups (PBI-44).
-- The inherited base has gaps to close before it can carry real use: no token-based session yet, password-reset tokens appear in auth responses, a duplicate e-mail returns a server error through the BFF, some messages are in Portuguese, and dependencies are not pinned. They are handled in the auth and platform PBIs, not hidden here.
+- The inherited base has gaps to close before it can carry real use: `login` returns the user and no token (`jsonwebtoken` is installed in the BFF but unused), `register` and `login` return the whole user record except the password, including the password-reset fields, the BFF turns every `register` error into a 500 (so a duplicate e-mail, a 409 in the core API, reaches the client as a server error), some messages are in Portuguese, and dependencies are not pinned (`turbo` is `latest`). They are handled in the auth and platform PBIs, not hidden here.
 - Choices marked planned or open are not decisions yet; each is settled in its own PBI and recorded in a new ADR if it changes this table.
