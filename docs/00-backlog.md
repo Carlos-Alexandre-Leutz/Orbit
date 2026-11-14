@@ -88,6 +88,7 @@ main        ← production (only receives releases from staging)
 - T: Add the cart model and endpoints
 - T: Enforce rules (stock, quantity, limits)
 - T: Build the cart page
+- T: Create the cart safely when the first requests arrive together
 - T: [cut] Use Redis for cart and idempotency keys
 
 ### PBI-09 [F1] Orders and test payment
