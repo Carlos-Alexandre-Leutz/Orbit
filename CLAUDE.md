@@ -14,14 +14,22 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 - Gitflow: `main` (production) ← `staging` (integration) ← `pbi/<nn>-<slug>` ← `task/<nn>-<slug>`.
 - Task PRs target the PBI branch. PBI PRs target `staging`. Releases go `staging` → `main`.
 - Every task PR documents what was done, how it was tested, and whether AI was used. Every finished PBI gets `docs/pbi/PBI-nn.md`.
-- Do not write code until the owner says the planning phase is done.
+- The planning phase is over (2026-11-13). The AI runs the whole gitflow itself, including merging task and PBI PRs.
+- A PBI goes to `staging` only when all its tasks are done, its tests ran, bugs were checked and every acceptance criterion was validated. Nothing goes to `main` until a real release.
+- Before and after each task: find its issue, comment, move the Project item, link the PR, close it. Details in `CONTRIBUTING.md`.
 
 ## Commits and PRs
 
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`), imperative English, small and focused.
-- **Never add `Co-authored-by` or any AI attribution trailer to commits or PR bodies.**
+- **Never add `Co-authored-by` or any AI attribution trailer to commits or PR bodies.** A husky `commit-msg` hook and the `commitlint` CI check enforce this (`commitlint.config.mjs`, tests: `pnpm test:commitlint`).
 - Never push directly to `main` or `staging` once branch protection is on. Never force-push shared branches.
-- Ask before outward-facing actions (creating issues in bulk, pushing, merging, deploying).
+- Ask before outward-facing actions that are not part of the gitflow (creating issues in bulk, deploying, releasing to `main`).
+
+## Local environment
+
+- Node 20+ and pnpm 9 (`nvm use` reads `.nvmrc`). The default Node on the owner's machine is 16, which breaks pnpm/corepack and the commit hook.
+- Base code comes from `production-saas-template` (see `docs/template-origin.md`): `apps/web` (Next.js), `apps/bff` and `apps/api-tasks` (NestJS). There is no Python or ML service yet.
+- `gh pr edit` fails in this repo (Projects classic GraphQL error); use `gh api -X PATCH repos/<owner>/<repo>/pulls/<n>` and `gh api -X PUT .../merge`.
 
 ## Engineering rules
 
