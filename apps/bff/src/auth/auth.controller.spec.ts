@@ -4,9 +4,13 @@ import { AuthController } from './auth.controller';
 
 describe('BFF AuthController', () => {
   const post = jest.fn();
-  const controller = new AuthController({ post } as never);
+  const get = jest.fn();
+  const controller = new AuthController({ post, get } as never);
 
-  beforeEach(() => post.mockReset());
+  beforeEach(() => {
+    post.mockReset();
+    get.mockReset();
+  });
 
   it('returns what the store API answers', async () => {
     post.mockReturnValue(of({ data: { accessToken: 't' } }));
@@ -37,5 +41,25 @@ describe('BFF AuthController', () => {
       .login({ email: 'a@example.com', password: 'x' })
       .catch((e: unknown) => e)) as HttpException;
     expect(error.getStatus()).toBe(502);
+  });
+
+  it('forwards the Authorization header to the store API', async () => {
+    get.mockReturnValue(of({ data: { id: 'u1' } }));
+    await controller.me('Bearer abc');
+    expect(get.mock.calls[0][1]).toEqual({
+      headers: { Authorization: 'Bearer abc' },
+    });
+  });
+
+  it('keeps the 401 and 403 of the store API', async () => {
+    for (const status of [401, 403]) {
+      get.mockReturnValue(
+        throwError(() => ({ response: { status, data: { message: 'no' } } })),
+      );
+      const error = (await controller
+        .me(undefined)
+        .catch((e: unknown) => e)) as HttpException;
+      expect(error.getStatus()).toBe(status);
+    }
   });
 });

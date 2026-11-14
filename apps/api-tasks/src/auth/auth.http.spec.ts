@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthController } from './auth.controller';
@@ -15,6 +16,7 @@ describe('auth HTTP validation', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
+      imports: [JwtModule.register({ secret: 'a-test-secret' })],
       controllers: [AuthController],
       providers: [{ provide: AuthService, useValue: authService }],
     }).compile();

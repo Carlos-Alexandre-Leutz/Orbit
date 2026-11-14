@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { toPublicUser } from '../users/public-user';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -22,24 +23,12 @@ export class AuthService {
     private jwt: JwtService,
   ) {}
 
-  /** What the API ever returns about a user: no password hash and no reset fields. */
-  toPublic(user: User) {
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      isAnonymous: user.isAnonymous,
-      createdAt: user.createdAt,
-    };
-  }
-
   async issueSession(user: User) {
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
       role: user.role,
     });
-    return { accessToken, user: this.toPublic(user) };
+    return { accessToken, user: toPublicUser(user) };
   }
 
   /** Self-registration always creates a customer; the role is never read from the request. */
@@ -69,6 +58,14 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  async me(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Sessão inválida ou expirada');
+    }
+    return toPublicUser(user);
   }
 
   async login(data: LoginDto) {
