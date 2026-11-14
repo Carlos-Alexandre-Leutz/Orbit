@@ -2,7 +2,7 @@
 """Loads and validates the fictional store in seed/store.json.
 
 The file is the seed of the demo store: categories, products with stock, and demo users per role.
-Loading it into the database waits for the tables it needs (users and roles in PBI-06, the catalog in PBI-07).
+Categories and products are loaded into the database by `pnpm --filter @orbit/api-tasks seed:catalog`; the demo users are not loaded.
 
   scripts/seed_data.py --check     validate the file, exit 1 if there is any problem
 """

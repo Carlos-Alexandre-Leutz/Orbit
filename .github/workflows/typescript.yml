@@ -9,6 +9,22 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_BFF_URL: http://localhost:3001
+      DATABASE_URL: postgresql://orbit:orbit-ci@localhost:5432/orbit_ci?schema=public
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: orbit
+          POSTGRES_PASSWORD: orbit-ci
+          POSTGRES_DB: orbit_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orbit -d orbit_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -34,3 +50,9 @@ jobs:
 
       - name: Lint, test and build
         run: pnpm exec turbo run lint test build --cache-dir=.turbo
+
+      - name: Apply the migrations to a fresh PostgreSQL
+        run: pnpm --filter @orbit/api-tasks exec prisma migrate deploy
+
+      - name: Integration tests against PostgreSQL
+        run: pnpm --filter @orbit/api-tasks test:e2e

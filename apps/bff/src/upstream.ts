@@ -12,20 +12,26 @@ interface UpstreamError {
  */
 export async function callStoreApi(
   http: HttpService,
-  method: 'get' | 'post' | 'patch',
+  method: 'get' | 'post' | 'patch' | 'delete',
   path: string,
-  options: { body?: unknown; authorization?: string; fallback: string },
+  options: {
+    body?: unknown;
+    query?: Record<string, unknown>;
+    authorization?: string;
+    fallback: string;
+  },
 ): Promise<unknown> {
   const url = `${process.env.TASKS_API_URL}${path}`;
   const config = {
     headers: options.authorization
       ? { Authorization: options.authorization }
       : {},
+    params: options.query,
   };
   try {
     const response = await firstValueFrom(
-      method === 'get'
-        ? http.get(url, config)
+      method === 'get' || method === 'delete'
+        ? http[method](url, config)
         : http[method](url, options.body, config),
     );
     return response.data as unknown;

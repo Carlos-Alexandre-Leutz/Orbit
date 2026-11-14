@@ -67,7 +67,7 @@ docker compose down -v     # stop and DELETE the databases
 
 ## Seed data and tests
 
-- The fictional store is in [`seed/`](../seed/README.md); check it with `python3 scripts/seed_data.py --check`. It is not loaded into the database yet.
+- The fictional store is in [`seed/`](../seed/README.md); check it with `python3 scripts/seed_data.py --check`. Load the catalog with `pnpm --filter @orbit/api-tasks seed:catalog` (with `DATABASE_URL` pointing at the running database); the demo users are not loaded.
 - Repository tests: `pnpm test:scripts` and `pnpm test:commitlint`. The ML service has its own: `cd services/ml && pip install -r requirements-dev.txt && pytest`.
 
 ## When something fails
