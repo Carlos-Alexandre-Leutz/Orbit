@@ -228,11 +228,17 @@ describe('catalog (real database)', () => {
       }
     });
 
-    const search = (query: object) =>
-      http()
+    interface Page {
+      items: { sku: string; name: string; priceCents: number }[];
+      total: number;
+    }
+    const search = async (query: object): Promise<{ body: Page }> => {
+      const res = await http()
         .get('/products')
         .query({ category: slug('main'), ...query })
         .expect(200);
+      return { body: res.body as Page };
+    };
     const found = (body: { items: { sku: string }[] }) =>
       body.items.map((i) => i.sku.split('-')[1].toLowerCase());
 
