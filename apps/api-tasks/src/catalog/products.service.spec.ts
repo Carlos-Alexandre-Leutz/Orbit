@@ -67,6 +67,13 @@ describe('ProductsService', () => {
       expect(JSON.stringify(where.AND[1])).toContain('"insensitive"');
     });
 
+    it('escapes the wildcards of a LIKE pattern so they are searched as text', async () => {
+      const { where } = await whereOf({ q: '100%_a\\b' });
+      expect(JSON.stringify(where.AND[0])).toContain(
+        '"contains":"100\\\\%\\\\_a\\\\\\\\b"',
+      );
+    });
+
     it('ignores a blank search and limits the number of words', async () => {
       expect((await whereOf({ q: '   ' })).where.AND).toBeUndefined();
       const many = Array.from({ length: 20 }, (_, i) => `w${i}`).join(' ');

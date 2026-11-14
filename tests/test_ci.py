@@ -54,6 +54,12 @@ class CiWorkflowTests(unittest.TestCase):
         # Any folder compiled next to src/ moves main.js to dist/src/main.js and breaks start:prod.
         self.assertIn("scripts", build["exclude"])
 
+    def test_typescript_check_runs_the_integration_tests_on_a_real_postgres(self):
+        text = read("typescript.yml")
+        self.assertIn("pgvector/pgvector:pg16", text)
+        self.assertIn("prisma migrate deploy", text)
+        self.assertIn("test:e2e", text)
+
 
 if __name__ == "__main__":
     unittest.main()
