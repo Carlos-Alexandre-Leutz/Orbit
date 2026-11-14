@@ -1,4 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CartService } from './cart.service';
 
 const product = (over: Record<string, unknown> = {}) => ({
@@ -18,7 +19,11 @@ describe('CartService', () => {
     cartItem: { findUnique: jest.fn(), count: jest.fn(), upsert: jest.fn() },
   };
   const prisma = {
-    cart: { findUnique: jest.fn(), upsert: jest.fn() },
+    cart: {
+      findUnique: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+      upsert: jest.fn(),
+    },
     cartItem: { deleteMany: jest.fn() },
     $transaction: jest.fn(),
   };
@@ -78,6 +83,32 @@ describe('CartService', () => {
   });
 
   describe('changing the cart', () => {
+    it('reads the cart another request just created instead of failing on the unique key', async () => {
+      prisma.cart.upsert.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('x', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+      prisma.cart.findUniqueOrThrow = jest
+        .fn()
+        .mockResolvedValue({ id: 'c-winner' });
+      await service.add('u1', 'p1', 1);
+      expect(prisma.cart.findUniqueOrThrow).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+      });
+      expect(tx.cartItem.upsert.mock.calls[0][0].create.cartId).toBe(
+        'c-winner',
+      );
+    });
+
+    it('lets any other database error through', async () => {
+      prisma.cart.upsert.mockRejectedValueOnce(new Error('connection lost'));
+      await expect(service.add('u1', 'p1', 1)).rejects.toThrow(
+        'connection lost',
+      );
+    });
+
     it('locks the cart row while it checks and writes', async () => {
       await service.add('u1', 'p1', 2);
       expect(tx.$queryRaw).toHaveBeenCalledTimes(1);

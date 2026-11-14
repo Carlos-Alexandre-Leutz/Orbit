@@ -20,13 +20,27 @@ type CartWithProducts = Prisma.CartGetPayload<{ include: typeof WITH_PRODUCT }>;
 export class CartService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Every user has exactly one cart; it is created the first time it is needed. */
+  /**
+   * Every user has exactly one cart; it is created the first time it is needed. Two requests that
+   * arrive together for a new user both try to create it, and the database lets only one win, so the
+   * loser reads the cart the winner made instead of failing.
+   */
   private async cartOf(userId: string) {
-    return this.prisma.cart.upsert({
-      where: { userId },
-      update: {},
-      create: { userId },
-    });
+    try {
+      return await this.prisma.cart.upsert({
+        where: { userId },
+        update: {},
+        create: { userId },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return this.prisma.cart.findUniqueOrThrow({ where: { userId } });
+      }
+      throw error;
+    }
   }
 
   async view(userId: string) {

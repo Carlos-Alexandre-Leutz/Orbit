@@ -325,4 +325,28 @@ describe('cart (real database)', () => {
       await http().delete('/cart').set(as('bob')).expect(204);
     });
   });
+
+  describe('the very first requests of a new user', () => {
+    it('create one cart between them: 12 parallel adds from a user with no cart all work', async () => {
+      await register('eve');
+      const results = await Promise.all(
+        Array.from({ length: 12 }, () =>
+          http()
+            .post('/cart/items')
+            .set(as('eve'))
+            .send({ productId: products.b, quantity: 1 }),
+        ),
+      );
+      const statuses = results.map((r) => r.status);
+      // 10 units fit; the rest are refused by the rule, never by a crash.
+      expect(statuses.filter((s) => s === 201)).toHaveLength(10);
+      expect(statuses.filter((s) => s === 409)).toHaveLength(2);
+      expect(statuses.filter((s) => s >= 500)).toHaveLength(0);
+      expect((await cartOf('eve')).items[0].quantity).toBe(10);
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { email: `eve-${tag}@example.com` },
+      });
+      expect(await prisma.cart.count({ where: { userId: user.id } })).toBe(1);
+    });
+  });
 });
