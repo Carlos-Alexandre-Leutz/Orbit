@@ -7,11 +7,18 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { ListProductsDto } from './dto/list-products.dto';
+import { ListProductsDto, ProductSort } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 const WITH_CATEGORY = { category: { select: { slug: true, name: true } } };
 const DEFAULT_PAGE_SIZE = 20;
+
+const ORDER: Record<ProductSort, Prisma.ProductOrderByWithRelationInput[]> = {
+  name: [{ name: 'asc' }, { id: 'asc' }],
+  price_asc: [{ priceCents: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+  price_desc: [{ priceCents: 'desc' }, { name: 'asc' }, { id: 'asc' }],
+  newest: [{ createdAt: 'desc' }, { id: 'asc' }],
+};
 
 @Injectable()
 export class ProductsService {
@@ -20,18 +27,45 @@ export class ProductsService {
   async list(query: ListProductsDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? DEFAULT_PAGE_SIZE;
-    const where: Prisma.ProductWhereInput = { active: true };
+    const where = this.filters(query);
     const [items, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
         include: WITH_CATEGORY,
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy: ORDER[query.sort ?? 'name'],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       this.prisma.product.count({ where }),
     ]);
     return { items, total, page, pageSize };
+  }
+
+  /**
+   * Every word of `q` must appear in the name, description or SKU (case does not matter),
+   * so "cast skillet" finds "Cast iron skillet". Words are matched as plain text.
+   */
+  private filters(query: ListProductsDto): Prisma.ProductWhereInput {
+    const words = (query.q ?? '').split(/\s+/).filter(Boolean).slice(0, 8);
+    return {
+      active: true,
+      ...(query.category ? { category: { slug: query.category } } : {}),
+      ...(query.inStock === true ? { stock: { gt: 0 } } : {}),
+      ...(query.inStock === false ? { stock: 0 } : {}),
+      ...(words.length > 0
+        ? {
+            AND: words.map((word) => ({
+              OR: [
+                { name: { contains: word, mode: 'insensitive' as const } },
+                {
+                  description: { contains: word, mode: 'insensitive' as const },
+                },
+                { sku: { contains: word, mode: 'insensitive' as const } },
+              ],
+            })),
+          }
+        : {}),
+    };
   }
 
   async get(id: string) {

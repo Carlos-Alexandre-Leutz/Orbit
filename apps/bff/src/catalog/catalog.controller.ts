@@ -35,7 +35,20 @@ export class CatalogController {
   constructor(private readonly http: HttpService) {}
 
   @Get('products')
-  @ApiOperation({ summary: 'List active products, paged' })
+  @ApiOperation({ summary: 'List and search active products, paged' })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description:
+      'Words to find in name, description or SKU; every word must match',
+  })
+  @ApiQuery({ name: 'category', required: false, description: 'Category slug' })
+  @ApiQuery({ name: 'inStock', required: false, type: Boolean })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    enum: ['name', 'price_asc', 'price_desc', 'newest'],
+  })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'pageSize', required: false, description: 'At most 100' })
   @ApiResponse({ status: 200, type: ProductPageDto })
