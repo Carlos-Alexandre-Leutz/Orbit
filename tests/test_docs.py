@@ -38,6 +38,36 @@ class LinkTests(unittest.TestCase):
         self.assertEqual(broken, [])
 
 
+class AiRulesTests(unittest.TestCase):
+    def setUp(self):
+        self.agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        self.contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+    def test_claude_md_imports_agents_md_instead_of_copying_it(self):
+        self.assertIn("@AGENTS.md", self.claude)
+        self.assertLess(len(self.claude.splitlines()), 15)
+
+    def test_required_checks_match_the_protection_script(self):
+        script = (ROOT / "scripts" / "protect-branches.sh").read_text(encoding="utf-8")
+        checks = re.search(r"CHECKS='\[(.*?)\]'", script).group(1).replace('"', "").split(",")
+        self.assertGreater(len(checks), 0)
+        for check in checks:
+            self.assertIn(f"`{check}`", self.agents)
+            self.assertIn(f"`{check}`", self.contributing)
+
+    def test_both_files_state_the_core_rules(self):
+        for text in (self.agents, self.contributing):
+            self.assertIn("Co-authored-by", text)
+            self.assertIn("English", text)
+            self.assertIn("task/*", text)
+            self.assertIn("Conventional Commits", text)
+
+    def test_agents_md_has_the_main_sections(self):
+        for heading in ("## Language", "## Workflow", "## Commits and PRs", "## Engineering rules", "## Local environment"):
+            self.assertIn(heading, self.agents)
+
+
 class RequirementsTests(unittest.TestCase):
     def setUp(self):
         self.text = REQUIREMENTS.read_text(encoding="utf-8")
