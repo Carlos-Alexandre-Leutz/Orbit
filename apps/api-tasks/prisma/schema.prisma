@@ -35,3 +35,30 @@ model User {
   passwordResetToken   String?  @unique
   passwordResetExpires DateTime?
 }
+
+model Category {
+  id        String    @id @default(uuid())
+  slug      String    @unique
+  name      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  name        String
+  description String   @default("")
+  // Money is kept in cents so no rounding error can appear; the store has one currency.
+  priceCents  Int
+  stock       Int      @default(0)
+  // Removing a product only hides it: past and future orders keep pointing at it.
+  active      Boolean  @default(true)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([active, name])
+}
