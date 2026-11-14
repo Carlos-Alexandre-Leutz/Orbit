@@ -190,5 +190,41 @@ class RequirementsTests(unittest.TestCase):
         self.assertEqual(named - backlog_pbis(), set())
 
 
+class WorkingAgreementTests(unittest.TestCase):
+    """The rule that decisions live in the repository, and the documents that carry them."""
+
+    def read(self, name):
+        return (ROOT / "docs" / name).read_text(encoding="utf-8")
+
+    def test_agents_md_states_the_rule_and_links_the_agreement(self):
+        text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("Decisions live in the repository, not in the chat", text)
+        self.assertIn("docs/working-agreement.md", text)
+        self.assertIn("docs/project-state.md", text)
+
+    def test_the_agreement_names_where_everything_goes(self):
+        text = self.read("working-agreement.md")
+        for target in ("adr/", "00-backlog.md", "open-questions.md", "project-state.md", "ideas/", "../AGENTS.md"):
+            self.assertIn(target, text)
+
+    def test_project_state_has_its_sections_and_a_date(self):
+        text = self.read("project-state.md")
+        for heading in ("## Where it stands", "## Next step", "## Environment traps", "## Known risks"):
+            self.assertIn(heading, text)
+        self.assertRegex(text, r"\*\*Last updated: \d{4}-\d{2}-\d{2}\.\*\*")
+
+    def test_every_pbi_the_state_and_questions_name_exists_in_the_backlog(self):
+        backlog = (ROOT / "docs" / "00-backlog.md").read_text(encoding="utf-8")
+        known = set(re.findall(r"^### (PBI-\d+)", backlog, re.M))
+        for name in ("project-state.md", "open-questions.md"):
+            named = set(re.findall(r"PBI-\d+", self.read(name)))
+            self.assertEqual(named - known, set(), name)
+
+    def test_open_questions_separates_decisions_from_owner_only_actions(self):
+        text = self.read("open-questions.md")
+        self.assertIn("## Decisions", text)
+        self.assertIn("## Only the owner can do these", text)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -74,7 +74,7 @@ class ParseTests(unittest.TestCase):
     def test_real_backlog_counts(self):
         items = parse_backlog((ROOT / "docs" / "00-backlog.md").read_text(encoding="utf-8"))
         counts = {k: sum(i.kind == k for i in items) for k in ("epic", "pbi", "task")}
-        self.assertEqual(counts, {"epic": 15, "pbi": 58, "task": 186})
+        self.assertEqual(counts, {"epic": 15, "pbi": 58, "task": 187})
 
     def test_titles_are_unique(self):
         items = parse_backlog((ROOT / "docs" / "00-backlog.md").read_text(encoding="utf-8"))
