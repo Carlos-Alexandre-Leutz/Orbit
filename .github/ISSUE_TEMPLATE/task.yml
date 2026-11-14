@@ -1,0 +1,28 @@
+name: Task
+description: A small unit of work inside a PBI
+title: "[PBI-NN] "
+labels: ["task"]
+body:
+  - type: input
+    id: pbi
+    attributes:
+      label: Parent PBI
+      description: Issue number of the PBI, for example #2
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What has to be done.
+    validations:
+      required: true
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Code and tests
+        - label: PR documents what was done and how it was tested
+        - label: AI usage declared in the PR
+        - label: CI green
