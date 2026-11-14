@@ -1,19 +1,20 @@
-## 📄 Description
-Description and task link
+Closes or relates to: #<issue number> (task or PBI)
 
-Description and Azure task link.
+## What was done
 
----
+<!-- What changed and why. -->
 
-## 🛠️ Implemented Solution
-Detailed text with information about the implemented solution.
+## How it was tested
 
----
+<!-- Commands run and results. Say what was NOT verified. -->
 
-## 🧪 Tests (Coverage)
-Screenshot of the test coverage results, if available.
+## AI usage
 
----
+<!-- Yes or no, and for what. -->
 
-## 📊 Sonar
-Screenshot showing local Sonar metrics (only when related to a PBI for any environment).  
+## Checklist
+
+- [ ] Branch follows the gitflow (`task/*` into `pbi/*`, `pbi/*` into `staging`)
+- [ ] Commits follow Conventional Commits, with no `Co-authored-by`
+- [ ] Tests and docs are included
+- [ ] The task issue is updated and, for a PBI, `docs/pbi/PBI-nn.md` is written

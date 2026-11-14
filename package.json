@@ -6,9 +6,20 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "start": "turbo run start"
+    "start": "turbo run start",
+    "prepare": "husky",
+    "test:commitlint": "node --test tests/commitlint.test.mjs",
+    "test:scripts": "python3 -I -m unittest discover -s tests -p \"test_*.py\""
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@commitlint/lint": "^21.2.4",
+    "@commitlint/load": "^21.2.4",
+    "husky": "^9.1.7",
     "turbo": "latest"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
