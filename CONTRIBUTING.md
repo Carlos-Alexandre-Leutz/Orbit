@@ -1,6 +1,6 @@
 # Contributing to Orbit
 
-Orbit is built by AI sessions under human direction. These rules apply to every contributor, human or AI. Project rules for AI sessions are also in [`CLAUDE.md`](CLAUDE.md).
+Orbit is built by AI sessions under human direction. These rules apply to every contributor, human or AI. Project rules for AI sessions are in [`AGENTS.md`](AGENTS.md), which [`CLAUDE.md`](CLAUDE.md) imports.
 
 ## Language
 
@@ -25,7 +25,9 @@ main        ← production (only receives releases from staging)
 | PBI | `pbi/*` → `staging` | **All** tasks are merged, the tests ran, the bugs were checked and every acceptance criterion was validated. |
 | Release | `staging` → `main` | A real, working increment exists. Tag it. |
 
-`main` and `staging` are protected: no direct push, no force-push, a pull request and a passing `commitlint` check are required. Never force-push a shared branch.
+`main` and `staging` are protected: no direct push, no force-push, a pull request is required and the checks `commitlint` and `scripts-tests` must pass (no approvals are required). Never force-push a shared branch.
+
+After a task PR merges, its `task/*` branch is deleted. `pbi/*` branches are kept until the owner has checked the merge and deletes them.
 
 ### Branch names
 
