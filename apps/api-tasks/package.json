@@ -20,7 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "set-role": "ts-node scripts/set-role.ts"
+    "set-role": "ts-node scripts/set-role.ts",
+    "seed:catalog": "ts-node scripts/seed-catalog.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.3.7",

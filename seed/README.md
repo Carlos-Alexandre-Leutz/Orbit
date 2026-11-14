@@ -14,4 +14,6 @@ The check rejects a duplicate SKU, an unknown category, a negative stock, a non-
 
 ## Loading it into the database
 
-Not done yet, on purpose. The database has no product table and no roles today: users and roles arrive in PBI-06 and the catalog in PBI-07. Those PBIs add the loader, which must be safe to run twice (no duplicates) and must take the demo users' passwords from the environment, never from this file.
+The **categories and products** are loaded by `pnpm --filter @orbit/api-tasks seed:catalog` (it reads `DATABASE_URL`, and `SEED_FILE` to use another file). It matches rows by slug or SKU, so running it twice creates nothing twice and restores the seed values.
+
+The **demo users are not loaded**: they have no passwords here, and a password must never be written in this file. Make a seller or admin by registering an account and running `pnpm --filter @orbit/api-tasks set-role <email> <seller|admin>`.
