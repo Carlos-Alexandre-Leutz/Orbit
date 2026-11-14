@@ -33,6 +33,7 @@ main        ← production (only receives releases from staging)
 - T: Add a script that imports this backlog as issues
 - T: Ignore Python cache files
 - T: Link issues as GitHub sub-issues and drop the PBI prefix from task titles
+- T: Add the parked cart recovery and WhatsApp ideas to the backlog
 
 ### PBI-02 [F1] Base from the SaaS template
 - T: Copy the template into the repository and record its origin in the README
@@ -315,6 +316,19 @@ main        ← production (only receives releases from staging)
 - T: Set the GitHub About text and topics
 - T: Release `v1.0.0` (staging → main)
 
+## E13. Cart recovery and WhatsApp (parked, to refine later) [cut]
+
+Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ideas, the Meta rules they must satisfy and a first ordering are in [`docs/ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md). Meta's WhatsApp rules come first: no message is sent before consent, opt-out, approved templates and the 24-hour window exist. Pricing idea: one monthly plan, no usage limits, no commission.
+
+### PBI-47 [F4] WhatsApp channel and Meta compliance
+### PBI-48 [F4] Store platform connection and webhooks
+### PBI-49 [F4] Abandoned cart detection and recovery flow
+### PBI-50 [F4] One-click recovery link and recovered-sale attribution
+### PBI-51 [F4] Pending Pix and boleto recovery
+### PBI-52 [F4] Recovery dashboard, test mode and message audit trail
+### PBI-53 [F4] Replenishment prediction and campaign
+### PBI-54 [F4] Monthly subscription
+
 ---
 
 ## Suggested execution order
@@ -323,5 +337,6 @@ main        ← production (only receives releases from staging)
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
+- Parked, refine later: 47 to 54 (cart recovery and WhatsApp)
 
 Cut order if needed: Redis, second connector, MCP, stockout-risk model.
