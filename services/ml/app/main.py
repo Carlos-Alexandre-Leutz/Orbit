@@ -1,4 +1,6 @@
-"""Placeholder for Orbit's machine learning service (see docs/adr/ADR-002-ml-separate-python-service.md).
+"""Placeholder for Orbit's machine learning service.
+
+See docs/adr/ADR-002-ml-separate-python-service.md.
 
 It only answers a health check. The models and prediction endpoints arrive in PBI-27.
 """
