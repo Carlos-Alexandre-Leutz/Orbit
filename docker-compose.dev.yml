@@ -1,24 +1,13 @@
-version: '3.8'
+include:
+  - docker-compose.infra.yml
 
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: orbit-postgres-db
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
   api-tasks:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: sh -c "pnpm --filter api-tasks exec prisma generate --schema=prisma/schema.prisma && pnpm --filter api-tasks dev"
+    command: sh -c "pnpm --filter @orbit/api-tasks exec prisma generate --schema=prisma/schema.prisma && pnpm --filter @orbit/api-tasks start:dev"
     volumes:
       - .:/app
       - /app/node_modules
@@ -28,7 +17,8 @@ services:
     ports:
       - "3002:3002"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
 
@@ -36,8 +26,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    # TROCADO: de 'start' para 'dev'
-    command: pnpm --filter bff dev
+    command: pnpm --filter @orbit/bff dev
     volumes:
       - .:/app
       - /app/node_modules
@@ -52,7 +41,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: pnpm --filter web dev
+    command: pnpm --filter @orbit/web dev
     volumes:
       - .:/app
       - /app/node_modules
@@ -60,6 +49,3 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_BFF_URL=http://localhost:3001
-
-volumes:
-  postgres_data:
