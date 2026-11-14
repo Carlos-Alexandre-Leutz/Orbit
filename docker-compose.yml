@@ -4,12 +4,12 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: saas-postgres-db
+    container_name: orbit-postgres-db
     restart: always
     environment:
-      POSTGRES_USER: alexandre
-      POSTGRES_PASSWORD: mysecretpassword
-      POSTGRES_DB: saas_business_manager
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -26,7 +26,7 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://alexandre:mysecretpassword@db:5432/saas_business_manager?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
 
   bff:
     build:
