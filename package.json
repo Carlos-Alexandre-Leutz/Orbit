@@ -8,7 +8,8 @@
     "lint": "turbo run lint",
     "start": "turbo run start",
     "prepare": "husky",
-    "test:commitlint": "node --test tests/commitlint.test.mjs"
+    "test:commitlint": "node --test tests/commitlint.test.mjs",
+    "test:scripts": "python3 -I -m unittest discover -s tests -p \"test_*.py\""
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

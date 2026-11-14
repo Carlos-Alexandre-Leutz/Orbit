@@ -76,3 +76,12 @@ docker compose -f docker-compose.dev.yml up -d db
 ```
 
 `pnpm install` also installs the Git hooks (husky). The `commit-msg` hook runs commitlint on every commit.
+
+## Repository scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/setup-labels.sh` | Creates or updates the backlog labels. Idempotent. |
+| `scripts/import_backlog.py` | Imports `docs/00-backlog.md` as issues. `--dry-run` shows the plan, `--verify` compares the backlog with GitHub. An item whose title already exists is skipped, so it never duplicates. |
+
+Tests: `pnpm test:scripts` (Python) and `pnpm test:commitlint` (Node).
