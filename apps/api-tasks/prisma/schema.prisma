@@ -15,11 +15,21 @@ model Task {
   createdAt   DateTime @default(now())
 }
 
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
 model User {
   id                   String   @id @default(uuid())
   email                String   @unique
   name                 String?
   password             String
+  role                 Role     @default(CUSTOMER)
+  // Temporary visitor accounts (demo mode): no usable password, deleted or refused after expiresAt.
+  isAnonymous          Boolean  @default(false)
+  expiresAt            DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   passwordResetToken   String?  @unique

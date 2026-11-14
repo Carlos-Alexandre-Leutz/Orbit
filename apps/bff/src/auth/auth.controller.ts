@@ -1,80 +1,59 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { callStoreApi } from '../upstream';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { LoginDto } from './dto/login.dto';
-import axios from 'axios';
 
+/** Passes the browser's requests to the store API and keeps its status codes (409, 401, 400...). */
 @Controller('auth')
 export class AuthController {
-  private readonly coreAuthUrl = process.env.TASKS_API_URL;
-
-  constructor(private readonly httpService: HttpService) {}
+  constructor(private readonly http: HttpService) {}
 
   @Post('register')
-  async register(@Body() body: any) {
-    try {
-      const response = await axios.post(
-        `${this.coreAuthUrl}/auth/register`,
-        body,
-      );
+  register(@Body() body: Record<string, unknown>) {
+    return callStoreApi(this.http, 'post', '/auth/register', {
+      body,
+      fallback: 'Error registering',
+    });
+  }
 
-      return response.data;
-    } catch {
-      throw new HttpException(
-        'Error connecting to API',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
   @Post('login')
-  async login(@Body() dto: LoginDto) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.coreAuthUrl}/auth/login`, dto),
-      );
-      return response.data;
-    } catch (error: any) {
-      const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message = error.response?.data?.message || 'Erro ao realizar login';
-      throw new HttpException(message, status);
-    }
+  login(@Body() dto: LoginDto) {
+    return callStoreApi(this.http, 'post', '/auth/login', {
+      body: dto,
+      fallback: 'Erro ao realizar login',
+    });
   }
+
+  @Post('anonymous')
+  anonymous() {
+    return callStoreApi(this.http, 'post', '/auth/anonymous', {
+      fallback: 'Erro ao criar a sessão temporária',
+    });
+  }
+
+  @Get('me')
+  me(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/auth/me', {
+      authorization,
+      fallback: 'Erro ao carregar a sessão',
+    });
+  }
+
   @Post('forgot-password')
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.coreAuthUrl}/auth/forgot-password`, {
-          email: dto.email,
-        }),
-      );
-      return response.data;
-    } catch (error: any) {
-      const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message =
-        error.response?.data?.message || 'Erro ao processar solicitação';
-      throw new HttpException(message, status);
-    }
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return callStoreApi(this.http, 'post', '/auth/forgot-password', {
+      body: { email: dto.email },
+      fallback: 'Erro ao processar solicitação',
+    });
   }
 
   @Post('reset-password')
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.coreAuthUrl}/auth/reset-password`, dto),
-      );
-      return response.data;
-    } catch (error: any) {
-      const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message = error.response?.data?.message || 'Erro ao resetar senha';
-      throw new HttpException(message, status);
-    }
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return callStoreApi(this.http, 'post', '/auth/reset-password', {
+      body: dto,
+      fallback: 'Erro ao resetar senha',
+    });
   }
 }

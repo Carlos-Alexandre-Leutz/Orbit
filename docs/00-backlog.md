@@ -68,6 +68,7 @@ main        ← production (only receives releases from staging)
 - T: Model users and roles (customer, seller, admin)
 - T: Add role guards to the API
 - T: Add temporary anonymous users (base for demo mode)
+- T: Keep helper scripts out of the API build output
 
 ### PBI-07 [F1] Product catalog
 - T: Add the Prisma model for product, stock and category
