@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { quantityChoices } from '@/lib/cart';
+import { quantityChoices } from '@/lib/cart-shared';
 
 export function AddToCart({
   productId,

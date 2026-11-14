@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { quantityChoices } from '@/lib/cart';
+import { quantityChoices } from '@/lib/cart-shared';
 
 async function call(
   method: string,

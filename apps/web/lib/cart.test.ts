@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { quantityChoices } from './cart';
+import { quantityChoices } from './cart-shared';
 
 describe('quantityChoices', () => {
   it('offers 1 up to the stock', () => {
