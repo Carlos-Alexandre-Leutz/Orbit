@@ -28,6 +28,7 @@ describe('AuthService', () => {
   let jwt: JwtService;
   const prisma = {
     user: {
+      deleteMany: jest.fn().mockResolvedValue({ count: 3 }),
       findUnique: jest.fn(({ where }) =>
         Promise.resolve(users.get(where.email) ?? null),
       ),
@@ -141,6 +142,68 @@ describe('AuthService', () => {
           password: 'correct-password',
         }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
+  describe('anonymous visitors', () => {
+    afterEach(() => {
+      delete process.env.ANONYMOUS_TTL_HOURS;
+    });
+
+    it('creates a temporary customer whose token lasts as long as the account', async () => {
+      process.env.ANONYMOUS_TTL_HOURS = '2';
+      const session = await service.createAnonymous();
+      const data = prisma.user.create.mock.calls[0][0].data;
+      expect(data).toMatchObject({ role: 'CUSTOMER', isAnonymous: true });
+      expect(data.email).toMatch(/^anon-.+@anonymous\.orbit\.invalid$/);
+      expect((data.expiresAt as Date).getTime() - Date.now()).toBeGreaterThan(
+        2 * 3600 * 1000 - 5000,
+      );
+      const payload = await jwt.verifyAsync(session.accessToken);
+      expect(payload.exp - payload.iat).toBe(2 * 3600);
+      expect(session.user.isAnonymous).toBe(true);
+    });
+
+    it('defaults to 24 hours', async () => {
+      const session = await service.createAnonymous();
+      const payload = await jwt.verifyAsync(session.accessToken);
+      expect(payload.exp - payload.iat).toBe(24 * 3600);
+    });
+
+    it('gives each visitor a different account', async () => {
+      await service.createAnonymous();
+      await service.createAnonymous();
+      const [a, b] = prisma.user.create.mock.calls.map((c) => c[0].data.email);
+      expect(a).not.toBe(b);
+    });
+
+    it('refuses the session of an expired anonymous account', async () => {
+      const expired = makeUser({
+        id: 'a1',
+        isAnonymous: true,
+        expiresAt: new Date(Date.now() - 1000),
+      });
+      prisma.user.findUnique.mockResolvedValueOnce(expired);
+      await expect(service.me('a1')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    });
+
+    it('still serves an anonymous account that has not expired', async () => {
+      const live = makeUser({
+        id: 'a1',
+        isAnonymous: true,
+        expiresAt: new Date(Date.now() + 60000),
+      });
+      prisma.user.findUnique.mockResolvedValueOnce(live);
+      await expect(service.me('a1')).resolves.toMatchObject({ id: 'a1' });
+    });
+
+    it('deletes only expired anonymous accounts', async () => {
+      await expect(service.deleteExpiredAnonymous()).resolves.toBe(3);
+      const where = prisma.user.deleteMany.mock.calls[0][0].where;
+      expect(where.isAnonymous).toBe(true);
+      expect(where.expiresAt.lt).toBeInstanceOf(Date);
     });
   });
 });

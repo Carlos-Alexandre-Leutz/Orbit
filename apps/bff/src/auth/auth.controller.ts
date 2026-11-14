@@ -26,6 +26,13 @@ export class AuthController {
     });
   }
 
+  @Post('anonymous')
+  anonymous() {
+    return callStoreApi(this.http, 'post', '/auth/anonymous', {
+      fallback: 'Erro ao criar a sessão temporária',
+    });
+  }
+
   @Get('me')
   me(@Headers('authorization') authorization?: string) {
     return callStoreApi(this.http, 'get', '/auth/me', {
