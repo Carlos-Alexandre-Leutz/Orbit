@@ -33,6 +33,7 @@ main        ← production (only receives releases from staging)
 - T: Add a script that imports this backlog as issues
 - T: Ignore Python cache files
 - T: Link issues as GitHub sub-issues and drop the PBI prefix from task titles
+- T: Spread the web interface over the PBIs that feed it
 - T: Add the parked cart recovery and WhatsApp ideas to the backlog
 
 ### PBI-02 [F1] Base from the SaaS template
@@ -76,9 +77,17 @@ main        ← production (only receives releases from staging)
 - T: Add simple text search
 - T: Add API tests
 
+### PBI-55 [F1] Web session and catalog pages
+- T: Add the web session (cookie set by the web server) with login, logout and protected routes
+- T: Build the shared layout with a menu that follows the user's role
+- T: Build the catalog pages (list with search, filters and paging, product detail)
+- T: Build the seller product management pages
+- T: Add a "simulated data / test payments" banner
+
 ### PBI-08 [F1] Cart
 - T: Add the cart model and endpoints
 - T: Enforce rules (stock, quantity, limits)
+- T: Build the cart page
 - T: [cut] Use Redis for cart and idempotency keys
 
 ### PBI-09 [F1] Orders and test payment
@@ -87,12 +96,11 @@ main        ← production (only receives releases from staging)
 - T: Make order creation and payment idempotent
 - T: Implement order cancellation rules
 - T: Add transactional email through a test provider
+- T: Build the checkout and order pages
 
 ### PBI-10 [F1] Web interface
-- T: Build the layout and catalog, cart and orders pages
 - T: Build the chat page with streaming
-- T: Build the seller pages (products, sales, stock)
-- T: Add a "simulated data / test payments" banner
+- T: Build the seller sales and stock pages
 
 ## E3. Audit and governance [must]
 
@@ -334,7 +342,7 @@ Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ide
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 11, 12, 17, 18, 08, 09, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 11, 12, 17, 18, 08, 09, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
