@@ -30,7 +30,7 @@ Not verified: Docker image build, a full `docker compose up`, the web UI in a br
 
 - The tasks were committed directly on `pbi/02-saas-template`, without one `task/*` branch and PR each. Each task is still one commit (or part of one) in this branch.
 - The template's CORS fallback now points to `http://localhost:3000`, not to the template's staging URL.
-- The template's deploy workflow was left untouched. It runs on every push to `main` and `staging` and needs Render secrets this repository does not have, so it will fail until it is rewritten or disabled.
+- The template's deploy workflow now only runs manually (`workflow_dispatch`). Its push trigger needed Render secrets this repository does not have and would have failed on every push to `staging` and `main`. The real deployment is PBI-43.
 
 ## Known gaps left for later PBIs
 

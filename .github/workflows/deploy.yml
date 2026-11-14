@@ -1,8 +1,9 @@
 name: Continuous Deployment
 
+# Disabled until the Orbit deployment exists (PBI-43). The template's Render hooks
+# and secrets are not configured in this repository, so a push trigger would fail.
 on:
-  push:
-    branches: [main, staging]
+  workflow_dispatch:
 
 jobs:
 

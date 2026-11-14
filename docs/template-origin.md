@@ -40,7 +40,7 @@ Not verified: the Docker image build and the full `docker compose up`, the web U
 - **No JWT.** The template README claimed JWT auth; the API has no JWT code. Login returns the user object and no token.
 - **Sensitive fields in responses.** Register and login return `passwordResetToken` and `passwordResetExpires`.
 - **Duplicate e-mail returns 500** through the BFF (the API answers 409, the BFF's register handler turns every error into 500).
-- **Deploy workflow** (`.github/workflows/deploy.yml`) runs on every push to `main` and `staging` and calls Render hooks from secrets that this repo does not have. It will fail until it is rewritten or disabled.
+- **Deploy workflow** (`.github/workflows/deploy.yml`) came from the template with Render hooks and secrets this repo does not have. Its push trigger was replaced by a manual `workflow_dispatch` until the real deployment exists (PBI-43).
 - Error messages and log lines are in Portuguese, and the PR template mentions Azure and Sonar.
 - Dependencies are not pinned to the latest: Prisma 6 (current major is newer) and `turbo` is `latest`.
 
