@@ -135,6 +135,31 @@ class AiAssistedDevelopmentTests(unittest.TestCase):
             self.assertIn(expected, found)
 
 
+class SetupDocTests(unittest.TestCase):
+    def setUp(self):
+        self.text = (ROOT / "docs" / "setup.md").read_text(encoding="utf-8")
+
+    def test_names_every_compose_service(self):
+        services = set()
+        for name in ("docker-compose.yml", "docker-compose.infra.yml"):
+            body = (ROOT / name).read_text(encoding="utf-8").split("\nvolumes:")[0]
+            services |= set(re.findall(r"^  ([a-z][a-z-]*):\s*$", body, re.M))
+        self.assertGreaterEqual(len(services), 6)
+        for service in services:
+            self.assertIn(f"`{service}`", self.text)
+
+    def test_the_one_command_is_the_one_in_the_readme(self):
+        command = "docker compose up -d --build --wait"
+        self.assertIn(command, self.text)
+        self.assertIn(command, (ROOT / "README.md").read_text(encoding="utf-8"))
+
+    def test_every_variable_it_names_is_in_env_example(self):
+        example = (ROOT / ".env.example").read_text(encoding="utf-8")
+        for name in set(re.findall(r"`([A-Z][A-Z0-9_]{3,})`", self.text)):
+            if name.startswith(("POSTGRES_", "MONGO_")):
+                self.assertIn(name + "=", example)
+
+
 class RequirementsTests(unittest.TestCase):
     def setUp(self):
         self.text = REQUIREMENTS.read_text(encoding="utf-8")
