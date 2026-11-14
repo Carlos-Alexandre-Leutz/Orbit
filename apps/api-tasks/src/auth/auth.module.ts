@@ -7,6 +7,6 @@ import { MailModule } from '../mail/mail.module';
 @Module({
   imports: [UsersModule, MailModule],
   controllers: [AuthController],
-  providers: [AuthService]
+  providers: [AuthService],
 })
 export class AuthModule {}

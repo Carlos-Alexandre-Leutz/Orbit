@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
         {!isSent ? (
           <form onSubmit={handleResetRequest} className="space-y-4">
             <p className="text-sm text-gray-600">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we&apos;ll send you a link to reset your password.
             </p>
             <input
               type="email"

@@ -99,7 +99,10 @@ export class AuthService {
       throw new BadRequestException('Token inválido ou expirado');
     }
 
-    if (user.passwordResetExpires && new Date() > new Date(user.passwordResetExpires)) {
+    if (
+      user.passwordResetExpires &&
+      new Date() > new Date(user.passwordResetExpires)
+    ) {
       throw new BadRequestException('Token expirado');
     }
 
