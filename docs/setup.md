@@ -76,7 +76,7 @@ docker compose down -v     # stop and DELETE the databases
 |---|---|
 | `required variable MONGO_PASSWORD is missing a value` | `.env` is missing or old. Copy `.env.example` again and keep your own values. |
 | `port is already allocated` | Another program uses the port. Change `POSTGRES_PORT` or `MONGO_PORT`, or stop the other program. |
-| `type "vector" does not exist` | The database volume is older than the pgvector image, so the init script never ran. Run: `docker compose exec db psql -U orbit -d orbit -c "CREATE EXTENSION IF NOT EXISTS vector"`. |
+| `type "vector" does not exist` | The database volume is older than the pgvector image, so the init script never ran. The simplest fix, since development data is disposable, is `docker compose down -v` and start again. To keep the data, run `docker compose exec db psql -U orbit -d orbit -c "CREATE EXTENSION IF NOT EXISTS vector"`: it worked on an old volume in a test, but the old image was Alpine-based and the new one is Debian-based, so text sort order can differ in theory. |
 | `api-tasks` stays unhealthy | Look at `docker compose logs api-tasks`. It starts only after the database is healthy and applies migrations first. |
 | `Missing required environment variables: ...` | An app stopped at startup on purpose; fill the named variables in `.env`. |
 | `URL.canParse is not a function` or similar on `pnpm` | You are on Node 16. Run `nvm use` (Node 20). |
