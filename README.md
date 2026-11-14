@@ -1,5 +1,5 @@
 # Orbit
-AI-powered planning agent that manages your calendar, prioritizes tasks and automates follow-ups using LLM tool calling.
+Orbit is a conversational commerce agent: customers and sellers run a store through chat, with governed agent workflows, a full audit trail, RAG and scikit-learn forecasting. It is a portfolio project: the data is simulated and payments are in test mode. See [`docs/01-requirements.md`](docs/01-requirements.md) for what it must do.
 
 ## Status
 
@@ -15,8 +15,8 @@ The monorepo base comes from
 
 - `apps/web`: Next.js (App Router), Tailwind CSS, login, register, password reset and a dashboard shell.
 - `apps/bff`: NestJS backend-for-frontend with Swagger at `/docs`.
-- `apps/api-tasks`: NestJS core API with Prisma, PostgreSQL, JWT auth and password recovery by e-mail.
-- Docker Compose files for local development, and a deploy workflow.
+- `apps/api-tasks`: NestJS core API with Prisma, PostgreSQL, register, login and password recovery by e-mail (no token-based session yet).
+- Docker Compose files, and a deploy workflow that is disabled until the deployment PBIs.
 
 What came from the template and what was added is tracked in
 [`docs/template-origin.md`](docs/template-origin.md).
@@ -25,7 +25,7 @@ What came from the template and what was added is tracked in
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose.dev.yml up --build
+docker compose up -d --build --wait
 ```
 
-Web runs on `:3000`, BFF on `:3001`, API on `:3002`, PostgreSQL on `:5432`.
+This starts PostgreSQL with pgvector, MongoDB, a placeholder ML service, the store API, the BFF and the web app (<http://localhost:3000>). Ports, reset, hot reload and troubleshooting are in [`docs/setup.md`](docs/setup.md).
