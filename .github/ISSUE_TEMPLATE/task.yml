@@ -1,13 +1,13 @@
 name: Task
 description: A small unit of work inside a PBI
-title: "[PBI-NN] "
+title: ""
 labels: ["task"]
 body:
   - type: input
     id: pbi
     attributes:
       label: Parent PBI
-      description: Issue number of the PBI, for example #2
+      description: Issue number of the PBI, for example #2. After creating the task, add it as a sub-issue of that PBI.
     validations:
       required: true
   - type: textarea

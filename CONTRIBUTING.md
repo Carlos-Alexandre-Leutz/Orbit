@@ -82,7 +82,7 @@ docker compose -f docker-compose.dev.yml up -d db
 | Script | Purpose |
 |---|---|
 | `scripts/setup-labels.sh` | Creates or updates the backlog labels. Idempotent. |
-| `scripts/import_backlog.py` | Imports `docs/00-backlog.md` as issues. `--dry-run` shows the plan, `--verify` compares the backlog with GitHub. An item whose title already exists is skipped, so it never duplicates. |
+| `scripts/import_backlog.py` | Imports `docs/00-backlog.md` as issues. `--dry-run` shows the plan, `--verify` compares the backlog with GitHub. An item whose title already exists is skipped, so it never duplicates. Every PBI is linked to its epic and every task to its PBI as a native sub-issue; `--verify` also reports missing links. |
 | `scripts/setup_project.py` | Sets up the GitHub Project: `Phase` and `Priority` fields, their values (from the backlog) and the views. `--dry-run` shows the plan. Needs `--owner` and `--project`. |
 | `scripts/protect-branches.sh` | Protects `main` and `staging`. `--check` verifies the rules and exits 1 if one is missing. |
 
