@@ -68,6 +68,46 @@ class AiRulesTests(unittest.TestCase):
             self.assertIn(heading, self.agents)
 
 
+ADR_DIR = ROOT / "docs" / "adr"
+ADR_HEADINGS = ("## Context", "## Decision", "## Alternatives considered", "## Consequences")
+ADR_STATUS_RE = re.compile(r"^- \*\*Status:\*\* (Proposed|Accepted|Superseded by ADR-\d{3})$", re.M)
+
+
+def adrs():
+    return sorted(ADR_DIR.glob("ADR-[0-9][0-9][0-9]-*.md"))
+
+
+class AdrTests(unittest.TestCase):
+    def test_template_has_every_section(self):
+        template = (ADR_DIR / "template.md").read_text(encoding="utf-8")
+        for heading in ADR_HEADINGS:
+            self.assertIn(heading, template)
+
+    def test_the_first_two_decisions_exist(self):
+        names = [p.name for p in adrs()]
+        self.assertTrue(any(n.startswith("ADR-001-") for n in names))
+        self.assertTrue(any(n.startswith("ADR-002-") for n in names))
+
+    def test_numbers_are_unique_and_without_gaps(self):
+        numbers = [int(p.name[4:7]) for p in adrs()]
+        self.assertEqual(numbers, list(range(1, len(numbers) + 1)))
+
+    def test_each_adr_has_title_status_date_and_every_section(self):
+        for path in adrs():
+            text = path.read_text(encoding="utf-8")
+            number = path.name[4:7]
+            self.assertRegex(text, re.compile(rf"^# ADR-{number}: .+", re.M), path.name)
+            self.assertRegex(text, ADR_STATUS_RE, path.name)
+            self.assertRegex(text, re.compile(r"^- \*\*Date:\*\* \d{4}-\d{2}-\d{2}$", re.M), path.name)
+            for heading in ADR_HEADINGS:
+                self.assertIn(heading, text, f"{path.name}: {heading}")
+
+    def test_every_pbi_an_adr_names_exists_in_the_backlog(self):
+        for path in adrs():
+            named = set(re.findall(r"PBI-\d+", path.read_text(encoding="utf-8")))
+            self.assertEqual(named - backlog_pbis(), set(), path.name)
+
+
 class RequirementsTests(unittest.TestCase):
     def setUp(self):
         self.text = REQUIREMENTS.read_text(encoding="utf-8")

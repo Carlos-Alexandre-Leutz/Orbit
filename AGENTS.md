@@ -2,7 +2,7 @@
 
 These rules apply to any AI tool or agent working in this repository. `CLAUDE.md` imports this file, so Claude Code reads the same text. Human contributors follow [`CONTRIBUTING.md`](CONTRIBUTING.md), which says the same things in more detail.
 
-Orbit is a conversational commerce agent: customers and sellers run a store through chat, with governed agent workflows, a full audit trail, RAG, and scikit-learn forecasting. It is a portfolio project; data is simulated and payments are in test mode. What it must do is in [`docs/01-requirements.md`](docs/01-requirements.md); the decisions behind it are in `docs/adr/`.
+Orbit is a conversational commerce agent: customers and sellers run a store through chat, with governed agent workflows, a full audit trail, RAG, and scikit-learn forecasting. It is a portfolio project; data is simulated and payments are in test mode. What it must do is in [`docs/01-requirements.md`](docs/01-requirements.md); the decisions behind it are in [`docs/adr/`](docs/adr).
 
 ## Language
 
