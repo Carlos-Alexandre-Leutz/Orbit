@@ -21,6 +21,7 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 - A PBI goes to `staging` only when all its tasks are done, its tests ran, bugs were checked and every acceptance criterion was validated. Nothing goes to `main` until a real release.
 - Before and after each task: find its issue, comment, move the Project item, link the PR, close it.
 - After a task PR merges, delete its `task/*` branch. Check that none is left before starting the next PBI. Do not delete `pbi/*` branches: the owner does that.
+- **Decisions live in the repository, not in the chat.** Anything that must be remembered goes in an ADR, the backlog, a `docs/pbi/` document, `docs/open-questions.md` or `docs/project-state.md`, as described in [`docs/working-agreement.md`](docs/working-agreement.md). Update `docs/project-state.md` at the end of every PBI and every session; hand a session over by pointing the next one at the repository, not by pasting a summary.
 - Every task PR documents what was done, how it was tested, and whether AI was used. Every finished PBI gets `docs/pbi/PBI-nn.md`.
 
 ## Commits and PRs

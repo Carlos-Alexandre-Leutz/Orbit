@@ -35,6 +35,7 @@ main        ← production (only receives releases from staging)
 - T: Link issues as GitHub sub-issues and drop the PBI prefix from task titles
 - T: Spread the web interface over the PBIs that feed it
 - T: Add the support tickets with AI triage idea to the backlog
+- T: Keep decisions, questions and the project state in the repository, not in the chat
 - T: Add the parked cart recovery and WhatsApp ideas to the backlog
 
 ### PBI-02 [F1] Base from the SaaS template
