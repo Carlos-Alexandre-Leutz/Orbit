@@ -20,6 +20,8 @@ COPY turbo.json turbo.json
 
 RUN pnpm --filter=@orbit/api-tasks exec prisma generate --schema=./prisma/schema.prisma
 
+ARG NEXT_PUBLIC_BFF_URL=http://localhost:3001
+ENV NEXT_PUBLIC_BFF_URL=$NEXT_PUBLIC_BFF_URL
 RUN pnpm turbo build
 
 FROM base AS runner
