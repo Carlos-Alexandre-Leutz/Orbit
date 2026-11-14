@@ -32,6 +32,7 @@ main        ← production (only receives releases from staging)
 - T: Add commitlint and a hook that rejects `Co-authored-by`
 - T: Add a script that imports this backlog as issues
 - T: Ignore Python cache files
+- T: Link issues as GitHub sub-issues and drop the PBI prefix from task titles
 
 ### PBI-02 [F1] Base from the SaaS template
 - T: Copy the template into the repository and record its origin in the README
