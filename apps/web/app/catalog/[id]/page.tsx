@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AddToCart } from '@/components/AddToCart';
 import { StockLabel } from '@/components/ProductCard';
+import { getCurrentUser } from '@/lib/auth';
 import { bffRequest } from '@/lib/bff';
 import { formatPrice, type Product } from '@/lib/catalog';
 
@@ -25,6 +27,7 @@ export default async function ProductPage({
     );
   }
   const product = result.data;
+  const user = await getCurrentUser();
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-8">
       <Link href="/catalog" className="text-sm text-blue-400 hover:underline">
@@ -39,6 +42,11 @@ export default async function ProductPage({
       </p>
       <p className="text-2xl font-bold">{formatPrice(product.priceCents)}</p>
       <StockLabel stock={product.stock} />
+      <AddToCart
+        productId={product.id}
+        stock={product.stock}
+        signedIn={Boolean(user)}
+      />
       <p className="text-xs text-gray-500">SKU {product.sku}</p>
     </main>
   );
