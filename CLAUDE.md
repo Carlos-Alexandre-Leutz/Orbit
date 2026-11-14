@@ -16,6 +16,7 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 - Every task PR documents what was done, how it was tested, and whether AI was used. Every finished PBI gets `docs/pbi/PBI-nn.md`.
 - The planning phase is over (2026-11-13). The AI runs the whole gitflow itself, including merging task and PBI PRs.
 - A PBI goes to `staging` only when all its tasks are done, its tests ran, bugs were checked and every acceptance criterion was validated. Nothing goes to `main` until a real release.
+- Epics, PBIs and tasks are linked as native GitHub sub-issues (epic → PBI → task), and task titles carry no `[PBI-nn]` prefix. A task created by hand must be added to `docs/00-backlog.md` and linked; `scripts/import_backlog.py --verify` checks both.
 - Before and after each task: find its issue, comment, move the Project item, link the PR, close it. Details in `CONTRIBUTING.md`.
 
 ## Commits and PRs
