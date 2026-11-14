@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -10,10 +11,15 @@ HAS_COMPOSE = shutil.which("docker") is not None and subprocess.run(
 
 
 def compose_config(*files):
-    args = ["docker", "compose", "--env-file", ".env.example"]
-    for f in files:
-        args += ["-f", f]
-    out = subprocess.run([*args, "config", "--format", "json"], cwd=ROOT, capture_output=True, text=True)
+    """Renders the Compose files the way a fresh clone would see them: with `.env` copied from `.env.example`."""
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copy(ROOT / ".env.example", Path(tmp) / ".env")
+        for path in ROOT.glob("docker-compose*.yml"):
+            shutil.copy(path, tmp)
+        args = ["docker", "compose"]
+        for f in files:
+            args += ["-f", f]
+        out = subprocess.run([*args, "config", "--format", "json"], cwd=tmp, capture_output=True, text=True)
     if out.returncode:
         raise AssertionError(out.stderr)
     return json.loads(out.stdout)
