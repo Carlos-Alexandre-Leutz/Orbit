@@ -2,66 +2,97 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
-  NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
+    private jwt: JwtService,
   ) {}
 
-  async register(data: any) {
-    const userExists = await this.prisma.user.findUnique({
+  /** What the API ever returns about a user: no password hash and no reset fields. */
+  toPublic(user: User) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isAnonymous: user.isAnonymous,
+      createdAt: user.createdAt,
+    };
+  }
+
+  async issueSession(user: User) {
+    const accessToken = await this.jwt.signAsync({
+      sub: user.id,
+      role: user.role,
+    });
+    return { accessToken, user: this.toPublic(user) };
+  }
+
+  /** Self-registration always creates a customer; the role is never read from the request. */
+  async register(data: RegisterDto) {
+    const exists = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
-
-    if (userExists) {
+    if (exists) {
       throw new ConflictException('Este e-mail já está cadastrado');
     }
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        email: data.email,
-        name: data.name,
-        password: hashedPassword,
-      },
-    });
-
-    const { password, ...result } = user;
-    return result;
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: data.email,
+          name: data.name,
+          password: await bcrypt.hash(data.password, 10),
+          role: 'CUSTOMER',
+        },
+      });
+      return await this.issueSession(user);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Este e-mail já está cadastrado');
+      }
+      throw error;
+    }
   }
-  async login(data: any) {
+
+  async login(data: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
-
-    if (!user) {
+    const valid =
+      !!user &&
+      !user.isAnonymous &&
+      (await bcrypt.compare(data.password, user.password));
+    if (!user || !valid) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
-
-    const isPasswordValid = await bcrypt.compare(data.password, user.password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciais inválidas');
-    }
-
-    const { password, ...result } = user;
-    return result;
+    return this.issueSession(user);
   }
+
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
+    const message = 'Se o e-mail estiver cadastrado, enviaremos as instruções.';
     if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
+      return { message };
     }
 
     const token = crypto.randomBytes(20).toString('hex');
@@ -79,17 +110,11 @@ export class AuthService {
 
     await this.mailService.sendPasswordReset(user.email, token);
 
-    return {
-      message: 'E-mail de recuperação enviado com sucesso!',
-    };
+    return { message };
   }
 
-  async resetPassword(data: any) {
+  async resetPassword(data: ResetPasswordDto) {
     const { token, newPassword } = data;
-
-    if (!token || !newPassword) {
-      throw new BadRequestException('Token e nova senha são obrigatórios');
-    }
 
     const user = await this.prisma.user.findFirst({
       where: { passwordResetToken: token },
