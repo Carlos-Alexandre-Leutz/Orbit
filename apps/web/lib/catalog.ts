@@ -60,6 +60,7 @@ export function parseCatalogParams(raw: RawParams): CatalogParams {
 export function catalogHref(
   params: CatalogParams,
   change: Partial<CatalogParams> = {},
+  base = '/catalog',
 ): string {
   const next = { ...params, ...change };
   const query = new URLSearchParams();
@@ -69,7 +70,7 @@ export function catalogHref(
   if (next.sort !== 'name') query.set('sort', next.sort);
   if (next.page > 1) query.set('page', String(next.page));
   const text = query.toString();
-  return text ? `/catalog?${text}` : '/catalog';
+  return text ? `${base}?${text}` : base;
 }
 
 /** Prices are whole cents; the store has one currency. */
@@ -82,4 +83,17 @@ export function formatPrice(cents: number): string {
 
 export function pageCount(total: number, pageSize: number): number {
   return Math.max(1, Math.ceil(total / pageSize));
+}
+
+/** "34.90" or "34" typed by a seller, as whole cents; null when it is not a price. */
+export function parsePriceToCents(text: string): number | null {
+  const match = /^\s*(\d{1,7})(?:[.,](\d{1,2}))?\s*$/.exec(text);
+  if (!match) return null;
+  const cents =
+    Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+  return cents <= 100_000_000 ? cents : null;
+}
+
+export function centsToInput(cents: number): string {
+  return (cents / 100).toFixed(2);
 }

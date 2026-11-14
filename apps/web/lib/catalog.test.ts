@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   catalogHref,
+  centsToInput,
   formatPrice,
   pageCount,
   parseCatalogParams,
+  parsePriceToCents,
 } from './catalog';
 
 describe('parseCatalogParams', () => {
@@ -80,5 +82,45 @@ describe('formatPrice and pageCount', () => {
     expect(pageCount(0, 12)).toBe(1);
     expect(pageCount(12, 12)).toBe(1);
     expect(pageCount(13, 12)).toBe(2);
+  });
+});
+
+describe('parsePriceToCents', () => {
+  it.each([
+    ['34.90', 3490],
+    ['34,9', 3490],
+    ['34', 3400],
+    [' 0.05 ', 5],
+    ['0', 0],
+    ['1000000.00', 100_000_000],
+  ])('reads %s as %d cents', (text, cents) => {
+    expect(parsePriceToCents(text)).toBe(cents);
+  });
+
+  it.each([
+    '',
+    'abc',
+    '-1',
+    '1.234',
+    '1.',
+    '.5',
+    '1,000.00',
+    '1e3',
+    '10000000',
+  ])('refuses %j', (text) => {
+    expect(parsePriceToCents(text)).toBeNull();
+  });
+
+  it('round-trips with the form field', () => {
+    expect(parsePriceToCents(centsToInput(3490))).toBe(3490);
+    expect(centsToInput(5)).toBe('0.05');
+  });
+});
+
+describe('catalogHref with another base', () => {
+  it('builds links for the seller list too', () => {
+    expect(
+      catalogHref(parseCatalogParams({}), { page: 2 }, '/seller/products'),
+    ).toBe('/seller/products?page=2');
   });
 });
