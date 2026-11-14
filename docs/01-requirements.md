@@ -257,4 +257,4 @@ Delivered by: PBI-41
 - Real payments, real customer data and real e-mail to real customers.
 - A native mobile app.
 - Multi-store or multi-tenant operation.
-- Deep learning; the models are scikit-learn models (see ADR-002).
+- Deep learning; the models are scikit-learn models (see [ADR-002](adr/ADR-002-ml-separate-python-service.md)).
