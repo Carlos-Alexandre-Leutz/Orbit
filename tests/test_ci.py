@@ -45,6 +45,15 @@ class CiWorkflowTests(unittest.TestCase):
             self.assertNotIn("--fix", scripts["lint"], app)
             self.assertIn("--fix", scripts["lint:fix"], app)
 
+    def test_api_build_output_stays_flat_so_start_prod_finds_main(self):
+        import json
+        api = ROOT / "apps" / "api-tasks"
+        scripts = json.loads((api / "package.json").read_text(encoding="utf-8"))["scripts"]
+        build = json.loads((api / "tsconfig.build.json").read_text(encoding="utf-8"))
+        self.assertEqual(scripts["start:prod"], "node dist/main")
+        # Any folder compiled next to src/ moves main.js to dist/src/main.js and breaks start:prod.
+        self.assertIn("scripts", build["exclude"])
+
 
 if __name__ == "__main__":
     unittest.main()
