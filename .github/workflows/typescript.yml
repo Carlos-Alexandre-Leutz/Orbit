@@ -25,5 +25,12 @@ jobs:
       - name: Generate the Prisma client
         run: pnpm --filter @orbit/api-tasks exec prisma generate
 
+      - name: Cache the Turborepo results
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
       - name: Lint, test and build
-        run: pnpm exec turbo run lint test build
+        run: pnpm exec turbo run lint test build --cache-dir=.turbo

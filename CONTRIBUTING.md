@@ -88,5 +88,6 @@ docker compose -f docker-compose.dev.yml up -d db
 | `scripts/setup_project.py` | Sets up the GitHub Project: `Phase` and `Priority` fields, their values (from the backlog) and the views. `--dry-run` shows the plan. Needs `--owner` and `--project`. |
 | `scripts/protect-branches.sh` | Protects `main` and `staging`. `--check` verifies the rules and exits 1 if one is missing. |
 | `scripts/seed_data.py` | `--check` validates `seed/store.json`, the fictional store (see [`seed/README.md`](seed/README.md)). |
+| `scripts/pipeline_times.py` | Median and longest run time of each CI workflow, and how many runs failed, from the latest runs on GitHub. |
 
 Tests: `pnpm test:scripts` (Python) and `pnpm test:commitlint` (Node).
