@@ -10,6 +10,7 @@ import { MailModule } from '../mail/mail.module';
     UsersModule,
     MailModule,
     JwtModule.registerAsync({
+      global: true,
       useFactory: () => ({
         secret: process.env.JWT_SECRET,
         signOptions: {
