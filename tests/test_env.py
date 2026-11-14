@@ -3,7 +3,13 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCES = [*(ROOT / "apps").glob("*/src/**/*.ts"), *(ROOT / "apps" / "web" / "app").rglob("*.ts*")]
+WEB = ROOT / "apps" / "web"
+SOURCES = [
+    *(ROOT / "apps").glob("*/src/**/*.ts"),
+    *(WEB / "app").rglob("*.ts*"),
+    *(WEB / "lib").rglob("*.ts"),
+    WEB / "proxy.ts",
+]
 COMPOSE = sorted(ROOT.glob("docker-compose*.yml"))
 # Set by the platform or by Compose itself, not by the person who fills in `.env`.
 PROVIDED = {"NODE_ENV"}
@@ -20,7 +26,7 @@ def read_by_the_apps():
     for path in SOURCES:
         if "node_modules" in path.parts or ".next" in path.parts:
             continue
-        names |= set(re.findall(r"process\.env\.([A-Z][A-Z0-9_]*)", path.read_text(encoding="utf-8")))
+        names |= set(re.findall(r"\b(?:process\.)?env\.([A-Z][A-Z0-9_]*)", path.read_text(encoding="utf-8")))
     schema = ROOT / "apps" / "api-tasks" / "prisma" / "schema.prisma"
     names |= set(re.findall(r'env\("([A-Z][A-Z0-9_]*)"\)', schema.read_text(encoding="utf-8")))
     return names - PROVIDED
