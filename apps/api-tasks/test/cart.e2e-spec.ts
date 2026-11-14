@@ -218,4 +218,111 @@ describe('cart (real database)', () => {
       }),
     ).rejects.toThrow();
   });
+
+  describe('the rules, on real data', () => {
+    const give = (name: string, productId: string, quantity: number) =>
+      http().post('/cart/items').set(as(name)).send({ productId, quantity });
+
+    it('never lets the cart hold more units than the stock', async () => {
+      const scarce = await prisma.product.create({
+        data: {
+          sku: `C${tag.toUpperCase()}-SCARCE`,
+          name: 'Scarce',
+          priceCents: 100,
+          stock: 3,
+          categoryId: (
+            await prisma.category.findUniqueOrThrow({
+              where: { slug: `c${tag}` },
+            })
+          ).id,
+        },
+      });
+      await give('bob', scarce.id, 2).expect(201);
+      const refused = await give('bob', scarce.id, 2).expect(409);
+      expect(refused.body).toMatchObject({ code: 'NOT_ENOUGH_STOCK' });
+      expect(refused.body.message).toContain('3');
+      await http()
+        .patch(`/cart/items/${scarce.id}`)
+        .set(as('bob'))
+        .send({ quantity: 4 })
+        .expect(409);
+      expect((await cartOf('bob')).itemCount).toBe(2);
+      await http().delete('/cart').set(as('bob')).expect(204);
+    });
+
+    it('refuses more than 10 units of one product', async () => {
+      await give('bob', products.a, 10).expect(201);
+      const refused = await give('bob', products.a, 1).expect(409);
+      expect(refused.body).toMatchObject({ code: 'TOO_MANY_UNITS' });
+      await http().delete('/cart').set(as('bob')).expect(204);
+    });
+
+    it('refuses a product that was removed or has no stock, and leaves the cart as it was', async () => {
+      const gone = await prisma.product.create({
+        data: {
+          sku: `C${tag.toUpperCase()}-GONE`,
+          name: 'Gone',
+          priceCents: 100,
+          stock: 5,
+          active: false,
+          categoryId: (
+            await prisma.category.findUniqueOrThrow({
+              where: { slug: `c${tag}` },
+            })
+          ).id,
+        },
+      });
+      expect((await give('bob', gone.id, 1).expect(409)).body).toMatchObject({
+        code: 'UNAVAILABLE',
+      });
+      await prisma.product.update({
+        where: { id: gone.id },
+        data: { active: true, stock: 0 },
+      });
+      expect((await give('bob', gone.id, 1).expect(409)).body).toMatchObject({
+        code: 'OUT_OF_STOCK',
+      });
+      expect((await cartOf('bob')).items).toEqual([]);
+    });
+
+    it('holds at most 20 different products', async () => {
+      const category = await prisma.category.findUniqueOrThrow({
+        where: { slug: `c${tag}` },
+      });
+      const ids: string[] = [];
+      for (let i = 0; i < 21; i++) {
+        const p = await prisma.product.create({
+          data: {
+            sku: `C${tag.toUpperCase()}-MANY${i}`,
+            name: `Many ${i}`,
+            priceCents: 100,
+            stock: 5,
+            categoryId: category.id,
+          },
+        });
+        ids.push(p.id);
+      }
+      for (const id of ids.slice(0, 20)) await give('bob', id, 1).expect(201);
+      expect((await give('bob', ids[20], 1).expect(409)).body).toMatchObject({
+        code: 'TOO_MANY_PRODUCTS',
+      });
+      await http()
+        .patch(`/cart/items/${ids[0]}`)
+        .set(as('bob'))
+        .send({ quantity: 2 })
+        .expect(200);
+      await http().delete('/cart').set(as('bob')).expect(204);
+    });
+
+    it('is safe against parallel requests: 15 adds of one unit end at the limit of 10', async () => {
+      const results = await Promise.all(
+        Array.from({ length: 15 }, () => give('bob', products.a, 1)),
+      );
+      const statuses = results.map((r) => r.status);
+      expect(statuses.filter((s) => s === 201)).toHaveLength(10);
+      expect(statuses.filter((s) => s === 409)).toHaveLength(5);
+      expect((await cartOf('bob')).items[0].quantity).toBe(10);
+      await http().delete('/cart').set(as('bob')).expect(204);
+    });
+  });
 });

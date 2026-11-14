@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CartService } from './cart.service';
 
 const product = (over: Record<string, unknown> = {}) => ({
@@ -12,21 +12,28 @@ const product = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('CartService', () => {
+  const tx = {
+    $queryRaw: jest.fn(),
+    product: { findUnique: jest.fn() },
+    cartItem: { findUnique: jest.fn(), count: jest.fn(), upsert: jest.fn() },
+  };
   const prisma = {
     cart: { findUnique: jest.fn(), upsert: jest.fn() },
-    cartItem: {
-      upsert: jest.fn(),
-      updateMany: jest.fn(),
-      deleteMany: jest.fn(),
-    },
-    product: { findUnique: jest.fn() },
+    cartItem: { deleteMany: jest.fn() },
+    $transaction: jest.fn(),
   };
   const service = new CartService(prisma as never);
 
   beforeEach(() => {
     jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((fn: (t: typeof tx) => unknown) =>
+      fn(tx),
+    );
     prisma.cart.upsert.mockResolvedValue({ id: 'c1' });
-    prisma.product.findUnique.mockResolvedValue(product());
+    prisma.cart.findUnique.mockResolvedValue(null);
+    tx.product.findUnique.mockResolvedValue(product());
+    tx.cartItem.findUnique.mockResolvedValue(null);
+    tx.cartItem.count.mockResolvedValue(0);
   });
 
   describe('view', () => {
@@ -71,39 +78,77 @@ describe('CartService', () => {
   });
 
   describe('changing the cart', () => {
-    it('adds by incrementing, in one atomic statement', async () => {
-      prisma.cart.findUnique.mockResolvedValue(null);
+    it('locks the cart row while it checks and writes', async () => {
       await service.add('u1', 'p1', 2);
-      expect(prisma.cartItem.upsert).toHaveBeenCalledWith({
-        where: { cartId_productId: { cartId: 'c1', productId: 'p1' } },
-        create: { cartId: 'c1', productId: 'p1', quantity: 2 },
-        update: { quantity: { increment: 2 } },
+      expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('adds to what is already there', async () => {
+      tx.cartItem.findUnique.mockResolvedValue({ quantity: 3 });
+      await service.add('u1', 'p1', 2);
+      expect(tx.cartItem.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: { cartId: 'c1', productId: 'p1', quantity: 5 },
+          update: { quantity: 5 },
+        }),
+      );
+    });
+
+    it('refuses more than the stock with a 409 that carries a code', async () => {
+      tx.product.findUnique.mockResolvedValue(product({ stock: 2 }));
+      tx.cartItem.findUnique.mockResolvedValue({ quantity: 2 });
+      const error = (await service
+        .add('u1', 'p1', 1)
+        .catch((e: unknown) => e)) as ConflictException;
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(error.getResponse()).toMatchObject({
+        statusCode: 409,
+        code: 'NOT_ENOUGH_STOCK',
       });
+      expect(tx.cartItem.upsert).not.toHaveBeenCalled();
+    });
+
+    it('refuses a removed product, the unit limit and a full cart', async () => {
+      tx.product.findUnique.mockResolvedValue(product({ active: false }));
+      await expect(service.add('u1', 'p1', 1)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      tx.product.findUnique.mockResolvedValue(product({ stock: 99 }));
+      await expect(service.add('u1', 'p1', 11)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      tx.cartItem.count.mockResolvedValue(20);
+      await expect(service.add('u1', 'p1', 1)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(tx.cartItem.upsert).not.toHaveBeenCalled();
     });
 
     it('answers not found when the product does not exist', async () => {
-      prisma.product.findUnique.mockResolvedValue(null);
+      tx.product.findUnique.mockResolvedValue(null);
       await expect(service.add('u1', 'nope', 1)).rejects.toBeInstanceOf(
         NotFoundException,
       );
-      expect(prisma.cartItem.upsert).not.toHaveBeenCalled();
+      expect(tx.cartItem.upsert).not.toHaveBeenCalled();
     });
 
-    it('sets the quantity of a line that is in the cart', async () => {
-      prisma.cartItem.updateMany.mockResolvedValue({ count: 1 });
-      prisma.cart.findUnique.mockResolvedValue(null);
+    it('sets the quantity of a line, keeping the same rules', async () => {
+      tx.cartItem.findUnique.mockResolvedValue({ quantity: 1 });
       await service.setQuantity('u1', 'p1', 4);
-      expect(prisma.cartItem.updateMany).toHaveBeenCalledWith({
-        where: { cartId: 'c1', productId: 'p1' },
-        data: { quantity: 4 },
-      });
+      expect(tx.cartItem.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ update: { quantity: 4 } }),
+      );
+      await expect(service.setQuantity('u1', 'p1', 11)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
     });
 
     it('answers not found when setting a line that is not in the cart', async () => {
-      prisma.cartItem.updateMany.mockResolvedValue({ count: 0 });
       await expect(service.setQuantity('u1', 'p1', 4)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+      expect(tx.cartItem.upsert).not.toHaveBeenCalled();
     });
 
     it('only ever touches the cart of the user it was given', async () => {
