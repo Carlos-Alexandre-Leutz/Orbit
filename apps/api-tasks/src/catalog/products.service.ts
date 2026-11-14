@@ -13,6 +13,9 @@ import { UpdateProductDto } from './dto/update-product.dto';
 const WITH_CATEGORY = { category: { select: { slug: true, name: true } } };
 const DEFAULT_PAGE_SIZE = 20;
 
+/** `%` and `_` are wildcards in a LIKE pattern; a customer typing "100%" means the text "100%". */
+const escapeLike = (word: string) => word.replace(/[\\%_]/g, '\\$&');
+
 const ORDER: Record<ProductSort, Prisma.ProductOrderByWithRelationInput[]> = {
   name: [{ name: 'asc' }, { id: 'asc' }],
   price_asc: [{ priceCents: 'asc' }, { name: 'asc' }, { id: 'asc' }],
@@ -46,7 +49,11 @@ export class ProductsService {
    * so "cast skillet" finds "Cast iron skillet". Words are matched as plain text.
    */
   private filters(query: ListProductsDto): Prisma.ProductWhereInput {
-    const words = (query.q ?? '').split(/\s+/).filter(Boolean).slice(0, 8);
+    const words = (query.q ?? '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 8)
+      .map(escapeLike);
     return {
       active: true,
       ...(query.category ? { category: { slug: query.category } } : {}),
