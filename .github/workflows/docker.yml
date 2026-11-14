@@ -1,0 +1,51 @@
+name: docker
+
+on:
+  pull_request:
+    branches: [main, staging, 'pbi/**']
+
+jobs:
+  images:
+    name: image (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One image runs the web app, the BFF and the API (the command differs in Compose).
+          - name: apps
+            context: .
+            file: Dockerfile
+          - name: ml
+            context: services/ml
+            file: services/ml/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the image (not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          load: true
+          push: false
+          tags: orbit-${{ matrix.name }}:ci
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Smoke test the ML image
+        if: matrix.name == 'ml'
+        run: |
+          docker run -d --name ml -p 8000:8000 orbit-ml:ci
+          for i in $(seq 1 15); do
+            curl -fs http://127.0.0.1:8000/health && exit 0
+            sleep 2
+          done
+          docker logs ml
+          exit 1
+
+      - name: Check that the apps image holds the three apps
+        if: matrix.name == 'apps'
+        run: docker run --rm orbit-apps:ci sh -c 'ls apps/web apps/bff apps/api-tasks >/dev/null'
