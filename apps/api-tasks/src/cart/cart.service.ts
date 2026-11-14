@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { brokenRule } from './cart-rules';
 
 const WITH_PRODUCT = {
   items: {
@@ -32,28 +37,62 @@ export class CartService {
     return this.present(cart);
   }
 
+  /**
+   * Adds units, refusing what the rules forbid. The cart row is locked while the change is checked and
+   * written, so two requests for the same cart (two tabs, a double click) are handled one after the other
+   * and can never push the cart past its limits together.
+   */
   async add(userId: string, productId: string, quantity: number) {
-    await this.requireProduct(productId);
-    const cart = await this.cartOf(userId);
-    await this.prisma.cartItem.upsert({
-      where: { cartId_productId: { cartId: cart.id, productId } },
-      create: { cartId: cart.id, productId, quantity },
-      update: { quantity: { increment: quantity } },
-    });
+    await this.change(userId, productId, (current) => current + quantity, true);
     return this.view(userId);
   }
 
   /** Sets the quantity of a line that is already in the cart. Repeating it changes nothing. */
   async setQuantity(userId: string, productId: string, quantity: number) {
-    const cart = await this.cartOf(userId);
-    const { count } = await this.prisma.cartItem.updateMany({
-      where: { cartId: cart.id, productId },
-      data: { quantity },
-    });
-    if (count === 0) {
-      throw new NotFoundException('Este produto não está no carrinho');
-    }
+    await this.change(userId, productId, () => quantity, false);
     return this.view(userId);
+  }
+
+  private async change(
+    userId: string,
+    productId: string,
+    next: (current: number) => number,
+    createIfMissing: boolean,
+  ) {
+    const cart = await this.cartOf(userId);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Cart" WHERE id = ${cart.id} FOR UPDATE`;
+      const product = await tx.product.findUnique({ where: { id: productId } });
+      if (!product) {
+        throw new NotFoundException('Produto não encontrado');
+      }
+      const line = await tx.cartItem.findUnique({
+        where: { cartId_productId: { cartId: cart.id, productId } },
+      });
+      if (!line && !createIfMissing) {
+        throw new NotFoundException('Este produto não está no carrinho');
+      }
+      const resulting = next(line?.quantity ?? 0);
+      const broken = brokenRule({
+        resulting,
+        stock: product.stock,
+        active: product.active,
+        lines: await tx.cartItem.count({ where: { cartId: cart.id } }),
+        alreadyInCart: Boolean(line),
+      });
+      if (broken) {
+        throw new ConflictException({
+          statusCode: 409,
+          message: broken.message,
+          code: broken.code,
+        });
+      }
+      await tx.cartItem.upsert({
+        where: { cartId_productId: { cartId: cart.id, productId } },
+        create: { cartId: cart.id, productId, quantity: resulting },
+        update: { quantity: resulting },
+      });
+    });
   }
 
   async remove(userId: string, productId: string) {
@@ -66,16 +105,6 @@ export class CartService {
   async clear(userId: string) {
     const cart = await this.cartOf(userId);
     await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-  }
-
-  private async requireProduct(productId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
-    if (!product) {
-      throw new NotFoundException('Produto não encontrado');
-    }
-    return product;
   }
 
   /**
