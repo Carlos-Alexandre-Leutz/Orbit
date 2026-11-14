@@ -62,10 +62,45 @@ export class AuthService {
 
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
+    if (!user || this.isExpired(user)) {
       throw new UnauthorizedException('Sessão inválida ou expirada');
     }
     return toPublicUser(user);
+  }
+
+  private isExpired(user: User) {
+    return !!user.expiresAt && user.expiresAt.getTime() <= Date.now();
+  }
+
+  /**
+   * A temporary customer for a visitor who has not registered (the base of demo mode).
+   * It has no usable password, so it cannot log in; its token lasts exactly as long as the account.
+   */
+  async createAnonymous() {
+    const ttlHours = Number(process.env.ANONYMOUS_TTL_HOURS) || 24;
+    const expiresAt = new Date(Date.now() + ttlHours * 3600 * 1000);
+    const user = await this.prisma.user.create({
+      data: {
+        email: `anon-${crypto.randomUUID()}@anonymous.orbit.invalid`,
+        password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+        role: 'CUSTOMER',
+        isAnonymous: true,
+        expiresAt,
+      },
+    });
+    const accessToken = await this.jwt.signAsync(
+      { sub: user.id, role: user.role },
+      { expiresIn: ttlHours * 3600 },
+    );
+    return { accessToken, user: toPublicUser(user), expiresAt };
+  }
+
+  /** Removes expired anonymous accounts. The scheduled job that calls it arrives with the retention PBI. */
+  async deleteExpiredAnonymous() {
+    const { count } = await this.prisma.user.deleteMany({
+      where: { isAnonymous: true, expiresAt: { lt: new Date() } },
+    });
+    return count;
   }
 
   async login(data: LoginDto) {

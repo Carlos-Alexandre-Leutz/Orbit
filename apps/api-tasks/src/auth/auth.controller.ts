@@ -21,6 +21,11 @@ export class AuthController {
     return this.authService.login(body);
   }
 
+  @Post('anonymous')
+  anonymous() {
+    return this.authService.createAnonymous();
+  }
+
   @Get('me')
   @Auth()
   me(@Req() request: AuthenticatedRequest) {
