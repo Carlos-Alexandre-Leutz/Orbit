@@ -1,0 +1,39 @@
+name: PBI
+description: A product backlog item that groups tasks and ships a testable increment
+title: "PBI-NN: "
+labels: ["pbi"]
+body:
+  - type: input
+    id: epic
+    attributes:
+      label: Parent epic
+      description: Issue number of the epic, for example #1
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What this PBI delivers and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: Checkable statements. Each one is validated at the end of the PBI.
+      placeholder: "- [ ] **AC1** ..."
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: One line per task, linked by issue number once created.
+      placeholder: "- [ ] #nn Task title"
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        On completion write `docs/pbi/PBI-nn.md`, run the tests, validate every criterion, then open the PR from `pbi/` into `staging`.
