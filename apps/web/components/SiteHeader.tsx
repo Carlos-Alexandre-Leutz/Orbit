@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
+import { getCart } from '@/lib/cart';
 import { menuFor } from '@/lib/menu';
 import { LogoutButton } from './LogoutButton';
 
@@ -11,6 +12,7 @@ const ROLE_LABEL = {
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
+  const cart = user ? await getCart() : null;
   return (
     <header className="border-b border-gray-700">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -19,7 +21,7 @@ export async function SiteHeader() {
             Orbit Supply Co.
           </Link>
           <nav aria-label="Main" className="flex gap-4 text-sm">
-            {menuFor(user?.role).map((item) => (
+            {menuFor(user?.role, cart?.itemCount ?? 0).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

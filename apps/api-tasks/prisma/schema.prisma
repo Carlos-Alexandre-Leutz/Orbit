@@ -22,18 +22,19 @@ enum Role {
 }
 
 model User {
-  id                   String   @id @default(uuid())
-  email                String   @unique
+  id                   String    @id @default(uuid())
+  email                String    @unique
   name                 String?
   password             String
-  role                 Role     @default(CUSTOMER)
+  role                 Role      @default(CUSTOMER)
   // Temporary visitor accounts (demo mode): no usable password, deleted or refused after expiresAt.
-  isAnonymous          Boolean  @default(false)
+  isAnonymous          Boolean   @default(false)
   expiresAt            DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  passwordResetToken   String?  @unique
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  passwordResetToken   String?   @unique
   passwordResetExpires DateTime?
+  cart                 Cart?
 }
 
 model Category {
@@ -59,6 +60,31 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  cartItems CartItem[]
+
   @@index([categoryId])
   @@index([active, name])
+}
+
+// One cart per user. Prices are not stored here: the cart always shows the product's current price,
+// and the price is frozen only when an order is placed.
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int
+
+  @@unique([cartId, productId])
+  @@index([productId])
 }
