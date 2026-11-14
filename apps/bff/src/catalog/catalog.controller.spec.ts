@@ -67,6 +67,12 @@ describe('BFF CatalogController', () => {
     expect(Object.keys(doc.paths)).toEqual(
       expect.arrayContaining(['/products', '/products/{id}', '/categories']),
     );
+    const params = (doc.paths['/products'].get?.parameters ?? []).map((p) =>
+      'name' in p ? p.name : '',
+    );
+    expect(params).toEqual(
+      expect.arrayContaining(['q', 'category', 'inStock', 'sort']),
+    );
     expect(doc.paths['/products'].post?.security).toEqual([{ bearer: [] }]);
     expect(doc.paths['/products'].get?.security).toBeUndefined();
   });

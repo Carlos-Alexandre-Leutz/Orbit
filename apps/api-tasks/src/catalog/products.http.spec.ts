@@ -69,6 +69,26 @@ describe('catalog HTTP', () => {
       await server().get('/products/not-a-uuid').expect(400);
     });
 
+    it('accepts the search, filter and sort parameters', async () => {
+      await server()
+        .get('/products?q=skillet&category=kitchen&inStock=true&sort=price_asc')
+        .expect(200);
+      expect(products.list).toHaveBeenCalledWith({
+        q: 'skillet',
+        category: 'kitchen',
+        inStock: true,
+        sort: 'price_asc',
+      });
+    });
+
+    it('refuses an unknown sort, a long search and a non-boolean stock filter', async () => {
+      await server().get('/products?sort=cheapest').expect(400);
+      await server()
+        .get(`/products?q=${'a'.repeat(101)}`)
+        .expect(400);
+      await server().get('/products?inStock=maybe').expect(400);
+    });
+
     it('caps the page size and refuses a bad page', async () => {
       await server().get('/products?pageSize=101').expect(400);
       await server().get('/products?page=0').expect(400);

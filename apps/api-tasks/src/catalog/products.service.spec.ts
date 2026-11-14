@@ -53,6 +53,53 @@ describe('ProductsService', () => {
     });
   });
 
+  describe('search and filters', () => {
+    const whereOf = async (query: object) => {
+      await service.list(query);
+      return prisma.product.findMany.mock.calls.at(-1)[0];
+    };
+
+    it('requires every word to match somewhere in name, description or sku', async () => {
+      const { where } = await whereOf({ q: 'cast  skillet' });
+      expect(where.AND).toHaveLength(2);
+      expect(where.AND[0].OR).toHaveLength(3);
+      expect(JSON.stringify(where.AND[0])).toContain('"contains":"cast"');
+      expect(JSON.stringify(where.AND[1])).toContain('"insensitive"');
+    });
+
+    it('ignores a blank search and limits the number of words', async () => {
+      expect((await whereOf({ q: '   ' })).where.AND).toBeUndefined();
+      const many = Array.from({ length: 20 }, (_, i) => `w${i}`).join(' ');
+      expect((await whereOf({ q: many })).where.AND).toHaveLength(8);
+    });
+
+    it('filters by category slug and by stock', async () => {
+      expect((await whereOf({ category: 'kitchen' })).where.category).toEqual({
+        slug: 'kitchen',
+      });
+      expect((await whereOf({ inStock: true })).where.stock).toEqual({ gt: 0 });
+      expect((await whereOf({ inStock: false })).where.stock).toBe(0);
+      expect((await whereOf({})).where.stock).toBeUndefined();
+    });
+
+    it('never shows hidden products, whatever the filters', async () => {
+      expect(
+        (await whereOf({ q: 'a', category: 'b', inStock: true })).where.active,
+      ).toBe(true);
+    });
+
+    it.each([
+      ['name', { name: 'asc' }],
+      ['price_asc', { priceCents: 'asc' }],
+      ['price_desc', { priceCents: 'desc' }],
+      ['newest', { createdAt: 'desc' }],
+    ])('sorts by %s with a stable tie-break', async (sort, first) => {
+      const { orderBy } = await whereOf({ sort });
+      expect(orderBy[0]).toEqual(first);
+      expect(orderBy[orderBy.length - 1]).toEqual({ id: 'asc' });
+    });
+  });
+
   it('answers not found for a hidden or unknown product', async () => {
     prisma.product.findFirst.mockResolvedValue(null);
     await expect(service.get('x')).rejects.toBeInstanceOf(NotFoundException);
