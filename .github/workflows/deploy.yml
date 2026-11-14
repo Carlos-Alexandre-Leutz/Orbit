@@ -1,39 +1,21 @@
-name: Continuous Deployment
+name: deploy
 
-# Disabled until the Orbit deployment exists (PBI-43). The template's Render hooks
-# and secrets are not configured in this repository, so a push trigger would fail.
+# Placeholder until the production infrastructure and automatic deployment exist
+# (PBI-42 and PBI-43). It deploys nothing and uses no secrets: it only records, on every
+# push to `staging`, that a deploy would happen here. The template's Render hooks were removed.
 on:
+  push:
+    branches: [staging]
   workflow_dispatch:
 
 jobs:
-
   deploy-staging:
-    if: github.ref == 'refs/heads/staging'
-    environment: staging
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run Prisma Migrations
-        run: npx prisma@6.4.0 migrate deploy --schema ./apps/api-tasks/prisma/schema.prisma
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Trigger Render Deploy
+      - name: Record the missing deployment
         run: |
-          echo "🚀 Deploy para Staging iniciado com sucesso!"
-          curl -f ${{ secrets.RENDER_STAGING_DEPLOY_HOOK }}
-
-  deploy-production:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploying to Production
-        run: |
-          echo "🌍 Iniciando Deploy em Produção (Main)..."
+          {
+            echo "### Staging deploy: not configured yet"
+            echo "Commit \`${GITHUB_SHA}\` reached \`staging\`. Nothing was deployed: the target server"
+            echo "arrives with PBI-42 and PBI-43."
+          } >> "$GITHUB_STEP_SUMMARY"

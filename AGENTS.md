@@ -43,5 +43,6 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 
 - Node 20+ and pnpm 9 (`nvm use` reads `.nvmrc`). The default Node on the owner's machine is 16, which breaks pnpm/corepack and the commit hook, so make sure Node 20 is on the `PATH` before running `pnpm` or `git commit`.
 - Base code comes from `production-saas-template` (see `docs/template-origin.md`): `apps/web` (Next.js), `apps/bff` and `apps/api-tasks` (NestJS). There is no Python or ML service yet.
-- Tests: `pnpm test:scripts` (Python) and `pnpm test:commitlint` (Node).
+- Tests: `pnpm test:scripts` (Python) and `pnpm test:commitlint` (Node). The TypeScript apps use `pnpm exec turbo run lint test build`; `lint` only reports, `pnpm lint:fix` inside an app rewrites. Python is checked with `ruff check services/ml scripts tests` and `pytest` in `services/ml` (`pip install -r services/ml/requirements-dev.txt`).
+- CI runs five checks on every pull request: `commitlint`, `scripts-tests`, `typescript`, `python` and `docker`. Only the first two are required by branch protection so far.
 - `gh pr edit` fails in this repo (Projects classic GraphQL error); use `gh api -X PATCH repos/<owner>/<repo>/pulls/<n>` and `gh api -X PUT .../merge`.

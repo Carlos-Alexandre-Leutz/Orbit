@@ -1,0 +1,36 @@
+name: typescript
+
+on:
+  pull_request:
+    branches: [main, staging, 'pbi/**']
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_BFF_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the Prisma client
+        run: pnpm --filter @orbit/api-tasks exec prisma generate
+
+      - name: Cache the Turborepo results
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Lint, test and build
+        run: pnpm exec turbo run lint test build --cache-dir=.turbo
