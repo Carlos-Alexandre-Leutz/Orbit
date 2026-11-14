@@ -6,7 +6,6 @@ export class MailService {
   constructor(private readonly mailerService: MailerService) {}
 
   async sendPasswordReset(email: string, token: string) {
-
     const baseUrl = process.env.APP_URL || 'http://localhost:3000';
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 

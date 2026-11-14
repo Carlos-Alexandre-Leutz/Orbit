@@ -1,13 +1,16 @@
-import { Controller, Post, Body, HttpException, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { LoginDto } from './dto/login.dto';
 import axios from 'axios';
-
-
-
 
 @Controller('auth')
 export class AuthController {
@@ -18,13 +21,16 @@ export class AuthController {
   @Post('register')
   async register(@Body() body: any) {
     try {
-      const response = await axios.post(`${this.coreAuthUrl}/auth/register`, body);
+      const response = await axios.post(
+        `${this.coreAuthUrl}/auth/register`,
+        body,
+      );
 
       return response.data;
-    } catch (error) {
+    } catch {
       throw new HttpException(
         'Error connecting to API',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -32,7 +38,7 @@ export class AuthController {
   async login(@Body() dto: LoginDto) {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.coreAuthUrl}/auth/login`, dto)
+        this.httpService.post(`${this.coreAuthUrl}/auth/login`, dto),
       );
       return response.data;
     } catch (error: any) {
@@ -42,24 +48,27 @@ export class AuthController {
     }
   }
   @Post('forgot-password')
-    async forgotPassword(@Body() dto: ForgotPasswordDto) {
-      try {
-        const response = await firstValueFrom(
-          this.httpService.post(`${this.coreAuthUrl}/auth/forgot-password`, { email: dto.email })
-        );
-        return response.data;
-      } catch (error: any) {
-        const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-        const message = error.response?.data?.message || 'Erro ao processar solicitação';
-        throw new HttpException(message, status);
-      }
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.coreAuthUrl}/auth/forgot-password`, {
+          email: dto.email,
+        }),
+      );
+      return response.data;
+    } catch (error: any) {
+      const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const message =
+        error.response?.data?.message || 'Erro ao processar solicitação';
+      throw new HttpException(message, status);
     }
+  }
 
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.coreAuthUrl}/auth/reset-password`, dto)
+        this.httpService.post(`${this.coreAuthUrl}/auth/reset-password`, dto),
       );
       return response.data;
     } catch (error: any) {
