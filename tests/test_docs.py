@@ -108,6 +108,33 @@ class AdrTests(unittest.TestCase):
             self.assertEqual(named - backlog_pbis(), set(), path.name)
 
 
+AI_DOC = ROOT / "docs" / "ai-assisted-development.md"
+PATH_RE = re.compile(r"`((?:scripts|tests|docs|\.github)/[\w./-]+|[\w.-]+\.(?:mjs|md))`")
+
+
+class AiAssistedDevelopmentTests(unittest.TestCase):
+    def setUp(self):
+        self.text = AI_DOC.read_text(encoding="utf-8")
+
+    def test_has_the_main_sections(self):
+        for heading in ("## Who decides what", "## The workflow", "## Guardrails that are enforced, not just written",
+                        "## Mistakes made so far, and how they were caught", "## What is not claimed"):
+            self.assertIn(heading, self.text)
+
+    def test_says_it_is_a_draft_until_it_is_finished(self):
+        self.assertIn("**Status: draft.**", self.text)
+
+    def test_every_file_it_names_exists(self):
+        named = [t for t in PATH_RE.findall(self.text) if "nn" not in t]  # "nn" marks a pattern such as PBI-nn.md
+        missing = [t for t in named if not (ROOT / t).exists() and not (AI_DOC.parent / t).exists()]
+        self.assertEqual(missing, [])
+
+    def test_names_the_guardrail_files(self):
+        found = set(PATH_RE.findall(self.text))
+        for expected in ("scripts/protect-branches.sh", "commitlint.config.mjs", "tests/test_docs.py"):
+            self.assertIn(expected, found)
+
+
 class RequirementsTests(unittest.TestCase):
     def setUp(self):
         self.text = REQUIREMENTS.read_text(encoding="utf-8")
