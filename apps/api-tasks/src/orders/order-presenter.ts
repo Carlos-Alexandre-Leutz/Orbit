@@ -1,7 +1,9 @@
 import { Prisma } from '@prisma/client';
 
 export const WITH_ITEMS = { items: { orderBy: { name: 'asc' as const } } };
-type OrderWithItems = Prisma.OrderGetPayload<{ include: typeof WITH_ITEMS }>;
+export type OrderWithItems = Prisma.OrderGetPayload<{
+  include: typeof WITH_ITEMS;
+}>;
 
 /** What the API shows of an order. */
 export function presentOrder(order: OrderWithItems) {

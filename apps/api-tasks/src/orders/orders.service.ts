@@ -3,12 +3,14 @@ import {
   ForbiddenException,
   HttpException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { PaymentsService } from '../payments/payments.service';
-import { presentOrder, WITH_ITEMS } from './order-presenter';
+import { OrderWithItems, presentOrder, WITH_ITEMS } from './order-presenter';
 import { canTransition, TIMESTAMP_OF } from './order-state';
 
 function refuse(code: string, message: string, extra: object = {}) {
@@ -17,9 +19,12 @@ function refuse(code: string, message: string, extra: object = {}) {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly payments: PaymentsService,
+    private readonly mail: MailService,
   ) {}
 
   /**
@@ -43,7 +48,15 @@ export class OrdersService {
       throw refuse('EMPTY_CART', 'O carrinho está vazio');
     }
     try {
-      return await this.placeOrder(userId, cart.id, idempotencyKey);
+      const { order, created } = await this.placeOrder(
+        userId,
+        cart.id,
+        idempotencyKey,
+      );
+      if (created) {
+        this.notifyPlaced(userId, order);
+      }
+      return presentOrder(order);
     } catch (error) {
       if (
         idempotencyKey &&
@@ -59,6 +72,27 @@ export class OrdersService {
     }
   }
 
+  /**
+   * Sends the confirmation e-mail after the order is saved. It is not awaited and its failure is only logged:
+   * a slow or broken mail server must never delay or fail an order. Visitor accounts have no real address.
+   */
+  private notifyPlaced(userId: string, order: OrderWithItems) {
+    void (async () => {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, isAnonymous: true },
+      });
+      if (!user || user.isAnonymous) {
+        return;
+      }
+      await this.mail.sendOrderConfirmation(user.email, order);
+    })().catch((error: unknown) =>
+      this.logger.warn(
+        `Could not send the confirmation of order ${order.id}: ${String(error)}`,
+      ),
+    );
+  }
+
   private findByKey(userId: string, idempotencyKey: string) {
     return this.prisma.order.findUnique({
       where: { userId_idempotencyKey: { userId, idempotencyKey } },
@@ -71,7 +105,7 @@ export class OrdersService {
     cartId: string,
     idempotencyKey?: string,
   ) {
-    const order = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Cart" WHERE id = ${cartId} FOR UPDATE`;
       if (idempotencyKey) {
         const existing = await tx.order.findUnique({
@@ -79,7 +113,7 @@ export class OrdersService {
           include: WITH_ITEMS,
         });
         if (existing) {
-          return existing;
+          return { order: existing, created: false };
         }
       }
       // Products are locked in a fixed order, so two orders that share products cannot deadlock.
@@ -130,9 +164,8 @@ export class OrdersService {
         include: WITH_ITEMS,
       });
       await tx.cartItem.deleteMany({ where: { cartId } });
-      return created;
+      return { order: created, created: true };
     });
-    return presentOrder(order);
   }
 
   async listMine(userId: string) {
