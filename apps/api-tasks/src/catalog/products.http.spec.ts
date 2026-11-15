@@ -6,6 +6,7 @@ import request from 'supertest';
 import { PrismaService } from '../prisma/prisma.service';
 import { CategoriesController } from './categories.controller';
 import { ProductsController } from './products.controller';
+import { StoresService } from '../stores/stores.service';
 import { ProductsService } from './products.service';
 
 const SECRET = 'a-test-secret-that-is-long-enough-1234';
@@ -28,6 +29,9 @@ describe('catalog HTTP', () => {
     update: jest.fn().mockResolvedValue({ id: ID }),
     remove: jest.fn().mockResolvedValue(undefined),
   };
+  const stores = {
+    ofSeller: jest.fn().mockResolvedValue({ id: 'store-1' }),
+  };
   const prisma = {
     category: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -41,6 +45,7 @@ describe('catalog HTTP', () => {
       controllers: [ProductsController, CategoriesController],
       providers: [
         { provide: ProductsService, useValue: products },
+        { provide: StoresService, useValue: stores },
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
@@ -71,10 +76,13 @@ describe('catalog HTTP', () => {
 
     it('accepts the search, filter and sort parameters', async () => {
       await server()
-        .get('/products?q=skillet&category=kitchen&inStock=true&sort=price_asc')
+        .get(
+          '/products?q=skillet&store=loja-x&category=kitchen&inStock=true&sort=price_asc',
+        )
         .expect(200);
       expect(products.list).toHaveBeenCalledWith({
         q: 'skillet',
+        store: 'loja-x',
         category: 'kitchen',
         inStock: true,
         sort: 'price_asc',
@@ -97,7 +105,7 @@ describe('catalog HTTP', () => {
     });
   });
 
-  describe('writing needs a seller or an admin', () => {
+  describe('writing needs a seller', () => {
     const writes: Array<[string, () => request.Test]> = [
       ['create', () => server().post('/products').send(valid)],
       ['update', () => server().patch(`/products/${ID}`).send({ stock: 1 })],
@@ -116,16 +124,28 @@ describe('catalog HTTP', () => {
       await call().set('Authorization', as('CUSTOMER')).expect(403);
     });
 
-    it.each(['SELLER', 'ADMIN'] as Role[])('a %s can write', async (role) => {
+    it('a seller writes in the store found from the session, never one from the body', async () => {
       await server()
         .post('/products')
-        .set('Authorization', as(role))
-        .send(valid)
+        .set('Authorization', as('SELLER'))
+        .send({ ...valid, storeId: 'someone-elses-store' })
         .expect(201);
+      expect(stores.ofSeller).toHaveBeenCalledWith('u1');
+      expect(products.create).toHaveBeenCalledWith('store-1', valid);
       await server()
         .delete(`/products/${ID}`)
-        .set('Authorization', as(role))
+        .set('Authorization', as('SELLER'))
         .expect(204);
+      expect(products.remove).toHaveBeenCalledWith('store-1', ID);
+    });
+
+    it('an admin has no store and cannot write products', async () => {
+      await server()
+        .post('/products')
+        .set('Authorization', as('ADMIN'))
+        .send(valid)
+        .expect(403);
+      expect(products.create).not.toHaveBeenCalled();
     });
   });
 
@@ -153,7 +173,7 @@ describe('catalog HTTP', () => {
         .set('Authorization', as('SELLER'))
         .send({ sku: 'NEW-1', stock: 4 })
         .expect(200);
-      expect(products.update).toHaveBeenCalledWith(ID, { stock: 4 });
+      expect(products.update).toHaveBeenCalledWith('store-1', ID, { stock: 4 });
     });
 
     it('refuses a category slug with capitals', async () => {

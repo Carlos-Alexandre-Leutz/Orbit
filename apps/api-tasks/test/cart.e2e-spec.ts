@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { demoStoreId } from './support';
 
 interface CartBody {
   items: {
@@ -58,6 +59,7 @@ describe('cart (real database)', () => {
     ] as const) {
       const product = await prisma.product.create({
         data: {
+          storeId: await demoStoreId(prisma),
           sku: `C${tag.toUpperCase()}-${key.toUpperCase()}`,
           name: `Cart item ${key}`,
           priceCents: price,
@@ -226,6 +228,7 @@ describe('cart (real database)', () => {
     it('never lets the cart hold more units than the stock', async () => {
       const scarce = await prisma.product.create({
         data: {
+          storeId: await demoStoreId(prisma),
           sku: `C${tag.toUpperCase()}-SCARCE`,
           name: 'Scarce',
           priceCents: 100,
@@ -260,6 +263,7 @@ describe('cart (real database)', () => {
     it('refuses a product that was removed or has no stock, and leaves the cart as it was', async () => {
       const gone = await prisma.product.create({
         data: {
+          storeId: await demoStoreId(prisma),
           sku: `C${tag.toUpperCase()}-GONE`,
           name: 'Gone',
           priceCents: 100,
@@ -293,6 +297,7 @@ describe('cart (real database)', () => {
       for (let i = 0; i < 21; i++) {
         const p = await prisma.product.create({
           data: {
+            storeId: await demoStoreId(prisma),
             sku: `C${tag.toUpperCase()}-MANY${i}`,
             name: `Many ${i}`,
             priceCents: 100,
