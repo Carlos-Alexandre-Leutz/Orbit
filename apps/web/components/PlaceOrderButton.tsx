@@ -32,6 +32,8 @@ export function PlaceOrderButton() {
       } | null;
       if (response.ok && data?.id) {
         router.push(`/orders/${data.id}`);
+        // The cart count in the header belongs to the layout, which a plain navigation keeps as it was.
+        router.refresh();
         return;
       }
       // A refused order was not created, so the same key can be used again once the cart is fixed.
