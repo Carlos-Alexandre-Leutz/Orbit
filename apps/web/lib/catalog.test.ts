@@ -123,4 +123,14 @@ describe('catalogHref with another base', () => {
       catalogHref(parseCatalogParams({}), { page: 2 }, '/seller/products'),
     ).toBe('/seller/products?page=2');
   });
+
+  it('builds the links of a store page under the link of that store', () => {
+    const params = parseCatalogParams({ q: 'spoon', page: '2' });
+    expect(catalogHref(params, { page: 3 }, '/loja-do-joao')).toBe(
+      '/loja-do-joao?q=spoon&page=3',
+    );
+    expect(catalogHref(parseCatalogParams({}), {}, '/loja-do-joao')).toBe(
+      '/loja-do-joao',
+    );
+  });
 });

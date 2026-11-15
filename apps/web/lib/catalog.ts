@@ -12,6 +12,7 @@ export interface Product {
   stock: number;
   active: boolean;
   category: Category;
+  store: { slug: string; name: string };
 }
 
 export interface ProductPage {

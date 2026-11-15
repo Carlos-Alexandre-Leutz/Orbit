@@ -17,7 +17,10 @@ export function ProductCard({ product }: { product: Product }) {
           {product.category.name}
         </p>
         <h2 className="font-semibold">
-          <Link href={`/catalog/${product.id}`} className="hover:underline">
+          <Link
+            href={`/${product.store.slug}/products/${product.id}`}
+            className="hover:underline"
+          >
             {product.name}
           </Link>
         </h2>

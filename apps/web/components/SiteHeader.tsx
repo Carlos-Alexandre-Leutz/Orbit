@@ -17,7 +17,7 @@ export async function SiteHeader() {
     <header className="border-b border-gray-700">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/catalog" className="text-lg font-bold">
+          <Link href="/" className="text-lg font-bold">
             Orbit Supply Co.
           </Link>
           <nav aria-label="Main" className="flex gap-4 text-sm">

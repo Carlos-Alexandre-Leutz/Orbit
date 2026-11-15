@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { quantityChoices } from '@/lib/cart-shared';
-import { STORE_QUERY } from '@/lib/store';
 
 export function AddToCart({
+  store,
   productId,
   stock,
   signedIn,
 }: {
+  store: string;
   productId: string;
   stock: number;
   signedIn: boolean;
@@ -30,7 +31,7 @@ export function AddToCart({
   if (!signedIn) {
     return (
       <Link
-        href={`/login?next=${encodeURIComponent(`/catalog/${productId}`)}`}
+        href={`/login?next=${encodeURIComponent(`/${store}/products/${productId}`)}`}
         className="inline-block rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
       >
         Sign in to buy
@@ -42,11 +43,14 @@ export function AddToCart({
     setBusy(true);
     setMessage(null);
     try {
-      const response = await fetch(`/api/bff/cart/items?${STORE_QUERY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, quantity }),
-      });
+      const response = await fetch(
+        `/api/bff/cart/items?store=${encodeURIComponent(store)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, quantity }),
+        },
+      );
       if (response.ok) {
         setMessage({ ok: true, text: 'Added to your cart.' });
         router.refresh();
@@ -103,7 +107,7 @@ export function AddToCart({
         >
           {message.text}{' '}
           {message.ok && (
-            <Link href="/cart" className="underline">
+            <Link href={`/${store}/cart`} className="underline">
               View cart
             </Link>
           )}
