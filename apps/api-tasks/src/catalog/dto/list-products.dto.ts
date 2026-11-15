@@ -37,6 +37,12 @@ export class ListProductsDto {
   @MaxLength(100)
   q?: string;
 
+  /** The link (slug) of one store; without it the products of every store are listed. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  store?: string;
+
   /** Category slug. */
   @IsOptional()
   @IsString()

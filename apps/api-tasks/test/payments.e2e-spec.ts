@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient, Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { demoStoreId } from './support';
 import { signFakeEvent } from '../src/payments/fake-payment.provider';
 
 interface OrderBody {
@@ -96,6 +97,7 @@ describe('payments (real database)', () => {
     productId = (
       await prisma.product.create({
         data: {
+          storeId: await demoStoreId(prisma),
           sku: `P${tag.toUpperCase()}-A`,
           name: 'Payment item',
           priceCents: 700,

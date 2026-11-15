@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient, Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { demoStoreId } from './support';
 
 interface OrderBody {
   id: string;
@@ -61,6 +62,7 @@ describe('orders (real database)', () => {
   const newProduct = async (key: string, priceCents: number, stock: number) => {
     const p = await prisma.product.create({
       data: {
+        storeId: await demoStoreId(prisma),
         sku: `O${tag.toUpperCase()}-${key.toUpperCase()}`,
         name: `Order item ${key}`,
         priceCents,

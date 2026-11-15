@@ -10,7 +10,10 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto, ProductSort } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
-const WITH_CATEGORY = { category: { select: { slug: true, name: true } } };
+const WITH_CATEGORY = {
+  category: { select: { slug: true, name: true } },
+  store: { select: { slug: true, name: true } },
+};
 const DEFAULT_PAGE_SIZE = 20;
 
 /** `%` and `_` are wildcards in a LIKE pattern; a customer typing "100%" means the text "100%". */
@@ -56,6 +59,7 @@ export class ProductsService {
       .map(escapeLike);
     return {
       active: true,
+      ...(query.store ? { store: { slug: query.store } } : {}),
       ...(query.category ? { category: { slug: query.category } } : {}),
       ...(query.inStock === true ? { stock: { gt: 0 } } : {}),
       ...(query.inStock === false ? { stock: 0 } : {}),
@@ -86,12 +90,13 @@ export class ProductsService {
     return product;
   }
 
-  async create(dto: CreateProductDto) {
+  /** Writes always carry the seller's own store id (from the session), never one sent by the client. */
+  async create(storeId: string, dto: CreateProductDto) {
     const { categorySlug, ...data } = dto;
     const categoryId = await this.categoryId(categorySlug);
     try {
       return await this.prisma.product.create({
-        data: { ...data, categoryId },
+        data: { ...data, categoryId, storeId },
         include: WITH_CATEGORY,
       });
     } catch (error) {
@@ -99,11 +104,12 @@ export class ProductsService {
     }
   }
 
-  async update(id: string, dto: UpdateProductDto) {
+  async update(storeId: string, id: string, dto: UpdateProductDto) {
     const { categorySlug, ...data } = dto;
     const categoryId = categorySlug
       ? await this.categoryId(categorySlug)
       : undefined;
+    await this.ownOrNotFound(storeId, id);
     try {
       return await this.prisma.product.update({
         where: { id },
@@ -116,7 +122,8 @@ export class ProductsService {
   }
 
   /** Hides the product; the row stays so orders that point at it keep working. */
-  async remove(id: string) {
+  async remove(storeId: string, id: string) {
+    await this.ownOrNotFound(storeId, id);
     try {
       await this.prisma.product.update({
         where: { id },
@@ -124,6 +131,17 @@ export class ProductsService {
       });
     } catch (error) {
       throw this.translate(error);
+    }
+  }
+
+  /** A product of another store is answered exactly like one that does not exist. */
+  private async ownOrNotFound(storeId: string, id: string) {
+    const own = await this.prisma.product.findFirst({
+      where: { id, storeId },
+      select: { id: true },
+    });
+    if (!own) {
+      throw new NotFoundException('Produto não encontrado');
     }
   }
 

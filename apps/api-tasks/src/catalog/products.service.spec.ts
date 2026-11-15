@@ -35,6 +35,7 @@ describe('ProductsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.category.findUnique.mockResolvedValue({ id: 'c1', slug: 'kitchen' });
+    prisma.product.findFirst.mockResolvedValue({ id: 'p1' });
   });
 
   it('lists only active products, with the paging it was given', async () => {
@@ -115,7 +116,7 @@ describe('ProductsService', () => {
 
   it('refuses an unknown category with 400, before touching products', async () => {
     prisma.category.findUnique.mockResolvedValue(null);
-    await expect(service.create(dto)).rejects.toBeInstanceOf(
+    await expect(service.create('s1', dto)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(prisma.product.create).not.toHaveBeenCalled();
@@ -123,27 +124,61 @@ describe('ProductsService', () => {
 
   it('answers conflict for a duplicate sku', async () => {
     prisma.product.create.mockRejectedValue(known('P2002'));
-    await expect(service.create(dto)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.create('s1', dto)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('answers not found when updating a product that does not exist', async () => {
     prisma.product.update.mockRejectedValue(known('P2025'));
-    await expect(service.update('x', { stock: 1 })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.update('s1', 'x', { stock: 1 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('removes by hiding: the row is updated, never deleted', async () => {
     prisma.product.update.mockResolvedValue({});
-    await service.remove('p1');
+    await service.remove('s1', 'p1');
     expect(prisma.product.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
       data: { active: false },
     });
   });
 
+  it('creates the product in the store it is given', async () => {
+    prisma.product.create.mockResolvedValue({});
+    await service.create('s1', dto);
+    expect(prisma.product.create.mock.calls[0][0].data).toMatchObject({
+      storeId: 's1',
+      categoryId: 'c1',
+    });
+  });
+
+  it('lists the products of one store when asked', async () => {
+    await service.list({ store: 'loja-x' });
+    expect(prisma.product.findMany.mock.calls[0][0].where).toEqual({
+      active: true,
+      store: { slug: 'loja-x' },
+    });
+  });
+
+  it('treats a product of another store as not found, on update and on remove', async () => {
+    prisma.product.findFirst.mockResolvedValue(null);
+    await expect(
+      service.update('s1', 'p9', { stock: 1 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.remove('s1', 'p9')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(prisma.product.findFirst.mock.calls[0][0].where).toEqual({
+      id: 'p9',
+      storeId: 's1',
+    });
+    expect(prisma.product.update).not.toHaveBeenCalled();
+  });
+
   it('lets an unexpected error through', async () => {
     prisma.product.create.mockRejectedValue(new Error('boom'));
-    await expect(service.create(dto)).rejects.toThrow('boom');
+    await expect(service.create('s1', dto)).rejects.toThrow('boom');
   });
 });

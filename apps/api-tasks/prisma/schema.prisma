@@ -48,6 +48,7 @@ model Store {
   description String   @default("")
   ownerId     String   @unique
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  products    Product[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -62,7 +63,10 @@ model Category {
 
 model Product {
   id          String   @id @default(uuid())
-  sku         String   @unique
+  // The store that sells it. A SKU is unique inside a store, so two stores may use the same one.
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  sku         String
   name        String
   description String   @default("")
   // Money is kept in cents so no rounding error can appear; the store has one currency.
@@ -78,6 +82,7 @@ model Product {
   cartItems CartItem[]
   OrderItem OrderItem[]
 
+  @@unique([storeId, sku])
   @@index([categoryId])
   @@index([active, name])
 }

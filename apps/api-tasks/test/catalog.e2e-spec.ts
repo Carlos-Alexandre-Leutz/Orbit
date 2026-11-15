@@ -19,8 +19,29 @@ describe('catalog (real database)', () => {
   let app: INestApplication;
   const http = () => request(app.getHttpServer());
   const tokens: Record<string, string> = {};
+  const storeIds: Record<string, string> = {};
+  const storeId = (name: string) => storeIds[name];
 
   async function account(name: string, role: Role) {
+    if (role === 'SELLER') {
+      const res = await http()
+        .post('/auth/register')
+        .send({
+          email: email(name),
+          password,
+          accountType: 'SELLER',
+          storeName: `Store ${name}`,
+          storeSlug: slug(name),
+        })
+        .expect(201);
+      storeIds[name] = res.body.store.id as string;
+      const login = await http()
+        .post('/auth/login')
+        .send({ email: email(name), password })
+        .expect(201);
+      tokens[name] = `Bearer ${login.body.accessToken}`;
+      return;
+    }
     const res = await http()
       .post('/auth/register')
       .send({ email: email(name), password })
@@ -60,6 +81,9 @@ describe('catalog (real database)', () => {
     });
     await prisma.category.deleteMany({
       where: { slug: { startsWith: `t${tag}-` } },
+    });
+    await prisma.store.deleteMany({
+      where: { owner: { email: { endsWith: `-${tag}@example.com` } } },
     });
     await prisma.user.deleteMany({
       where: { email: { endsWith: `-${tag}@example.com` } },
@@ -140,7 +164,7 @@ describe('catalog (real database)', () => {
 
     it('also refuses a negative stock at the database level', async () => {
       const product = await prisma.product.findUniqueOrThrow({
-        where: { sku: sku('one') },
+        where: { storeId_sku: { storeId: storeId('seller'), sku: sku('one') } },
       });
       await expect(
         prisma.product.update({
@@ -152,7 +176,7 @@ describe('catalog (real database)', () => {
 
     it('updates fields but never the sku', async () => {
       const product = await prisma.product.findUniqueOrThrow({
-        where: { sku: sku('one') },
+        where: { storeId_sku: { storeId: storeId('seller'), sku: sku('one') } },
       });
       const res = await http()
         .patch(`/products/${product.id}`)
@@ -168,7 +192,7 @@ describe('catalog (real database)', () => {
 
     it('moves a product to another category', async () => {
       const product = await prisma.product.findUniqueOrThrow({
-        where: { sku: sku('one') },
+        where: { storeId_sku: { storeId: storeId('seller'), sku: sku('one') } },
       });
       const res = await http()
         .patch(`/products/${product.id}`)
