@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -20,4 +21,21 @@ export class RegisterDto {
   @MinLength(8)
   @MaxLength(72)
   password: string;
+
+  // The role itself is never read from the request: only the choice between buying and selling.
+  @IsOptional()
+  @IsIn(['CUSTOMER', 'SELLER'])
+  accountType?: 'CUSTOMER' | 'SELLER';
+
+  // Required when accountType is SELLER; the link is suggested from the name when left out.
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(80)
+  storeName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  storeSlug?: string;
 }

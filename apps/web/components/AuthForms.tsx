@@ -95,6 +95,9 @@ export function RegisterForm({ next }: { next: string }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [selling, setSelling] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [storeSlug, setStoreSlug] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -110,13 +113,18 @@ export function RegisterForm({ next }: { next: string }) {
       name,
       email,
       password,
+      ...(selling && {
+        accountType: 'SELLER',
+        storeName,
+        ...(storeSlug && { storeSlug }),
+      }),
     });
     if (failure) {
       setError(failure);
       setBusy(false);
       return;
     }
-    router.replace(next);
+    router.replace(selling ? '/seller' : next);
     router.refresh();
   }
 
@@ -163,6 +171,38 @@ export function RegisterForm({ next }: { next: string }) {
             onChange={(e) => setConfirm(e.target.value)}
             required
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={selling}
+              onChange={(e) => setSelling(e.target.checked)}
+            />
+            I want to sell: create my store
+          </label>
+          {selling && (
+            <>
+              <input
+                type="text"
+                placeholder="Store name"
+                aria-label="Store name"
+                className={field}
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                minLength={2}
+                maxLength={80}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Store link (optional, e.g. loja-do-joao)"
+                aria-label="Store link"
+                className={field}
+                value={storeSlug}
+                onChange={(e) => setStoreSlug(e.target.value.toLowerCase())}
+                maxLength={40}
+              />
+            </>
+          )}
           {error && (
             <p role="alert" className="text-sm text-red-400">
               {error}
@@ -173,7 +213,11 @@ export function RegisterForm({ next }: { next: string }) {
             disabled={busy}
             className="w-full p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-60"
           >
-            {busy ? 'Creating...' : 'Sign up'}
+            {busy
+              ? 'Creating...'
+              : selling
+                ? 'Sign up and create store'
+                : 'Sign up'}
           </button>
         </form>
         <p className="text-center text-sm mt-4">

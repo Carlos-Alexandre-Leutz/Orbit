@@ -13,6 +13,7 @@ import { MailService } from '../mail/mail.service';
 import { toPublicUser } from '../users/public-user';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { SLUG_MESSAGES, checkSlug, slugFromName } from '../stores/store-slug';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
@@ -31,7 +32,10 @@ export class AuthService {
     return { accessToken, user: toPublicUser(user) };
   }
 
-  /** Self-registration always creates a customer; the role is never read from the request. */
+  /**
+   * Self-registration creates a customer, or a seller together with the store, in one statement.
+   * The role is decided here from `accountType`, never copied from the request.
+   */
   async register(data: RegisterDto) {
     const exists = await this.prisma.user.findUnique({
       where: { email: data.email },
@@ -39,25 +43,61 @@ export class AuthService {
     if (exists) {
       throw new ConflictException('Este e-mail já está cadastrado');
     }
+    const store = await this.storeToCreate(data);
     try {
       const user = await this.prisma.user.create({
         data: {
           email: data.email,
           name: data.name,
           password: await bcrypt.hash(data.password, 10),
-          role: 'CUSTOMER',
+          role: store ? 'SELLER' : 'CUSTOMER',
+          ...(store && { store: { create: store } }),
         },
+        include: { store: true },
       });
-      return await this.issueSession(user);
+      const session = await this.issueSession(user);
+      return user.store
+        ? {
+            ...session,
+            store: {
+              id: user.store.id,
+              slug: user.store.slug,
+              name: user.store.name,
+            },
+          }
+        : session;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
+        const target = error.meta?.target;
+        if (Array.isArray(target) && target.includes('slug')) {
+          throw new ConflictException('This store link is already taken');
+        }
         throw new ConflictException('Este e-mail já está cadastrado');
       }
       throw error;
     }
+  }
+
+  /** The store a new seller gets, validated; null for a customer. */
+  private async storeToCreate(data: RegisterDto) {
+    if (data.accountType !== 'SELLER') return null;
+    const name = data.storeName?.trim();
+    if (!name) {
+      throw new BadRequestException('A seller needs a store name');
+    }
+    const slug = data.storeSlug?.trim() || slugFromName(name);
+    const problem = checkSlug(slug);
+    if (problem) {
+      throw new BadRequestException(SLUG_MESSAGES[problem]);
+    }
+    const taken = await this.prisma.store.findUnique({ where: { slug } });
+    if (taken) {
+      throw new ConflictException('This store link is already taken');
+    }
+    return { name, slug };
   }
 
   async me(userId: string) {
