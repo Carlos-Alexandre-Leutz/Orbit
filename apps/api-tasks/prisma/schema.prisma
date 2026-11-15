@@ -34,7 +34,7 @@ model User {
   updatedAt            DateTime  @updatedAt
   passwordResetToken   String?   @unique
   passwordResetExpires DateTime?
-  cart                 Cart?
+  carts                Cart[]
   orders               Order[]
   store                Store?
 }
@@ -49,6 +49,8 @@ model Store {
   ownerId     String   @unique
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   products    Product[]
+  carts       Cart[]
+  orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -87,15 +89,19 @@ model Product {
   @@index([active, name])
 }
 
-// One cart per user. Prices are not stored here: the cart always shows the product's current price,
+// One cart per customer and store. Prices are not stored here: the cart always shows the product's current price,
 // and the price is frozen only when an order is placed.
 model Cart {
   id        String     @id @default(uuid())
-  userId    String     @unique
+  userId    String
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@unique([userId, storeId])
 }
 
 model CartItem {
@@ -123,6 +129,9 @@ model Order {
   id             String      @id @default(uuid())
   userId         String
   user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // An order belongs to exactly one store: the one whose cart it came from.
+  storeId        String
+  store          Store       @relation(fields: [storeId], references: [id], onDelete: Restrict)
   status         OrderStatus @default(PENDING_PAYMENT)
   currency       String      @default("USD")
   totalCents     Int
@@ -142,6 +151,7 @@ model Order {
 
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
+  @@index([storeId, createdAt])
 }
 
 // The name, SKU and price are copied from the product when the order is placed, so a later price change or

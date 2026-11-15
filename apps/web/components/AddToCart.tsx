@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { quantityChoices } from '@/lib/cart-shared';
+import { STORE_QUERY } from '@/lib/store';
 
 export function AddToCart({
   productId,
@@ -41,7 +42,7 @@ export function AddToCart({
     setBusy(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/bff/cart/items', {
+      const response = await fetch(`/api/bff/cart/items?${STORE_QUERY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, quantity }),

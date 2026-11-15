@@ -13,6 +13,21 @@ import { PaymentsService } from '../payments/payments.service';
 import { OrderWithItems, presentOrder, WITH_ITEMS } from './order-presenter';
 import { canTransition, TIMESTAMP_OF } from './order-state';
 
+/** Who is asking. A seller carries the id of the store they own, found from the session by the controller. */
+export interface Viewer {
+  id: string;
+  role: Role;
+  storeId?: string;
+}
+
+/** Staff of an order: an admin, or the seller of the store the order belongs to. */
+function isStaffOf(viewer: Viewer, order: { storeId: string }) {
+  return (
+    viewer.role === 'ADMIN' ||
+    (viewer.role === 'SELLER' && viewer.storeId === order.storeId)
+  );
+}
+
 function refuse(code: string, message: string, extra: object = {}) {
   return new ConflictException({ statusCode: 409, message, code, ...extra });
 }
@@ -36,20 +51,27 @@ export class OrdersService {
    * when the cart is empty by then. Two parallel requests with the same key queue on the cart lock, and the
    * second finds the first one's order. The unique index on (user, key) is the last guard.
    */
-  async createFromCart(userId: string, idempotencyKey?: string) {
+  async createFromCart(
+    userId: string,
+    storeId: string,
+    idempotencyKey?: string,
+  ) {
     if (idempotencyKey) {
       const existing = await this.findByKey(userId, idempotencyKey);
       if (existing) {
         return presentOrder(existing);
       }
     }
-    const cart = await this.prisma.cart.findUnique({ where: { userId } });
+    const cart = await this.prisma.cart.findUnique({
+      where: { userId_storeId: { userId, storeId } },
+    });
     if (!cart) {
       throw refuse('EMPTY_CART', 'O carrinho está vazio');
     }
     try {
       const { order, created } = await this.placeOrder(
         userId,
+        storeId,
         cart.id,
         idempotencyKey,
       );
@@ -102,6 +124,7 @@ export class OrdersService {
 
   private async placeOrder(
     userId: string,
+    storeId: string,
     cartId: string,
     idempotencyKey?: string,
   ) {
@@ -146,6 +169,7 @@ export class OrdersService {
       const created = await tx.order.create({
         data: {
           userId,
+          storeId,
           idempotencyKey,
           totalCents: lines.reduce(
             (sum, l) => sum + l.product.priceCents * l.quantity,
@@ -178,13 +202,16 @@ export class OrdersService {
     return orders.map(presentOrder);
   }
 
-  /** An order is visible to its owner and to an admin. For anyone else it does not exist. */
-  async get(id: string, viewer: { id: string; role: Role }) {
+  /**
+   * An order is visible to its owner, to an admin and to the seller of its store. For anyone else,
+   * including the seller of another store, it does not exist.
+   */
+  async get(id: string, viewer: Viewer) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: WITH_ITEMS,
     });
-    if (!order || (order.userId !== viewer.id && viewer.role !== 'ADMIN')) {
+    if (!order || (order.userId !== viewer.id && !isStaffOf(viewer, order))) {
       throw new NotFoundException('Pedido não encontrado');
     }
     return presentOrder(order);
@@ -194,9 +221,14 @@ export class OrdersService {
    * Moves an order to a new state if the move is allowed and the order is still in the state the caller saw.
    * The update names the old state, so two requests cannot both win.
    */
-  async transition(id: string, to: OrderStatus, from?: OrderStatus) {
+  async transition(
+    id: string,
+    to: OrderStatus,
+    viewer: Viewer,
+    from?: OrderStatus,
+  ) {
     const order = await this.prisma.order.findUnique({ where: { id } });
-    if (!order) {
+    if (!order || !isStaffOf(viewer, order)) {
       throw new NotFoundException('Pedido não encontrado');
     }
     const current = from ?? order.status;
@@ -231,12 +263,12 @@ export class OrdersService {
    * The state change and the return of the stock happen in one transaction, and the state change names the
    * old state, so the stock goes back exactly once. Cancelling a cancelled order changes nothing.
    */
-  async cancel(id: string, viewer: { id: string; role: Role }) {
+  async cancel(id: string, viewer: Viewer) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: WITH_ITEMS,
     });
-    const staff = viewer.role === 'SELLER' || viewer.role === 'ADMIN';
+    const staff = !!order && isStaffOf(viewer, order);
     if (!order || (order.userId !== viewer.id && !staff)) {
       throw new NotFoundException('Pedido não encontrado');
     }
