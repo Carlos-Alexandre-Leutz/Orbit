@@ -46,11 +46,14 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BFF_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BFF_URL}/auth/reset-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword }),
+        },
+      );
 
       const data = await response.json();
 
@@ -63,9 +66,12 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push('/login');
       }, 3000);
-
     } catch (err: unknown) {
-      setError(err instanceof Error && err.message ? err.message : 'An unexpected error occurred.');
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'An unexpected error occurred.',
+      );
     } finally {
       setLoading(false);
     }
@@ -90,7 +96,9 @@ function ResetPasswordForm() {
         {success ? (
           <div className="p-4 bg-green-50 border-l-4 border-green-500 text-green-700 text-sm rounded text-center">
             <p className="font-bold">Password changed successfully!</p>
-            <p className="mt-1">Redirecting to the login page in a moment....</p>
+            <p className="mt-1">
+              Redirecting to the login page in a moment....
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -138,11 +146,13 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Loading...
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-white">
+          Loading...
+        </div>
+      }
+    >
       <ResetPasswordForm />
     </Suspense>
   );

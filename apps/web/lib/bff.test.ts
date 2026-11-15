@@ -53,6 +53,22 @@ describe('bffRequest', () => {
     expect(result).toMatchObject({ ok: true, status: 200, data: { ok: true } });
   });
 
+  it('forwards extra headers, such as the idempotency key of an order', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}'));
+    vi.stubGlobal('fetch', fetchMock);
+    await bffRequest('/orders', {
+      method: 'POST',
+      body: {},
+      token: 't',
+      headers: { 'Idempotency-Key': 'checkout-1234abcd' },
+    });
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(init.headers).toMatchObject({
+      Authorization: 'Bearer t',
+      'Idempotency-Key': 'checkout-1234abcd',
+    });
+  });
+
   it('keeps the status of an error answer and tolerates an empty body', async () => {
     vi.stubGlobal(
       'fetch',

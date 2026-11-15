@@ -9,8 +9,8 @@ describe('menuFor', () => {
     expect(hrefs(undefined)).toEqual(['/catalog']);
   });
 
-  it('gives every logged-in user a cart, and a customer nothing else', () => {
-    expect(hrefs('CUSTOMER')).toEqual(['/catalog', '/cart']);
+  it('gives every logged-in user a cart and their orders, and a customer nothing else', () => {
+    expect(hrefs('CUSTOMER')).toEqual(['/catalog', '/cart', '/orders']);
     expect(hrefs('SELLER')).toContain('/cart');
   });
 
