@@ -89,4 +89,22 @@ describe('stores (real database)', () => {
     expect(res.body.user.role).toBe('CUSTOMER');
     expect(res.body.store).toBeUndefined();
   });
+
+  it('shows a store and the store list to anyone, without the owner', async () => {
+    await signUpSeller('lia').expect(201);
+    const one = await http()
+      .get(`/stores/${slug('lia')}`)
+      .expect(200);
+    expect(one.body).toEqual({
+      slug: slug('lia'),
+      name: 'Store lia',
+      description: '',
+    });
+    const list = await http().get('/stores').expect(200);
+    expect(
+      (list.body as { slug: string }[]).some((s) => s.slug === slug('lia')),
+    ).toBe(true);
+    expect(JSON.stringify(list.body)).not.toContain('ownerId');
+    await http().get('/stores/nowhere-at-all').expect(404);
+  });
 });
