@@ -23,7 +23,7 @@ describe('BFF OrdersController', () => {
   it('forwards the session of the caller on every call', async () => {
     const controller = (await build()).get(OrdersController);
     await controller.place('loja-x', 'Bearer t');
-    await controller.mine('Bearer t');
+    await controller.mine('loja-x', 'Bearer t');
     await controller.one('o1', 'Bearer t');
     await controller.pay('o1', {}, 'Bearer t');
     await controller.cancel('o1', 'Bearer t');

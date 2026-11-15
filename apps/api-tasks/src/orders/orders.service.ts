@@ -192,9 +192,10 @@ export class OrdersService {
     });
   }
 
-  async listMine(userId: string) {
+  /** My orders, newest first; with a store, only the ones placed in that store. */
+  async listMine(userId: string, storeId?: string) {
     const orders = await this.prisma.order.findMany({
-      where: { userId },
+      where: { userId, ...(storeId ? { storeId } : {}) },
       include: WITH_ITEMS,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       take: 100,

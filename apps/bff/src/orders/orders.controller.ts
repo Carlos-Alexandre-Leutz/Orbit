@@ -30,6 +30,8 @@ export class OrderLineDto {
 
 export class OrderDto {
   @ApiProperty({ format: 'uuid' }) id: string;
+  @ApiProperty({ example: { slug: 'loja', name: 'Loja' } })
+  store: { slug: string; name: string };
   @ApiProperty({
     enum: ['PENDING_PAYMENT', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
   })
@@ -90,10 +92,19 @@ export class OrdersController {
 
   @Get()
   @ApiOperation({ summary: 'List my orders, newest first' })
+  @ApiQuery({
+    name: 'store',
+    required: false,
+    description: 'Only the orders of the store at this link',
+  })
   @ApiResponse({ status: 200, type: [OrderDto] })
-  mine(@Headers('authorization') authorization?: string) {
+  mine(
+    @Query('store') store?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
     return callStoreApi(this.http, 'get', '/orders', {
       authorization,
+      query: { store },
       fallback: 'Erro ao listar os pedidos',
     });
   }

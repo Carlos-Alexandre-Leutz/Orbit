@@ -149,6 +149,21 @@ describe('OrdersService', () => {
     });
   });
 
+  describe('listMine', () => {
+    it('keeps only the orders of one store when it is given one', async () => {
+      prisma.order.findMany.mockResolvedValue([]);
+      await service.listMine('u1');
+      expect(prisma.order.findMany.mock.calls[0][0].where).toEqual({
+        userId: 'u1',
+      });
+      await service.listMine('u1', 's1');
+      expect(prisma.order.findMany.mock.calls[1][0].where).toEqual({
+        userId: 'u1',
+        storeId: 's1',
+      });
+    });
+  });
+
   describe('get', () => {
     const order = {
       id: 'o1',
