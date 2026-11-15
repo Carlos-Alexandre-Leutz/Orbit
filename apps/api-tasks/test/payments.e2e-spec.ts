@@ -86,6 +86,8 @@ describe('payments (real database)', () => {
       new ValidationPipe({ whitelist: true, transform: true }),
     );
     await app.init();
+    // Listening once keeps the parallel requests below from each opening the server on their own port.
+    await app.listen(0);
     categoryId = (
       await prisma.category.create({
         data: { slug: `p${tag}`, name: 'Payment tests' },

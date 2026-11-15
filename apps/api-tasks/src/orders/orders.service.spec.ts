@@ -19,8 +19,10 @@ describe('OrdersService', () => {
     order: { create: jest.fn(), updateMany: jest.fn() },
   };
   const payments = { refundOrder: jest.fn() };
+  const mail = { sendOrderConfirmation: jest.fn() };
   const prisma = {
     cart: { findUnique: jest.fn() },
+    user: { findUnique: jest.fn() },
     order: {
       findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
@@ -29,7 +31,11 @@ describe('OrdersService', () => {
     },
     $transaction: jest.fn(),
   };
-  const service = new OrdersService(prisma as never, payments as never);
+  const service = new OrdersService(
+    prisma as never,
+    payments as never,
+    mail as never,
+  );
   const code = async (promise: Promise<unknown>) =>
     (
       (await promise.catch((e: unknown) => e)) as ConflictException
@@ -41,6 +47,11 @@ describe('OrdersService', () => {
       fn(tx),
     );
     prisma.cart.findUnique.mockResolvedValue({ id: 'c1' });
+    prisma.user.findUnique.mockResolvedValue({
+      email: 'ana@example.com',
+      isAnonymous: false,
+    });
+    mail.sendOrderConfirmation.mockResolvedValue(undefined);
     tx.product.updateMany.mockResolvedValue({ count: 1 });
     tx.order.create.mockImplementation(({ data }) =>
       Promise.resolve({
@@ -215,6 +226,63 @@ describe('OrdersService', () => {
       await expect(service.transition('o1', 'SHIPPED')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('confirmation e-mail', () => {
+    const lines = () =>
+      tx.cartItem.findMany.mockResolvedValue([
+        { product: product(), quantity: 1 },
+      ]);
+    const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+    it('is sent to the owner once the order is saved', async () => {
+      lines();
+      const order = await service.createFromCart('u1');
+      await flush();
+      expect(mail.sendOrderConfirmation).toHaveBeenCalledWith(
+        'ana@example.com',
+        expect.objectContaining({ id: order.id }),
+      );
+    });
+
+    it('never fails the order when the mail server is down', async () => {
+      lines();
+      mail.sendOrderConfirmation.mockRejectedValue(new Error('ECONNREFUSED'));
+      const order = await service.createFromCart('u1');
+      await flush();
+      expect(order.id).toBe('o1');
+    });
+
+    it('never waits for a slow mail server', async () => {
+      lines();
+      mail.sendOrderConfirmation.mockReturnValue(new Promise(() => undefined));
+      await expect(service.createFromCart('u1')).resolves.toMatchObject({
+        id: 'o1',
+      });
+    });
+
+    it('is not sent to a temporary visitor', async () => {
+      lines();
+      prisma.user.findUnique.mockResolvedValue({
+        email: 'anon-1@anonymous.orbit.invalid',
+        isAnonymous: true,
+      });
+      await service.createFromCart('u1');
+      await flush();
+      expect(mail.sendOrderConfirmation).not.toHaveBeenCalled();
+    });
+
+    it('is not sent again when a retry returns the order that already exists', async () => {
+      lines();
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        items: [],
+        totalCents: 1,
+      });
+      await service.createFromCart('u1', 'checkout-1234abcd');
+      await flush();
+      expect(mail.sendOrderConfirmation).not.toHaveBeenCalled();
     });
   });
 
