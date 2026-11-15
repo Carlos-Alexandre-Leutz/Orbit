@@ -16,7 +16,7 @@ Where the project stands and what comes next. An AI session reads this first and
 | 08 | Cart: model, rules with a row lock, cart page. The Redis task was cut. |
 | 09 | Orders and test payment: state machine, payment port with a fake and a Stripe adapter (never run against Stripe), webhook, idempotency, cancellation with refunds, confirmation e-mail, checkout and order pages. |
 
-Measured on 2026-11-14 on the PBI-09 branch (the backlog now has 15 epics, 61 PBIs and 200 tasks, 276 items; the three new PBIs are not on GitHub until the plan PR is merged): API 212 unit tests and 68 integration tests, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
+Measured on 2026-11-14 on the PBI-09 branch (the backlog now has 15 epics, 61 PBIs and 200 tasks, 276 items, all on GitHub: `scripts/import_backlog.py --verify` reports 0 problems on 2026-11-15; the new PBIs are issues #327 (PBI-59), #333 (PBI-60) and #338 (PBI-61), in the Project with Phase F1 and Priority must-have): API 212 unit tests and 68 integration tests, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
 
 Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) and epic E14 (support tickets with AI triage, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
 
@@ -53,6 +53,12 @@ PBI-09 is described in [`pbi/PBI-09.md`](pbi/PBI-09.md), with its evidence and l
 - Next.js here is version 16: read `apps/web/node_modules/next/dist/docs` first (`middleware` is `proxy`, `cookies()` and route params are asynchronous).
 - `@nestjs/jwt` and `@nestjs/mapped-types` version 12 are ES-module only; use 11 and 2.x. Code outside `apps/api-tasks/src` must stay out of `tsconfig.build.json`. A client component must not import server-only code such as `next/headers`.
 - Do not push before the local lint has finished: a pull request started too early once failed in CI for that reason.
+
+## Environments (decided 2026-11-15)
+
+- **Production:** the owner's VPS (1 vCPU, 2 GB RAM, 1 TB disk, Ubuntu 26), Docker Compose, deployed from GitHub Actions ([ADR-001](adr/ADR-001-stack.md), PBI-42 and PBI-43). The owner sets it up; an AI session never connects to it. The address is not written in the repository.
+- **QA (homologation): Render**, on the owner's free account. It cannot be a second stack on the VPS: 2 GB do not hold two. Render is not identical to production (no Compose, a service at a time, the free plan sleeps), so a green QA does not prove the Compose deploy; the local full-stack check before each PBI covers that. Render is for the web, BFF, API and its PostgreSQL first; MongoDB and the ML service stay out until something uses them.
+- Not decided yet: where the Render work goes in the order (see [`open-questions.md`](open-questions.md)). Secrets are never typed by an AI session: a `render.yaml` Blueprint declares the variables and the owner pastes the values in Render.
 
 ## Disk
 
