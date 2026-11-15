@@ -1,10 +1,10 @@
 # Project state
 
-Where the project stands and what comes next. An AI session reads this first and updates it at the end of every PBI and every session (see [`working-agreement.md`](working-agreement.md)). Questions for the owner are in [`open-questions.md`](open-questions.md). **Last updated: 2026-11-14.**
+Where the project stands and what comes next. An AI session reads this first and updates it at the end of every PBI and every session (see [`working-agreement.md`](working-agreement.md)). Questions for the owner are in [`open-questions.md`](open-questions.md). **Last updated: 2026-11-14 (evening).**
 
 ## Where it stands
 
-`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
+`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. **PBI-09 is in progress on the branch `pbi/09-orders-payment`** (not in `staging` yet): continue from that branch. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
 
 | PBI | What it delivered |
 |---|---|
@@ -15,18 +15,23 @@ Where the project stands and what comes next. An AI session reads this first and
 | 55 | Web session (httpOnly cookie, [ADR-003](adr/ADR-003-web-session-cookie.md)), menu by role, banner, catalog pages, seller pages |
 | 08 | Cart: model, rules with a row lock, cart page. The Redis task was cut. |
 
-Measured on 2026-11-14: API 120 unit tests and 34 integration tests, BFF 16, web 52, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
+Measured on 2026-11-14 on the PBI-09 branch: API 153 unit tests and 46 integration tests, BFF 18, web 52, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
 
 Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) and epic E14 (support tickets with AI triage, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
 
 ## Next step
 
-**PBI-09, orders and test payment**, then follow the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37.
+**Finish PBI-09, orders and test payment**, on the branch `pbi/09-orders-payment`. Its acceptance criteria are written in issue #46. Then follow the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37.
 
-For PBI-09 in particular:
-- The cart only **warns** about stock. An order must check and take stock **atomically**, and freeze the price at that moment.
-- There are no Stripe keys: build the payment behind a port with a fake, and ask the owner for test keys ([`open-questions.md`](open-questions.md)).
-- The checkout and order pages are a task of PBI-09 itself, not of PBI-10.
+PBI-09 so far, and what is left:
+- **Done, merged into the PBI branch:** #47, the `Order` and `OrderItem` tables, the state machine, placing an order from the cart (the stock is taken atomically and the prices are copied onto the order), reading orders, and shipping and delivering by a seller or admin, with the BFF routes. A migration and 46 integration tests cover it.
+- **#48, payment:** a `PaymentProvider` port; a fake provider for tests and development; a Stripe adapter built with the `stripe` package that is only verifiable for its **webhook signature** (there are no Stripe keys, so a real charge cannot be tried); a pay route; a webhook route that needs the raw body (`rawBody` in `NestFactory.create`, also in the BFF, which must forward the raw body and the signature header); a table of handled event ids so a repeated event does nothing. A payment confirmed by the call and by the webhook must pay the order once.
+- **#49, idempotency:** an `Idempotency-Key` on placing an order, unique per user, so a retry returns the same order; paying is idempotent through the order state.
+- **#50, cancellation:** the customer cancels while payment is pending; a paid order is cancelled by a seller or admin and refunded through the provider; shipped and delivered orders cannot be cancelled; the stock goes back exactly once.
+- **#51, e-mail:** an order confirmation through the existing `MailService`; a mail failure must never fail the order.
+- **#295, web:** the checkout and order pages (place the order from the cart, pay in test mode, list, detail, cancel) and an "Orders" entry in the menu. The web server already lets `orders` through `/api/bff`. Use `quantityChoices`-style helpers kept out of server-only files.
+- **Known gap to document in `PBI-09.md`:** an unpaid order keeps its stock until it is cancelled; nothing expires old unpaid orders yet.
+- At the end: check each criterion on the full stack (API through the BFF and the pages in a real browser) and write `docs/pbi/PBI-09.md`.
 - The same applies later to the model (PBI-17): there is no Gemini key, so use a fake behind the port.
 
 ## How a task and a PBI are done
@@ -57,3 +62,7 @@ The owner has a 1 TB SSD for AI projects and may move Docker's data there. The s
 - `POST /auth/anonymous` is public and creates a row per call; there is no request limit on login or registration; reset tokens are stored in plain text; the store API still has `enableCors()` open and its port published.
 - The API's error messages are in Portuguese and the pages in English.
 - Not verified yet: the staging deploy (the placeholder only writes a note), the Turborepo cache hit in CI, the `Secure` cookie over https, the layout on a phone, and the 24-hour expiry of a visitor account.
+
+## Pace so far
+
+Merge times on 2026-11-14 (from the Git history of `staging`): PBI-05 at 11:27, PBI-06 at 12:36, PBI-07 at 13:24, PBI-55 at 18:54, PBI-08 at 19:33. Between 13:24 and 18:54 the time went mostly to rewriting the backlog, the parked ideas, disk space and pauses. With no interruptions a PBI of 3 to 5 tasks, including its full-stack validation and document, took about 40 to 70 minutes, roughly 13 minutes a task. On 2026-11-14 the backlog had 38 PBIs and 139 tasks left, not counting the parked epics E13 and E14; about 33 of those PBIs need nothing from the owner (the server, deploy, backups and the launch video do). A realistic estimate for those is 45 to 60 hours of active work, because the agent, RAG, machine learning and evaluation PBIs are slower than the store ones. This is an estimate from five data points, not a promise.
