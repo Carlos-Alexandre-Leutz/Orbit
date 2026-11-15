@@ -5,6 +5,7 @@ import { Role } from '@prisma/client';
 import request from 'supertest';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { PaymentsService } from '../payments/payments.service';
 
 const ID = '6f1c1f0e-8a39-4a27-a2c1-1d6d8c7b0001';
 
@@ -17,12 +18,16 @@ describe('orders HTTP', () => {
     get: jest.fn().mockResolvedValue({ id: ID }),
     transition: jest.fn().mockResolvedValue({ id: ID }),
   };
+  const payments = { pay: jest.fn().mockResolvedValue({ id: ID }) };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [JwtModule.register({ global: true, secret: 'a-test-secret' })],
       controllers: [OrdersController],
-      providers: [{ provide: OrdersService, useValue: orders }],
+      providers: [
+        { provide: OrdersService, useValue: orders },
+        { provide: PaymentsService, useValue: payments },
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(
@@ -44,6 +49,7 @@ describe('orders HTTP', () => {
     ['post', '/orders'],
     ['get', '/orders'],
     ['get', `/orders/${ID}`],
+    ['post', `/orders/${ID}/pay`],
     ['post', `/orders/${ID}/ship`],
     ['post', `/orders/${ID}/deliver`],
   ] as const)('%s %s needs a session', async (method, path) => {
@@ -61,6 +67,28 @@ describe('orders HTTP', () => {
       id: 'user-9',
       role: 'CUSTOMER',
     });
+  });
+
+  it('pays an order of the user of the token, with the chosen test card', async () => {
+    await server()
+      .post(`/orders/${ID}/pay`)
+      .set(as('CUSTOMER', 'user-9'))
+      .send({ paymentMethod: 'pm_card_chargeDeclined' })
+      .expect(201);
+    expect(payments.pay).toHaveBeenCalledWith(
+      ID,
+      'user-9',
+      'pm_card_chargeDeclined',
+    );
+  });
+
+  it('refuses a payment method that is not a test id', async () => {
+    await server()
+      .post(`/orders/${ID}/pay`)
+      .set(as('CUSTOMER'))
+      .send({ paymentMethod: '4242 4242 4242 4242' })
+      .expect(400);
+    expect(payments.pay).not.toHaveBeenCalled();
   });
 
   it('refuses a malformed order id', async () => {

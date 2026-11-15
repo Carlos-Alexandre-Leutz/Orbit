@@ -18,14 +18,19 @@ export async function callStoreApi(
     body?: unknown;
     query?: Record<string, unknown>;
     authorization?: string;
+    /** Extra headers to forward, such as a webhook signature. */
+    headers?: Record<string, string>;
     fallback: string;
   },
 ): Promise<unknown> {
   const url = `${process.env.TASKS_API_URL}${path}`;
   const config = {
-    headers: options.authorization
-      ? { Authorization: options.authorization }
-      : {},
+    headers: {
+      ...(options.authorization
+        ? { Authorization: options.authorization }
+        : {}),
+      ...options.headers,
+    },
     params: options.query,
   };
   try {

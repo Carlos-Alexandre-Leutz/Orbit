@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import {
   ApiBearerAuth,
@@ -33,6 +33,16 @@ export class OrderDto {
   @ApiProperty({ nullable: true }) shippedAt: string | null;
   @ApiProperty({ nullable: true }) deliveredAt: string | null;
   @ApiProperty({ nullable: true }) cancelledAt: string | null;
+}
+
+export class PayOrderDto {
+  @ApiProperty({
+    required: false,
+    example: 'pm_card_visa',
+    description:
+      'A test payment method. pm_card_chargeDeclined is declined; the default succeeds.',
+  })
+  paymentMethod?: string;
 }
 
 /** Orders of the logged-in user; the store API reads the user from the session and checks the rules. */
@@ -77,6 +87,34 @@ export class OrdersController {
       authorization,
       fallback: 'Erro ao carregar o pedido',
     });
+  }
+
+  @Post(':id/pay')
+  @ApiOperation({
+    summary:
+      'Pay one of my orders (test mode); paying a paid order is harmless',
+  })
+  @ApiResponse({ status: 201, type: OrderDto })
+  @ApiResponse({ status: 402, description: 'The payment was declined' })
+  @ApiResponse({
+    status: 409,
+    description: 'The order is shipped, delivered or cancelled',
+  })
+  pay(
+    @Param('id') id: string,
+    @Body() body: PayOrderDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(
+      this.http,
+      'post',
+      `/orders/${encodeURIComponent(id)}/pay`,
+      {
+        authorization,
+        body: { paymentMethod: body?.paymentMethod },
+        fallback: 'Erro ao pagar o pedido',
+      },
+    );
   }
 
   @Post(':id/ship')

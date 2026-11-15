@@ -7,7 +7,7 @@ import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { canTransition, TIMESTAMP_OF } from './order-state';
 
-const WITH_ITEMS = { items: { orderBy: { name: 'asc' as const } } };
+export const WITH_ITEMS = { items: { orderBy: { name: 'asc' as const } } };
 type OrderWithItems = Prisma.OrderGetPayload<{ include: typeof WITH_ITEMS }>;
 
 /** What the API shows of an order. */
