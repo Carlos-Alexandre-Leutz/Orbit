@@ -36,6 +36,20 @@ model User {
   passwordResetExpires DateTime?
   cart                 Cart?
   orders               Order[]
+  store                Store?
+}
+
+// A store belongs to one seller (for now) and lives at the link /<slug>. Products, carts and orders
+// get a storeId in the next tasks of PBI-59.
+model Store {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String   @default("")
+  ownerId     String   @unique
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Category {

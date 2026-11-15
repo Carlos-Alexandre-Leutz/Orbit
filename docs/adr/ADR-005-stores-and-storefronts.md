@@ -1,6 +1,6 @@
 # ADR-005: Many stores, each with its own link, seller panel and customers
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-15). The owner told the AI to run PBI-59, so the two defaults marked **to confirm** (a path link, one customer account for all stores) were adopted; either can still be changed.
 - **Date:** 2026-11-15
 
 ## Context
