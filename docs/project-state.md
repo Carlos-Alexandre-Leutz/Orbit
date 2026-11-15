@@ -1,6 +1,6 @@
 # Project state
 
-Where the project stands and what comes next. An AI session reads this first and updates it at the end of every PBI and every session (see [`working-agreement.md`](working-agreement.md)). Questions for the owner are in [`open-questions.md`](open-questions.md). **Last updated: 2026-11-14 (evening).**
+Where the project stands and what comes next. An AI session reads this first and updates it at the end of every PBI and every session (see [`working-agreement.md`](working-agreement.md)). Questions for the owner are in [`open-questions.md`](open-questions.md). **Last updated: 2026-11-14.**
 
 ## Where it stands
 
