@@ -17,7 +17,7 @@ Things only the owner can decide or do. An AI session adds a row when it asks so
 |---|---|
 | Set up the VPS, deploy, and release `staging` to `main` | The project rule: nothing reaches `main` or production without the owner. PBI-42 to PBI-44 depend on it. |
 | Give test keys for Stripe and for the Gemini API | An AI session has none and must not invent them. Until then the payment and the model are built behind a port with a fake. For Stripe: a test secret key and the signing secret of a test-mode webhook that points at `<BFF>/payments/webhook` go in `.env` as `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` ([ADR-004](adr/ADR-004-payments-behind-a-port.md), [PBI-09](pbi/PBI-09.md)). |
-| Delete the merged `pbi/*` branches (01 to 08 and 55) | `AGENTS.md`: the owner deletes them after checking each merge. |
+| Delete the merged `pbi/*` branches (01 to 09 and 55) | `AGENTS.md`: the owner deletes them after checking each merge. |
 | Update the local `.env` from `.env.example` (`MONGO_*`, `JWT_SECRET`, the ports) | Only the owner's machine has that file. |
 | Reset the old PostgreSQL volume (`docker compose down -v`) to get pgvector | It deletes development data, so it is the owner's call. |
 | Move Docker's data to the 1 TB SSD, when it is connected | Needs the disk mounted, an ext4 file system, a mount by UUID in `fstab` and a backup of the database volumes. Steps are in [`project-state.md`](project-state.md). |

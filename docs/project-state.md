@@ -4,7 +4,7 @@ Where the project stands and what comes next. An AI session reads this first and
 
 ## Where it stands
 
-`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. **PBI-09 is finished on the branch `pbi/09-orders-payment`** and its pull request into `staging` is open (the owner or the next session checks it is merged). Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
+`staging` holds PBI-01 to PBI-09 and PBI-55, all with green checks. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
 
 | PBI | What it delivered |
 |---|---|
@@ -22,7 +22,7 @@ Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/
 
 ## Next step
 
-**Merge the PBI-09 pull request into `staging`, then start PBI-10**, following the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37. Before PBI-10, check that no `task/*` branch is left.
+**Start PBI-10**, then follow the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37. No `task/*` branch was left after PBI-09. PBI-10 has two tasks: the chat page with streaming (no agent exists yet, so it needs a fake behind a port and a decision on the streaming protocol, to be written as an ADR) and the seller sales and stock pages.
 
 PBI-09 is described in [`pbi/PBI-09.md`](pbi/PBI-09.md), with its evidence and limits. The ones a next session must remember:
 - `StripePaymentProvider.charge` and `.refund` were never run against Stripe (no keys); only the webhook signature is tested. The owner supplies test keys; then run one real payment, one decline, one refund and one webhook. The model (PBI-17) is in the same situation: no Gemini key, so use a fake behind the port.
