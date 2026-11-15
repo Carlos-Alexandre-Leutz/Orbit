@@ -1,4 +1,8 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
@@ -27,6 +31,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let jwt: JwtService;
   const prisma = {
+    store: { findUnique: jest.fn().mockResolvedValue(null) },
     user: {
       deleteMany: jest.fn().mockResolvedValue({ count: 3 }),
       findUnique: jest.fn(({ where }) =>
@@ -98,6 +103,98 @@ describe('AuthService', () => {
           password: 'a-good-password',
         }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('register as a seller', () => {
+    const seller = {
+      email: 'joao@example.com',
+      password: 'a-good-password',
+      accountType: 'SELLER' as const,
+      storeName: 'Loja do João',
+    };
+
+    it('creates the seller and the store in one statement, with a link from the name', async () => {
+      const session = await service.register(seller);
+      const data = prisma.user.create.mock.calls[0][0].data;
+      expect(data.role).toBe('SELLER');
+      expect(data.store).toEqual({
+        create: { name: 'Loja do João', slug: 'loja-do-joao' },
+      });
+      const payload = await jwt.verifyAsync(session.accessToken);
+      expect(payload.role).toBe('SELLER');
+    });
+
+    it('uses the link the seller chose', async () => {
+      await service.register({ ...seller, storeSlug: 'joao-shop' });
+      expect(prisma.user.create.mock.calls[0][0].data.store.create.slug).toBe(
+        'joao-shop',
+      );
+    });
+
+    it('needs a store name', async () => {
+      await expect(
+        service.register({ ...seller, storeName: '  ' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it.each(['login', 'Bad Link', 'ab'])(
+      'refuses the link %s',
+      async (slug) => {
+        await expect(
+          service.register({ ...seller, storeSlug: slug }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(prisma.user.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('answers conflict when the link is already taken', async () => {
+      prisma.store.findUnique.mockResolvedValueOnce({ id: 's1' });
+      await expect(service.register(seller)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('does not create a store for a customer, even if a store name is sent', async () => {
+      await service.register({
+        email: 'ana@example.com',
+        password: 'a-good-password',
+        storeName: 'Sneaky',
+      });
+      const data = prisma.user.create.mock.calls[0][0].data;
+      expect(data.role).toBe('CUSTOMER');
+      expect(data.store).toBeUndefined();
+    });
+  });
+
+  describe('me', () => {
+    it("returns the seller's store, and null for a customer", async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(
+        makeUser({
+          role: 'SELLER',
+          store: { slug: 'loja', name: 'Loja', id: 's1' },
+        }),
+      );
+      expect(await service.me('u1')).toMatchObject({
+        role: 'SELLER',
+        store: { slug: 'loja', name: 'Loja' },
+      });
+      prisma.user.findUnique.mockResolvedValueOnce(makeUser());
+      expect(await service.me('u1')).toMatchObject({ store: null });
+    });
+
+    it('never returns the store id or the password hash', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(
+        makeUser({
+          role: 'SELLER',
+          store: { slug: 'loja', name: 'Loja', id: 's1' },
+        }),
+      );
+      const me = await service.me('u1');
+      expect(JSON.stringify(me)).not.toContain('s1');
+      expect(me).not.toHaveProperty('password');
     });
   });
 

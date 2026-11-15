@@ -67,12 +67,12 @@ describe('OrdersService', () => {
   describe('createFromCart', () => {
     it('refuses an empty cart, with or without a cart row', async () => {
       prisma.cart.findUnique.mockResolvedValue(null);
-      expect(await code(service.createFromCart('u1'))).toMatchObject({
+      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
         code: 'EMPTY_CART',
       });
       prisma.cart.findUnique.mockResolvedValue({ id: 'c1' });
       tx.cartItem.findMany.mockResolvedValue([]);
-      expect(await code(service.createFromCart('u1'))).toMatchObject({
+      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
         code: 'EMPTY_CART',
       });
     });
@@ -90,7 +90,7 @@ describe('OrdersService', () => {
           }),
         },
       ]);
-      const order = await service.createFromCart('u1');
+      const order = await service.createFromCart('u1', 's1');
       expect(order.totalCents).toBe(2 * 3490 + 500);
       expect(
         order.items.map((i) => [
@@ -116,7 +116,7 @@ describe('OrdersService', () => {
       tx.cartItem.findMany.mockResolvedValue([
         { quantity: 1, product: product() },
       ]);
-      await service.createFromCart('u1');
+      await service.createFromCart('u1', 's1');
       expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
       expect(tx.cartItem.findMany.mock.calls[0][0].orderBy).toEqual({
         productId: 'asc',
@@ -127,7 +127,7 @@ describe('OrdersService', () => {
       tx.cartItem.findMany.mockResolvedValue([
         { quantity: 1, product: product({ active: false }) },
       ]);
-      expect(await code(service.createFromCart('u1'))).toMatchObject({
+      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
         code: 'UNAVAILABLE',
       });
       expect(tx.product.updateMany).not.toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe('OrdersService', () => {
         { quantity: 3, product: product() },
       ]);
       tx.product.updateMany.mockResolvedValue({ count: 0 });
-      expect(await code(service.createFromCart('u1'))).toMatchObject({
+      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
         code: 'NOT_ENOUGH_STOCK',
         productId: 'p1',
       });
@@ -153,13 +153,14 @@ describe('OrdersService', () => {
     const order = {
       id: 'o1',
       userId: 'owner',
+      storeId: 's1',
       status: 'PAID',
       currency: 'USD',
       totalCents: 1,
       items: [],
     };
 
-    it('shows an order to its owner and to an admin', async () => {
+    it('shows an order to its owner, to an admin and to the seller of its store', async () => {
       prisma.order.findUnique.mockResolvedValue(order);
       await expect(
         service.get('o1', { id: 'owner', role: 'CUSTOMER' }),
@@ -167,14 +168,20 @@ describe('OrdersService', () => {
       await expect(
         service.get('o1', { id: 'boss', role: 'ADMIN' }),
       ).resolves.toMatchObject({ id: 'o1' });
+      await expect(
+        service.get('o1', { id: 'sam', role: 'SELLER', storeId: 's1' }),
+      ).resolves.toMatchObject({ id: 'o1' });
     });
 
-    it('does not reveal the order to anyone else, not even a seller', async () => {
+    it('does not reveal the order to anyone else, not even the seller of another store', async () => {
       prisma.order.findUnique.mockResolvedValue(order);
-      for (const role of ['CUSTOMER', 'SELLER'] as const) {
-        await expect(
-          service.get('o1', { id: 'other', role }),
-        ).rejects.toBeInstanceOf(NotFoundException);
+      for (const viewer of [
+        { id: 'other', role: 'CUSTOMER' as const },
+        { id: 'rival', role: 'SELLER' as const, storeId: 's2' },
+      ]) {
+        await expect(service.get('o1', viewer)).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
       }
       prisma.order.findUnique.mockResolvedValue(null);
       await expect(
@@ -192,10 +199,16 @@ describe('OrdersService', () => {
       });
     });
 
+    const sam = { id: 'sam', role: 'SELLER' as const, storeId: 's1' };
+
     it('moves an allowed order, naming the state it expects, and stamps the time', async () => {
-      prisma.order.findUnique.mockResolvedValue({ id: 'o1', status: 'PAID' });
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        storeId: 's1',
+        status: 'PAID',
+      });
       prisma.order.updateMany.mockResolvedValue({ count: 1 });
-      await service.transition('o1', 'SHIPPED');
+      await service.transition('o1', 'SHIPPED', sam);
       const args = prisma.order.updateMany.mock.calls[0][0];
       expect(args.where).toEqual({ id: 'o1', status: 'PAID' });
       expect(args.data.status).toBe('SHIPPED');
@@ -205,27 +218,51 @@ describe('OrdersService', () => {
     it('refuses a move that is not allowed and writes nothing', async () => {
       prisma.order.findUnique.mockResolvedValue({
         id: 'o1',
+        storeId: 's1',
         status: 'PENDING_PAYMENT',
       });
-      expect(await code(service.transition('o1', 'SHIPPED'))).toMatchObject({
+      expect(
+        await code(service.transition('o1', 'SHIPPED', sam)),
+      ).toMatchObject({
         code: 'INVALID_TRANSITION',
       });
       expect(prisma.order.updateMany).not.toHaveBeenCalled();
     });
 
     it('loses gracefully when another request moved the order first', async () => {
-      prisma.order.findUnique.mockResolvedValue({ id: 'o1', status: 'PAID' });
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        storeId: 's1',
+        status: 'PAID',
+      });
       prisma.order.updateMany.mockResolvedValue({ count: 0 });
-      expect(await code(service.transition('o1', 'SHIPPED'))).toMatchObject({
+      expect(
+        await code(service.transition('o1', 'SHIPPED', sam)),
+      ).toMatchObject({
         code: 'STATE_CHANGED',
       });
     });
 
+    it("treats another store's order as missing for a seller, and lets an admin through", async () => {
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        storeId: 's2',
+        status: 'PAID',
+      });
+      prisma.order.updateMany.mockResolvedValue({ count: 1 });
+      await expect(
+        service.transition('o1', 'SHIPPED', sam),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.order.updateMany).not.toHaveBeenCalled();
+      await service.transition('o1', 'SHIPPED', { id: 'boss', role: 'ADMIN' });
+      expect(prisma.order.updateMany).toHaveBeenCalledTimes(1);
+    });
+
     it('answers not found for an unknown order', async () => {
       prisma.order.findUnique.mockResolvedValue(null);
-      await expect(service.transition('o1', 'SHIPPED')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.transition('o1', 'SHIPPED', sam),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
@@ -238,7 +275,7 @@ describe('OrdersService', () => {
 
     it('is sent to the owner once the order is saved', async () => {
       lines();
-      const order = await service.createFromCart('u1');
+      const order = await service.createFromCart('u1', 's1');
       await flush();
       expect(mail.sendOrderConfirmation).toHaveBeenCalledWith(
         'ana@example.com',
@@ -249,7 +286,7 @@ describe('OrdersService', () => {
     it('never fails the order when the mail server is down', async () => {
       lines();
       mail.sendOrderConfirmation.mockRejectedValue(new Error('ECONNREFUSED'));
-      const order = await service.createFromCart('u1');
+      const order = await service.createFromCart('u1', 's1');
       await flush();
       expect(order.id).toBe('o1');
     });
@@ -257,7 +294,7 @@ describe('OrdersService', () => {
     it('never waits for a slow mail server', async () => {
       lines();
       mail.sendOrderConfirmation.mockReturnValue(new Promise(() => undefined));
-      await expect(service.createFromCart('u1')).resolves.toMatchObject({
+      await expect(service.createFromCart('u1', 's1')).resolves.toMatchObject({
         id: 'o1',
       });
     });
@@ -268,7 +305,7 @@ describe('OrdersService', () => {
         email: 'anon-1@anonymous.orbit.invalid',
         isAnonymous: true,
       });
-      await service.createFromCart('u1');
+      await service.createFromCart('u1', 's1');
       await flush();
       expect(mail.sendOrderConfirmation).not.toHaveBeenCalled();
     });
@@ -280,7 +317,7 @@ describe('OrdersService', () => {
         items: [],
         totalCents: 1,
       });
-      await service.createFromCart('u1', 'checkout-1234abcd');
+      await service.createFromCart('u1', 's1', 'checkout-1234abcd');
       await flush();
       expect(mail.sendOrderConfirmation).not.toHaveBeenCalled();
     });
@@ -288,10 +325,11 @@ describe('OrdersService', () => {
 
   describe('cancel', () => {
     const ana = { id: 'u1', role: 'CUSTOMER' as const };
-    const sam = { id: 's1', role: 'SELLER' as const };
+    const sam = { id: 'sam', role: 'SELLER' as const, storeId: 's1' };
     const order = (status: string, over: object = {}) => ({
       id: 'o1',
       userId: 'u1',
+      storeId: 's1',
       status,
       refundRef: null,
       items: [
@@ -354,6 +392,14 @@ describe('OrdersService', () => {
       await expect(
         service.cancel('o1', { id: 'intruder', role: 'CUSTOMER' }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it("treats another store's order as missing for a seller", async () => {
+      found('PAID');
+      await expect(
+        service.cancel('o1', { id: 'rival', role: 'SELLER', storeId: 's2' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('returns the stock only for the request that won the state change', async () => {

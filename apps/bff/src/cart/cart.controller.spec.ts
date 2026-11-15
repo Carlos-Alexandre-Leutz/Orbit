@@ -26,11 +26,11 @@ describe('BFF CartController', () => {
   });
 
   it('forwards the session of the caller on every call', async () => {
-    await controller.view('Bearer t');
-    await controller.add({ productId: 'p', quantity: 1 }, 'Bearer t');
-    await controller.setQuantity('p', { quantity: 2 }, 'Bearer t');
-    await controller.removeLine('p', 'Bearer t');
-    await controller.clear('Bearer t');
+    await controller.view('loja-x', 'Bearer t');
+    await controller.add({ productId: 'p', quantity: 1 }, 'loja-x', 'Bearer t');
+    await controller.setQuantity('p', { quantity: 2 }, 'loja-x', 'Bearer t');
+    await controller.removeLine('p', 'loja-x', 'Bearer t');
+    await controller.clear('loja-x', 'Bearer t');
     const headers = [
       http.get.mock.calls[0][1],
       http.post.mock.calls[0][2],
@@ -39,6 +39,24 @@ describe('BFF CartController', () => {
       http.delete.mock.calls[1][1],
     ].map((c) => c.headers);
     expect(headers).toEqual(Array(5).fill({ Authorization: 'Bearer t' }));
+  });
+
+  it('names the store of the cart on every call', async () => {
+    await controller.view('loja-x', 'Bearer t');
+    await controller.add({ productId: 'p', quantity: 1 }, 'loja-x', 'Bearer t');
+    await controller.setQuantity('p', { quantity: 2 }, 'loja-x', 'Bearer t');
+    await controller.removeLine('p', 'loja-x', 'Bearer t');
+    await controller.clear('loja-x', 'Bearer t');
+    const configs = [
+      http.get.mock.calls[0][1],
+      http.post.mock.calls[0][2],
+      http.patch.mock.calls[0][2],
+      http.delete.mock.calls[0][1],
+      http.delete.mock.calls[1][1],
+    ];
+    expect(configs.map((c) => c.params)).toEqual(
+      Array(5).fill({ store: 'loja-x' }),
+    );
   });
 
   it('is in the OpenAPI document and every operation needs a bearer token', async () => {

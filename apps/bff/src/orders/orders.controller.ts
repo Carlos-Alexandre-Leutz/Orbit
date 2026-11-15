@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiProperty,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -60,17 +69,20 @@ export class OrdersController {
     description:
       'Send an Idempotency-Key header (8 to 128 letters, digits, - or _): a retry with the same key returns the same order instead of a second one.',
   })
+  @ApiQuery({ name: 'store', description: 'The link of the store' })
   @ApiResponse({ status: 201, type: OrderDto })
   @ApiResponse({
     status: 409,
     description: 'Empty cart, a product no longer on sale or not enough stock',
   })
   place(
+    @Query('store') store?: string,
     @Headers('authorization') authorization?: string,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     return callStoreApi(this.http, 'post', '/orders', {
       authorization,
+      query: { store },
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
       fallback: 'Erro ao fazer o pedido',
     });

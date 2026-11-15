@@ -17,10 +17,12 @@ export default async function SellerProductsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireProductManager('/seller/products');
+  const user = await requireProductManager('/seller/products');
   const params = parseCatalogParams(await searchParams);
   const result = await bffRequest<ProductPage>('/products', {
     query: {
+      // A seller manages their own store only ("-" is never a link, so a seller without a store sees nothing); an admin sees every store.
+      store: user.role === 'SELLER' ? (user.store?.slug ?? '-') : undefined,
       q: params.q,
       sort: params.sort,
       page: String(params.page),

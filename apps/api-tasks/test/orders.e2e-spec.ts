@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient, Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { TestSeller, removeTestData, sellerWithStore } from './support';
 
 interface OrderBody {
   id: string;
@@ -28,6 +29,9 @@ describe('orders (real database)', () => {
   const bearer: Record<string, string> = {};
   const userId: Record<string, string> = {};
   const products: Record<string, string> = {};
+  let sam: TestSeller;
+  let rival: TestSeller;
+  const store = () => `store=${sam.slug}`;
   let categoryId: string;
 
   async function account(name: string, role: Role = 'CUSTOMER') {
@@ -50,9 +54,12 @@ describe('orders (real database)', () => {
   }
   const as = (name: string) => ({ Authorization: bearer[name] });
   const addToCart = (name: string, productId: string, quantity: number) =>
-    http().post('/cart/items').set(as(name)).send({ productId, quantity });
+    http()
+      .post(`/cart/items?${store()}`)
+      .set(as(name))
+      .send({ productId, quantity });
   const place = (name: string, key?: string) => {
-    const req = http().post('/orders').set(as(name));
+    const req = http().post(`/orders?${store()}`).set(as(name));
     return key ? req.set('Idempotency-Key', key) : req;
   };
   const stockOf = async (productId: string) =>
@@ -61,6 +68,7 @@ describe('orders (real database)', () => {
   const newProduct = async (key: string, priceCents: number, stock: number) => {
     const p = await prisma.product.create({
       data: {
+        storeId: sam.storeId,
         sku: `O${tag.toUpperCase()}-${key.toUpperCase()}`,
         name: `Order item ${key}`,
         priceCents,
@@ -87,13 +95,16 @@ describe('orders (real database)', () => {
         data: { slug: `o${tag}`, name: 'Order tests' },
       })
     ).id;
+    sam = await sellerWithStore(app, tag, 'sam');
+    rival = await sellerWithStore(app, tag, 'rival');
+    bearer.sam = sam.token;
+    bearer.rival = rival.token;
     await newProduct('a', 1000, 20);
     await newProduct('b', 250, 20);
     for (const [name, role] of [
       ['ana', 'CUSTOMER'],
       ['bob', 'CUSTOMER'],
       ['cy', 'CUSTOMER'],
-      ['sam', 'SELLER'],
       ['root', 'ADMIN'],
     ] as const) {
       await account(name, role);
@@ -101,16 +112,7 @@ describe('orders (real database)', () => {
   });
 
   afterAll(async () => {
-    const users = await prisma.user.findMany({
-      where: { email: { endsWith: `-${tag}@example.com` } },
-      select: { id: true },
-    });
-    const ids = users.map((u) => u.id);
-    await prisma.order.deleteMany({ where: { userId: { in: ids } } });
-    await prisma.user.deleteMany({ where: { id: { in: ids } } });
-    await prisma.product.deleteMany({
-      where: { sku: { startsWith: `O${tag.toUpperCase()}-` } },
-    });
+    await removeTestData(prisma, tag, `O${tag.toUpperCase()}-`);
     await prisma.category.deleteMany({ where: { slug: `o${tag}` } });
     await prisma.$disconnect();
     await app.close();
@@ -142,7 +144,10 @@ describe('orders (real database)', () => {
         },
       );
       expect(await stockOf(products.a)).toBe(stockBefore - 3);
-      const cart = await http().get('/cart').set(as('ana')).expect(200);
+      const cart = await http()
+        .get(`/cart?${store()}`)
+        .set(as('ana'))
+        .expect(200);
       expect(cart.body.items).toEqual([]);
     });
 
@@ -181,7 +186,8 @@ describe('orders (real database)', () => {
     it('shows the order to its owner and to an admin, and to nobody else', async () => {
       await http().get(`/orders/${order.id}`).set(as('root')).expect(200);
       await http().get(`/orders/${order.id}`).set(as('bob')).expect(404);
-      await http().get(`/orders/${order.id}`).set(as('sam')).expect(404);
+      await http().get(`/orders/${order.id}`).set(as('sam')).expect(200);
+      await http().get(`/orders/${order.id}`).set(as('rival')).expect(404);
       await http().get(`/orders/${order.id}`).expect(401);
     });
 
@@ -237,12 +243,15 @@ describe('orders (real database)', () => {
         productId: id,
       });
       expect(await stockOf(id)).toBe(2);
-      const cart = await http().get('/cart').set(as('bob')).expect(200);
+      const cart = await http()
+        .get(`/cart?${store()}`)
+        .set(as('bob'))
+        .expect(200);
       expect(cart.body.items).toHaveLength(1);
       expect(await prisma.order.count({ where: { userId: userId.bob } })).toBe(
         0,
       );
-      await http().delete('/cart').set(as('bob')).expect(204);
+      await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     });
 
     it('refuses an order that includes a removed product, and takes no stock from the others', async () => {
@@ -258,7 +267,7 @@ describe('orders (real database)', () => {
         code: 'UNAVAILABLE',
       });
       expect(await stockOf(products.b)).toBe(before);
-      await http().delete('/cart').set(as('bob')).expect(204);
+      await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     });
 
     it('sells the last units to one customer only, when two order at the same moment', async () => {

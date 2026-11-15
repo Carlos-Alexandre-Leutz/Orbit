@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { bffRequest } from './bff';
 import { sessionToken } from './auth';
+import { CURRENT_STORE } from './store';
 
 export interface CartLine {
   productId: string;
@@ -23,6 +24,9 @@ export interface Cart {
 export const getCart = cache(async (): Promise<Cart | null> => {
   const token = await sessionToken();
   if (!token) return null;
-  const result = await bffRequest<Cart>('/cart', { token });
+  const result = await bffRequest<Cart>('/cart', {
+    token,
+    query: { store: CURRENT_STORE },
+  });
   return result.ok ? result.data : null;
 });

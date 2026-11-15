@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { quantityChoices } from '@/lib/cart-shared';
+import { STORE_QUERY } from '@/lib/store';
 
 async function call(
   method: string,
@@ -64,9 +65,13 @@ export function LineControls({
             disabled={busy}
             onChange={(e) =>
               run(() =>
-                call('PATCH', `/api/bff/cart/items/${productId}`, {
-                  quantity: Number(e.target.value),
-                }),
+                call(
+                  'PATCH',
+                  `/api/bff/cart/items/${productId}?${STORE_QUERY}`,
+                  {
+                    quantity: Number(e.target.value),
+                  },
+                ),
               )
             }
             className="rounded border border-gray-500 bg-transparent p-1"
@@ -82,7 +87,9 @@ export function LineControls({
           type="button"
           disabled={busy}
           onClick={() =>
-            run(() => call('DELETE', `/api/bff/cart/items/${productId}`))
+            run(() =>
+              call('DELETE', `/api/bff/cart/items/${productId}?${STORE_QUERY}`),
+            )
           }
           className="text-sm text-red-400 hover:underline disabled:opacity-60"
         >
@@ -105,7 +112,7 @@ export function EmptyCartButton() {
   async function empty() {
     if (!window.confirm('Remove everything from your cart?')) return;
     setBusy(true);
-    await call('DELETE', '/api/bff/cart');
+    await call('DELETE', `/api/bff/cart?${STORE_QUERY}`);
     setBusy(false);
     router.refresh();
   }
