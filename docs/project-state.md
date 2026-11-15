@@ -4,7 +4,7 @@ Where the project stands and what comes next. An AI session reads this first and
 
 ## Where it stands
 
-`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. **PBI-09 is in progress on the branch `pbi/09-orders-payment`** (not in `staging` yet): continue from that branch. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
+`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. **PBI-09 is finished on the branch `pbi/09-orders-payment`** and its pull request into `staging` is open (the owner or the next session checks it is merged). Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
 
 | PBI | What it delivered |
 |---|---|
@@ -14,25 +14,20 @@ Where the project stands and what comes next. An AI session reads this first and
 | 07 | Product catalog: API, search, seed loader, integration tests on PostgreSQL |
 | 55 | Web session (httpOnly cookie, [ADR-003](adr/ADR-003-web-session-cookie.md)), menu by role, banner, catalog pages, seller pages |
 | 08 | Cart: model, rules with a row lock, cart page. The Redis task was cut. |
+| 09 | Orders and test payment: state machine, payment port with a fake and a Stripe adapter (never run against Stripe), webhook, idempotency, cancellation with refunds, confirmation e-mail, checkout and order pages. |
 
-Measured on 2026-11-14 on the PBI-09 branch: API 153 unit tests and 46 integration tests, BFF 18, web 52, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
+Measured on 2026-11-14 on the PBI-09 branch: API 212 unit tests and 68 integration tests, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
 
 Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) and epic E14 (support tickets with AI triage, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
 
 ## Next step
 
-**Finish PBI-09, orders and test payment**, on the branch `pbi/09-orders-payment`. Its acceptance criteria are written in issue #46. Then follow the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37.
+**Merge the PBI-09 pull request into `staging`, then start PBI-10**, following the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37. Before PBI-10, check that no `task/*` branch is left.
 
-PBI-09 so far, and what is left:
-- **Done, merged into the PBI branch:** #47, the `Order` and `OrderItem` tables, the state machine, placing an order from the cart (the stock is taken atomically and the prices are copied onto the order), reading orders, and shipping and delivering by a seller or admin, with the BFF routes. A migration and 46 integration tests cover it.
-- **#48, payment:** a `PaymentProvider` port; a fake provider for tests and development; a Stripe adapter built with the `stripe` package that is only verifiable for its **webhook signature** (there are no Stripe keys, so a real charge cannot be tried); a pay route; a webhook route that needs the raw body (`rawBody` in `NestFactory.create`, also in the BFF, which must forward the raw body and the signature header); a table of handled event ids so a repeated event does nothing. A payment confirmed by the call and by the webhook must pay the order once.
-- **#49, idempotency:** an `Idempotency-Key` on placing an order, unique per user, so a retry returns the same order; paying is idempotent through the order state.
-- **#50, cancellation:** the customer cancels while payment is pending; a paid order is cancelled by a seller or admin and refunded through the provider; shipped and delivered orders cannot be cancelled; the stock goes back exactly once.
-- **#51, e-mail:** an order confirmation through the existing `MailService`; a mail failure must never fail the order.
-- **#295, web:** the checkout and order pages (place the order from the cart, pay in test mode, list, detail, cancel) and an "Orders" entry in the menu. The web server already lets `orders` through `/api/bff`. Use `quantityChoices`-style helpers kept out of server-only files.
-- **Known gap to document in `PBI-09.md`:** an unpaid order keeps its stock until it is cancelled; nothing expires old unpaid orders yet.
-- At the end: check each criterion on the full stack (API through the BFF and the pages in a real browser) and write `docs/pbi/PBI-09.md`.
-- The same applies later to the model (PBI-17): there is no Gemini key, so use a fake behind the port.
+PBI-09 is described in [`pbi/PBI-09.md`](pbi/PBI-09.md), with its evidence and limits. The ones a next session must remember:
+- `StripePaymentProvider.charge` and `.refund` were never run against Stripe (no keys); only the webhook signature is tested. The owner supplies test keys; then run one real payment, one decline, one refund and one webhook. The model (PBI-17) is in the same situation: no Gemini key, so use a fake behind the port.
+- An unpaid order keeps its stock until cancelled; nothing expires old ones.
+- No page ships or delivers orders yet, only the API.
 
 ## How a task and a PBI are done
 
@@ -60,7 +55,7 @@ The owner has a 1 TB SSD for AI projects and may move Docker's data there. The s
 ## Known risks (details in the PBI documents)
 
 - `POST /auth/anonymous` is public and creates a row per call; there is no request limit on login or registration; reset tokens are stored in plain text; the store API still has `enableCors()` open and its port published.
-- The API's error messages are in Portuguese and the pages in English.
+- The API's error messages and the e-mails are in Portuguese and the pages in English.
 - Not verified yet: the staging deploy (the placeholder only writes a note), the Turborepo cache hit in CI, the `Secure` cookie over https, the layout on a phone, and the 24-hour expiry of a visitor account.
 
 ## Pace so far
