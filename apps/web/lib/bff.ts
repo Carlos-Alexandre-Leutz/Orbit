@@ -20,6 +20,7 @@ export async function bffRequest<T = unknown>(
     method?: string | undefined;
     body?: unknown;
     token?: string | undefined;
+    headers?: Record<string, string> | undefined;
     query?: Record<string, string | undefined> | undefined;
   } = {},
 ): Promise<BffResult<T>> {
@@ -27,7 +28,7 @@ export async function bffRequest<T = unknown>(
   for (const [key, value] of Object.entries(options.query ?? {})) {
     if (value !== undefined && value !== '') url.searchParams.set(key, value);
   }
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...options.headers };
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
   try {
