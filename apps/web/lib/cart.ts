@@ -1,7 +1,6 @@
 import { cache } from 'react';
 import { bffRequest } from './bff';
 import { sessionToken } from './auth';
-import { CURRENT_STORE } from './store';
 
 export interface CartLine {
   productId: string;
@@ -20,13 +19,13 @@ export interface Cart {
   totalCents: number;
 }
 
-/** The logged-in user's cart, or null when there is no session or the API cannot be reached. */
-export const getCart = cache(async (): Promise<Cart | null> => {
+/** The logged-in customer's cart in a store, or null when there is no session or the API cannot be reached. */
+export const getCart = cache(async (store: string): Promise<Cart | null> => {
   const token = await sessionToken();
   if (!token) return null;
   const result = await bffRequest<Cart>('/cart', {
     token,
-    query: { store: CURRENT_STORE },
+    query: { store },
   });
   return result.ok ? result.data : null;
 });

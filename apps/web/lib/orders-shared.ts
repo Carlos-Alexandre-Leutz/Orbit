@@ -19,6 +19,7 @@ export interface OrderLine {
 export interface Order {
   id: string;
   status: OrderStatus;
+  store: { slug: string; name: string };
   currency: string;
   totalCents: number;
   items: OrderLine[];

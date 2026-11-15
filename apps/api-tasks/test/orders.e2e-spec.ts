@@ -183,6 +183,25 @@ describe('orders (real database)', () => {
       ).toEqual([]);
     });
 
+    it('names its store, and the list can be cut down to one store', async () => {
+      const mine = await http()
+        .get(`/orders?store=${sam.slug}`)
+        .set(as('ana'))
+        .expect(200);
+      expect(
+        (mine.body as { id: string; store: { slug: string } }[]).map((o) => [
+          o.id,
+          o.store.slug,
+        ]),
+      ).toEqual([[order.id, sam.slug]]);
+      const other = await http()
+        .get(`/orders?store=${rival.slug}`)
+        .set(as('ana'))
+        .expect(200);
+      expect(other.body).toEqual([]);
+      await http().get('/orders?store=nowhere-land').set(as('ana')).expect(404);
+    });
+
     it('shows the order to its owner and to an admin, and to nobody else', async () => {
       await http().get(`/orders/${order.id}`).set(as('root')).expect(200);
       await http().get(`/orders/${order.id}`).set(as('bob')).expect(404);

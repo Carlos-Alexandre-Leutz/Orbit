@@ -93,6 +93,16 @@ describe('orders HTTP', () => {
     expect(orders.createFromCart).not.toHaveBeenCalled();
   });
 
+  it('lists my orders, all or only those of one store', async () => {
+    await server().get('/orders').set(as('CUSTOMER', 'user-9')).expect(200);
+    expect(orders.listMine).toHaveBeenLastCalledWith('user-9', undefined);
+    await server()
+      .get('/orders?store=loja-x')
+      .set(as('CUSTOMER', 'user-9'))
+      .expect(200);
+    expect(orders.listMine).toHaveBeenLastCalledWith('user-9', 'store-1');
+  });
+
   it('passes the idempotency key to the service and refuses a malformed one', async () => {
     await server()
       .post('/orders?store=loja-x')

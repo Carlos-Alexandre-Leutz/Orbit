@@ -2,13 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
-import { STORE_QUERY } from '@/lib/store';
 
 /**
  * Places the order from the cart. The idempotency key is made once per page, so a double click or a retry after
  * a lost answer gives the same order instead of a second one.
  */
-export function PlaceOrderButton() {
+export function PlaceOrderButton({ store }: { store: string }) {
   const router = useRouter();
   const key = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -19,20 +18,23 @@ export function PlaceOrderButton() {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/bff/orders?${STORE_QUERY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': key.current,
+      const response = await fetch(
+        `/api/bff/orders?store=${encodeURIComponent(store)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': key.current,
+          },
+          body: '{}',
         },
-        body: '{}',
-      });
+      );
       const data = (await response.json().catch(() => null)) as {
         id?: string;
         message?: string;
       } | null;
       if (response.ok && data?.id) {
-        router.push(`/orders/${data.id}`);
+        router.push(`/${store}/orders/${data.id}`);
         // The cart count in the header belongs to the layout, which a plain navigation keeps as it was.
         router.refresh();
         return;
