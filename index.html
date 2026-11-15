@@ -32,12 +32,12 @@
     // Edit this list when a Render address changes. Every service in it must answer before the redirect.
     // `url` is only called to wake the service up; any HTTP answer counts as "awake".
     const SERVICES = [
-      { name: 'API', url: 'https://REPLACE-ME-orbit-api.onrender.com/' },
-      { name: 'BFF', url: 'https://REPLACE-ME-orbit-bff.onrender.com/docs' },
-      { name: 'Web', url: 'https://REPLACE-ME-orbit-web.onrender.com/login' },
+      { name: 'API', url: 'https://orbit-qa-api.onrender.com/' },
+      { name: 'BFF', url: 'https://orbit-qa-bff.onrender.com/docs' },
+      { name: 'Web', url: 'https://orbit-qa-web.onrender.com/login' },
     ];
     // Where the visitor lands once everything is awake.
-    const LOGIN_URL = 'https://REPLACE-ME-orbit-web.onrender.com/login';
+    const LOGIN_URL = 'https://orbit-qa-web.onrender.com/login';
 
     const ATTEMPT_TIMEOUT_MS = 20000;
     const MAX_ATTEMPTS = 9;
