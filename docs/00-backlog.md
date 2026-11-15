@@ -101,6 +101,25 @@ main        ← production (only receives releases from staging)
 - T: Add transactional email through a test provider
 - T: Build the checkout and order pages
 
+### PBI-59 [F1] Stores and ownership
+- T: Add the store model (name, unique link, owner) and the reserved links
+- T: Let a new seller create a store at sign-up
+- T: Scope products to a store and move the existing data to a demo store
+- T: Scope the cart and the orders to a store and keep sellers away from the cart
+- T: Add isolation tests (a seller never reads or changes another store)
+
+### PBI-60 [F1] Storefront at the store link
+- T: Build the public store page with search and the product pages under the store link
+- T: Move the cart, checkout and order pages under the store link
+- T: Show a clear page for a store that does not exist or has no products
+- T: Make the menu follow the role (customer: cart and orders; seller: panel)
+
+### PBI-61 [F1] Seller panel
+- T: Build the panel layout for the seller's own store
+- T: Move the product management pages into the panel
+- T: List the store's orders and let the seller ship and deliver them
+- T: Edit the store's name and description
+
 ### PBI-10 [F1] Web interface
 - T: Build the chat page with streaming
 - T: Build the seller sales and stock pages
@@ -353,10 +372,11 @@ Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ide
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 55, 11, 12, 17, 18, 08, 09, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 61, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
+- First deploy (a basic store online, before the agent work): 01 to 09, 55, 59, 60, 61, then 42 and 43 with the owner. What else must come first (backups, hardening, rate limits) is an open question in `open-questions.md`.
 - Parked, refine later: 47 to 54 (cart recovery and WhatsApp), 56 to 58 (support tickets with AI triage)
 
 Cut order if needed: Redis, second connector, MCP, stockout-risk model.

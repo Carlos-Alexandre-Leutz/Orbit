@@ -4,7 +4,7 @@ This document says what Orbit must do. It is a plan, not a status report: a stor
 
 ## Problem
 
-Running a small online store means jumping between a catalog admin, an order list, a payment dashboard, spreadsheets and support messages. Customers, in turn, must learn the store's pages to find a product, build a cart and follow an order.
+Orbit is a small online-store platform: each seller gets a store at its own link, with a panel to run it, and customers shop there. Running a small online store means jumping between a catalog admin, an order list, a payment dashboard, spreadsheets and support messages. Customers, in turn, must learn the store's pages to find a product, build a cart and follow an order.
 
 Orbit lets customers and sellers do these things by chat. The hard part is not the chat: it is letting an AI agent act on a store without losing control. Every action an agent takes has to be permitted for the user's role, approved by a human when it has side effects, and recorded so it can be explained later.
 
@@ -18,8 +18,8 @@ Orbit lets customers and sellers do these things by chat. The hard part is not t
 
 | Persona | Who they are | What they need |
 |---|---|---|
-| **Customer** | Someone buying from the store. | Find products, manage a cart, pay, track or cancel an order and get answers about policies, quickly and in plain language. |
-| **Seller** | The person who runs the store. | Keep products and stock up to date, understand sales, decide what to restock and automate repeated reports, without leaving the chat. |
+| **Customer** | Someone buying from a seller's store. | Find products, manage a cart, pay, track or cancel an order and get answers about policies, quickly and in plain language. |
+| **Seller** | The person who runs their own store, at their own link. | Open the store, keep products and stock up to date, understand sales, decide what to restock and automate repeated reports, without leaving the chat. |
 | **Admin** | The person responsible for control and compliance. | See exactly what each agent did and why, decide what agents may do, approve risky actions and export evidence. |
 | **Visitor** | Someone trying the demo without an account. | Try the product in a short, limited, anonymous session. |
 
@@ -59,7 +59,18 @@ Acceptance criteria:
 - A text search returns the products that match.
 - The pages say that data is simulated and payments are in test mode.
 
-Delivered by: PBI-07, PBI-10
+Delivered by: PBI-07, PBI-60, PBI-10
+
+#### US-24 Shop in a store at its own link
+As a customer, I want to open a store by its link, log in, keep a cart and buy there, so that shopping works like in any online store.
+
+Acceptance criteria:
+- The page at `/<store link>` lists only the products of that store, with search; a link that does not exist shows a clear page.
+- My account works in every store; my cart is one per store, and an order belongs to one store.
+- A seller or an admin has no cart and cannot check out.
+- Only I (and an admin) can see my orders; the seller of the store sees the orders placed in their own store.
+
+Delivered by: PBI-59, PBI-60
 
 #### US-03 Build a cart by chat
 As a customer, I want to ask the chat to find products and add them to my cart, so that I do not have to navigate pages.
@@ -110,6 +121,16 @@ Acceptance criteria:
 Delivered by: PBI-26, PBI-28
 
 ### Seller
+
+#### US-23 Open my own store and run it from a panel
+As a seller, I want to sign up, get a store with its own link and manage my products, stock and orders in a panel, so that I can sell without technical help.
+
+Acceptance criteria:
+- Signing up as a seller creates a store with a unique link; a taken or reserved link is refused.
+- The panel shows and changes only my store's products and orders; another seller's store answers as if it did not exist.
+- I can mark a paid order as shipped and as delivered.
+
+Delivered by: PBI-59, PBI-61
 
 #### US-08 Manage products and stock by chat
 As a seller, I want to create products and check stock by chat, so that I can run the catalog quickly.
@@ -256,5 +277,7 @@ Delivered by: PBI-41
 
 - Real payments, real customer data and real e-mail to real customers.
 - A native mobile app.
-- Multi-store or multi-tenant operation.
+- Paying sellers out (Stripe Connect): all test payments go to one account.
+- A custom domain or a subdomain per store: a store is reached at a path of the one site ([ADR-005](adr/ADR-005-stores-and-storefronts.md)).
+- One seller owning several stores.
 - Deep learning; the models are scikit-learn models (see [ADR-002](adr/ADR-002-ml-separate-python-service.md)).
