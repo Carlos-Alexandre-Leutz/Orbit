@@ -101,11 +101,20 @@ export class AuthService {
   }
 
   async me(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { store: true },
+    });
     if (!user || this.isExpired(user)) {
       throw new UnauthorizedException('Sessão inválida ou expirada');
     }
-    return toPublicUser(user);
+    // A seller's pages need to know their store; everyone else has none.
+    return {
+      ...toPublicUser(user),
+      store: user.store
+        ? { slug: user.store.slug, name: user.store.name }
+        : null,
+    };
   }
 
   private isExpired(user: User) {

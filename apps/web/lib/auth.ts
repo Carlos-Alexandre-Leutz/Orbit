@@ -11,6 +11,8 @@ export interface CurrentUser {
   name: string | null;
   role: Role;
   isAnonymous: boolean;
+  /** The store of a seller; null for everyone else. */
+  store?: { slug: string; name: string } | null;
 }
 
 export async function sessionToken(): Promise<string | undefined> {
