@@ -1,15 +1,23 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { EmptyCartButton, LineControls } from '@/components/CartControls';
-import { getCurrentUser } from '@/lib/auth';
+import { requireCustomer } from '@/lib/guard';
+import { getStore } from '@/lib/stores';
 import { formatPrice } from '@/lib/catalog';
 import { getCart } from '@/lib/cart';
 
-export const metadata = { title: 'Your cart | Orbit Supply Co.' };
+export const metadata = { title: 'Your cart | Orbit' };
 
-export default async function CartPage() {
-  if (!(await getCurrentUser())) redirect('/login?next=%2Fcart');
-  const cart = await getCart();
+export default async function CartPage({
+  params,
+}: {
+  params: Promise<{ store: string }>;
+}) {
+  const { store: slug } = await params;
+  await requireCustomer(`/${slug}/cart`);
+  const store = await getStore(slug);
+  if (!store) notFound();
+  const cart = await getCart(store.slug);
 
   if (!cart) {
     return (
@@ -23,13 +31,16 @@ export default async function CartPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold">Your cart</h1>
+      <h1 className="text-2xl font-bold">Your cart at {store.name}</h1>
 
       {cart.items.length === 0 ? (
         <div className="space-y-3">
           <p>Your cart is empty.</p>
-          <Link href="/catalog" className="text-blue-400 hover:underline">
-            Browse the catalog
+          <Link
+            href={`/${store.slug}`}
+            className="text-blue-400 hover:underline"
+          >
+            Browse {store.name}
           </Link>
         </div>
       ) : (
@@ -42,7 +53,7 @@ export default async function CartPage() {
               >
                 <div className="space-y-1">
                   <Link
-                    href={`/catalog/${line.productId}`}
+                    href={`/${store.slug}/products/${line.productId}`}
                     className="font-semibold hover:underline"
                   >
                     {line.name}
@@ -71,6 +82,7 @@ export default async function CartPage() {
                     {formatPrice(line.lineTotalCents)}
                   </span>
                   <LineControls
+                    store={store.slug}
                     productId={line.productId}
                     quantity={line.quantity}
                     stock={line.stock}
@@ -82,7 +94,7 @@ export default async function CartPage() {
           </ul>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <EmptyCartButton />
+            <EmptyCartButton store={store.slug} />
             <p className="text-xl">
               Total ({cart.itemCount} item{cart.itemCount === 1 ? '' : 's'}):{' '}
               <strong>{formatPrice(cart.totalCents)}</strong>
@@ -90,7 +102,7 @@ export default async function CartPage() {
           </div>
           <div className="flex justify-end">
             <Link
-              href="/checkout"
+              href={`/${store.slug}/checkout`}
               className="rounded bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-500"
             >
               Checkout

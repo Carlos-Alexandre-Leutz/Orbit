@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { needsSession } from '@/lib/routes';
 import { SESSION_COOKIE } from '@/lib/session';
 
 /**
@@ -9,10 +10,9 @@ import { SESSION_COOKIE } from '@/lib/session';
  * may do, because a proxy alone must not be the access control.
  */
 export function proxy(request: NextRequest) {
-  const hasSession = request.cookies.has(SESSION_COOKIE);
   const { pathname, search } = request.nextUrl;
 
-  if (!hasSession) {
+  if (needsSession(pathname) && !request.cookies.has(SESSION_COOKIE)) {
     const login = new URL('/login', request.url);
     login.searchParams.set('next', `${pathname}${search}`);
     return NextResponse.redirect(login);
@@ -21,11 +21,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/seller/:path*',
-    '/admin/:path*',
-    '/cart/:path*',
-    '/orders/:path*',
-  ],
+  matcher: ['/((?!api/|_next/static|_next/image|favicon.ico).*)'],
 };

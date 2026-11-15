@@ -4,23 +4,29 @@ import { OrderActions } from '@/components/OrderActions';
 import { getCurrentUser } from '@/lib/auth';
 import { formatPrice } from '@/lib/catalog';
 import { getOrder } from '@/lib/orders';
+import { getStore } from '@/lib/stores';
 import { statusLabel } from '@/lib/orders-shared';
 
-export const metadata = { title: 'Order | Orbit Supply Co.' };
+export const metadata = { title: 'Order | Orbit' };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function OrderPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ store: string; id: string }>;
 }) {
-  const { id } = await params;
+  const { store: slug, id } = await params;
   const user = await getCurrentUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(`/orders/${id}`)}`);
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/${slug}/orders/${id}`)}`);
+  }
   if (!UUID.test(id)) notFound();
+  const store = await getStore(slug);
+  if (!store) notFound();
   const order = await getOrder(id);
-  if (!order) notFound();
+  // An order is shown under the link of its own store only.
+  if (!order || order.store.slug !== store.slug) notFound();
 
   const events = [
     ['Placed', order.createdAt],
@@ -32,8 +38,11 @@ export default async function OrderPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-8">
-      <Link href="/orders" className="text-sm text-blue-400 hover:underline">
-        All orders
+      <Link
+        href={`/${store.slug}/orders`}
+        className="text-sm text-blue-400 hover:underline"
+      >
+        All orders at {store.name}
       </Link>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-2xl font-bold">Order {order.id.slice(0, 8)}</h1>

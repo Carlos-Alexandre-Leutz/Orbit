@@ -31,4 +31,23 @@ export class StoresService {
     }
     return store;
   }
+
+  /** Every store, for the page where a buyer picks one. Only what is public: no owner. */
+  list() {
+    return this.prisma.store.findMany({
+      select: { slug: true, name: true, description: true },
+      orderBy: [{ name: 'asc' }, { slug: 'asc' }],
+      take: 100,
+    });
+  }
+
+  /** What anyone may see of the store at a link. */
+  async publicBySlug(slug: string) {
+    const store = await this.bySlug(slug);
+    return {
+      slug: store.slug,
+      name: store.name,
+      description: store.description,
+    };
+  }
 }

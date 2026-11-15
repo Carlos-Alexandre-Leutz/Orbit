@@ -1,15 +1,23 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { PlaceOrderButton } from '@/components/PlaceOrderButton';
-import { getCurrentUser } from '@/lib/auth';
+import { requireCustomer } from '@/lib/guard';
+import { getStore } from '@/lib/stores';
 import { getCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/catalog';
 
-export const metadata = { title: 'Checkout | Orbit Supply Co.' };
+export const metadata = { title: 'Checkout | Orbit' };
 
-export default async function CheckoutPage() {
-  if (!(await getCurrentUser())) redirect('/login?next=%2Fcheckout');
-  const cart = await getCart();
+export default async function CheckoutPage({
+  params,
+}: {
+  params: Promise<{ store: string }>;
+}) {
+  const { store: slug } = await params;
+  await requireCustomer(`/${slug}/checkout`);
+  const store = await getStore(slug);
+  if (!store) notFound();
+  const cart = await getCart(store.slug);
 
   if (!cart) {
     return (
@@ -24,11 +32,14 @@ export default async function CheckoutPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold">Checkout</h1>
+      <h1 className="text-2xl font-bold">Checkout at {store.name}</h1>
       {lines.length === 0 ? (
         <div className="space-y-3">
           <p>There is nothing to order: your cart has no available items.</p>
-          <Link href="/cart" className="text-blue-400 hover:underline">
+          <Link
+            href={`/${store.slug}/cart`}
+            className="text-blue-400 hover:underline"
+          >
             Back to the cart
           </Link>
         </div>
@@ -57,7 +68,7 @@ export default async function CheckoutPage() {
             Payments run in test mode: no real money moves. You pay on the next
             page. Stock is reserved when you place the order.
           </p>
-          <PlaceOrderButton />
+          <PlaceOrderButton store={store.slug} />
         </>
       )}
     </main>

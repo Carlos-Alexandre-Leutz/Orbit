@@ -4,7 +4,7 @@ Where the project stands and what comes next. An AI session reads this first and
 
 ## Where it stands
 
-`staging` holds PBI-01 to PBI-09 and PBI-55, all with green checks; PBI-59 is finished on its branch and its pull request into `staging` is open. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
+`staging` holds PBI-01 to PBI-09, PBI-55, PBI-59 and PBI-60, all with green checks. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
 
 | PBI | What it delivered |
 |---|---|
@@ -16,6 +16,7 @@ Where the project stands and what comes next. An AI session reads this first and
 | 08 | Cart: model, rules with a row lock, cart page. The Redis task was cut. |
 | 09 | Orders and test payment: state machine, payment port with a fake and a Stripe adapter (never run against Stripe), webhook, idempotency, cancellation with refunds, confirmation e-mail, checkout and order pages. |
 | 59 | Stores and ownership: store model and link rules, seller sign-up that creates the store, products, carts and orders scoped to a store (existing data in a demo store), isolation tests ([ADR-005](adr/ADR-005-stores-and-storefronts.md), accepted). |
+| 60 | Storefront at the store link: `/<slug>` store page with search, product pages, cart, checkout and orders under the link, the stores list on the home page, a menu by role and store. |
 
 Measured on 2026-11-14 on the PBI-09 branch (the backlog now has 15 epics, 61 PBIs and 200 tasks, 276 items; the three new PBIs are not on GitHub until the plan PR is merged): API 212 unit tests and 68 integration tests, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
 
@@ -23,12 +24,11 @@ Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/
 
 ## Next step
 
-**PBI-59 (stores and ownership) is done and validated on its branch; its pull request into `staging` is open and waits for the checks.** The data and the API now work per store ([`pbi/PBI-59.md`](pbi/PBI-59.md)): a seller signs up with a store at `/<slug>`, products, carts and orders belong to a store, and sellers cannot touch another store. The two choices of [ADR-005](adr/ADR-005-stores-and-storefronts.md) (path link, one customer account for all stores) were adopted on the owner's instruction to run the PBI; the ADR is accepted and either can still change.
+**PBI-59 (stores and ownership) and PBI-60 (storefront at the store link) are done and validated** ([`pbi/PBI-59.md`](pbi/PBI-59.md), [`pbi/PBI-60.md`](pbi/PBI-60.md)). A seller signs up with a store at `/<slug>`, and a buyer opens that link, logs in, fills a cart and buys inside the store. The two choices of [ADR-005](adr/ADR-005-stores-and-storefronts.md) (path link, one customer account for all stores) were adopted on the owner's instruction; either can still change.
 
-Next, in this order (all before PBI-10):
+Next, before PBI-10:
 
-- **PBI-60** storefront at the store link: the public store page, cart, checkout and orders under `/<slug>`, a clear page for an unknown store, the menu by role. It replaces `apps/web/lib/store.ts`, which pins the web app to the demo store today.
-- **PBI-61** seller panel: layout, product pages moved into it, the store's orders with ship and deliver, edit the store's name and description. Today a seller can read an order by id but cannot list their store's orders.
+- **PBI-61** seller panel: layout, the product pages moved into it, the store's orders with ship and deliver, edit the store's name and description. Today a seller can manage products at `/seller/products` and read an order by id through the API, but cannot list their store's orders in a page, and an admin sees no store orders in the pages.
 
 Then PBI-42 and PBI-43 with the owner (the first deploy). PBI-10 (chat page with streaming) still needs a fake agent behind a port and a streaming ADR; it waits. The owner still has to say what must exist before the first public deploy (see [`open-questions.md`](open-questions.md)).
 
@@ -37,7 +37,7 @@ PBI-09 is described in [`pbi/PBI-09.md`](pbi/PBI-09.md), with its evidence and l
 - An unpaid order keeps its stock until cancelled; nothing expires old ones.
 - No page ships or delivers orders yet, only the API (PBI-61 adds them).
 
-PBI-59 limits a next session must remember: the demo store's owner (`demo-seller@orbit.invalid`) cannot log in; an admin has no store, so an admin cannot create or edit products; the cart and orders pages are not guarded by role until PBI-60.
+PBI-59 limits a next session must remember: the demo store's owner (`demo-seller@orbit.invalid`) cannot log in; an admin has no store, so an admin cannot create or edit products; a new top-level page of the web app must be added to the reserved links of the API (`store-slug.ts`) and to `apps/web/lib/routes.ts`.
 
 ## How a task and a PBI are done
 

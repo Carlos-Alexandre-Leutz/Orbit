@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client';
 
-export const WITH_ITEMS = { items: { orderBy: { name: 'asc' as const } } };
+export const WITH_ITEMS = {
+  items: { orderBy: { name: 'asc' as const } },
+  store: { select: { slug: true, name: true } },
+};
 export type OrderWithItems = Prisma.OrderGetPayload<{
   include: typeof WITH_ITEMS;
 }>;
@@ -10,6 +13,7 @@ export function presentOrder(order: OrderWithItems) {
   return {
     id: order.id,
     status: order.status,
+    store: order.store,
     currency: order.currency,
     totalCents: order.totalCents,
     items: order.items.map((item) => ({

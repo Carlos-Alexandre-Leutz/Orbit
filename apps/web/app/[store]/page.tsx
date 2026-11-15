@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
 import { bffRequest, messageOf } from '@/lib/bff';
 import {
@@ -10,20 +11,33 @@ import {
   type Category,
   type ProductPage,
 } from '@/lib/catalog';
-import { CURRENT_STORE } from '@/lib/store';
+import { getStore } from '@/lib/stores';
 
-export const metadata = { title: 'Catalog | Orbit Supply Co.' };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ store: string }>;
+}) {
+  const store = await getStore((await params).store);
+  return { title: store ? `${store.name} | Orbit` : 'Store not found | Orbit' };
+}
 
-export default async function CatalogPage({
+export default async function StorePage({
+  params: routeParams,
   searchParams,
 }: {
+  params: Promise<{ store: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { store: slug } = await routeParams;
+  const store = await getStore(slug);
+  if (!store) notFound();
+  const base = `/${store.slug}`;
   const params = parseCatalogParams(await searchParams);
   const [products, categories] = await Promise.all([
     bffRequest<ProductPage>('/products', {
       query: {
-        store: CURRENT_STORE,
+        store: store.slug,
         q: params.q,
         category: params.category,
         inStock: params.inStock ? 'true' : undefined,
@@ -39,11 +53,16 @@ export default async function CatalogPage({
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold">Catalog</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">{store.name}</h1>
+        {store.description && (
+          <p className="text-gray-400">{store.description}</p>
+        )}
+      </div>
 
       <form
         method="get"
-        action="/catalog"
+        action={base}
         className="flex flex-wrap items-end gap-3"
         role="search"
       >
@@ -103,7 +122,7 @@ export default async function CatalogPage({
           Search
         </button>
         <Link
-          href="/catalog"
+          href={base}
           className="pb-2 text-sm text-blue-400 hover:underline"
         >
           Clear
@@ -115,7 +134,11 @@ export default async function CatalogPage({
           {messageOf(products.data, 'The catalog could not be loaded.')}
         </p>
       ) : products.data.items.length === 0 ? (
-        <p>No products match your search.</p>
+        <p>
+          {params.q || params.category || params.inStock
+            ? 'No products match your search.'
+            : 'This store has no products yet.'}
+        </p>
       ) : (
         <>
           <p className="text-sm text-gray-400">
@@ -136,7 +159,7 @@ export default async function CatalogPage({
         >
           {params.page > 1 ? (
             <Link
-              href={catalogHref(params, { page: params.page - 1 })}
+              href={catalogHref(params, { page: params.page - 1 }, base)}
               className="hover:underline"
             >
               Previous
@@ -149,7 +172,7 @@ export default async function CatalogPage({
           </span>
           {params.page < pages ? (
             <Link
-              href={catalogHref(params, { page: params.page + 1 })}
+              href={catalogHref(params, { page: params.page + 1 }, base)}
               className="hover:underline"
             >
               Next

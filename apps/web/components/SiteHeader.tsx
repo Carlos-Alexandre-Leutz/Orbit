@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { getCart } from '@/lib/cart';
 import { menuFor } from '@/lib/menu';
+import { getStore } from '@/lib/stores';
 import { LogoutButton } from './LogoutButton';
 
 const ROLE_LABEL = {
@@ -10,18 +11,25 @@ const ROLE_LABEL = {
   ADMIN: 'Admin',
 } as const;
 
-export async function SiteHeader() {
+/** `storeSlug` is the store whose page this is, when it is a store page; the menu follows it. */
+export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
   const user = await getCurrentUser();
-  const cart = user ? await getCart() : null;
+  const store = storeSlug ? await getStore(storeSlug) : null;
+  const cart =
+    user?.role === 'CUSTOMER' && store ? await getCart(store.slug) : null;
   return (
     <header className="border-b border-gray-700">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/catalog" className="text-lg font-bold">
+          <Link href="/" className="text-lg font-bold">
             Orbit Supply Co.
           </Link>
           <nav aria-label="Main" className="flex gap-4 text-sm">
-            {menuFor(user?.role, cart?.itemCount ?? 0).map((item) => (
+            {menuFor(user?.role, {
+              store,
+              cartCount: cart?.itemCount ?? 0,
+              ownStore: user?.store,
+            }).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

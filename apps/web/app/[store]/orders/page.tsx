@@ -1,15 +1,23 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { notFound } from 'next/navigation';
+import { requireCustomer } from '@/lib/guard';
 import { formatPrice } from '@/lib/catalog';
 import { getOrders } from '@/lib/orders';
 import { statusLabel } from '@/lib/orders-shared';
+import { getStore } from '@/lib/stores';
 
-export const metadata = { title: 'Your orders | Orbit Supply Co.' };
+export const metadata = { title: 'Your orders | Orbit' };
 
-export default async function OrdersPage() {
-  if (!(await getCurrentUser())) redirect('/login?next=%2Forders');
-  const orders = await getOrders();
+export default async function OrdersPage({
+  params,
+}: {
+  params: Promise<{ store: string }>;
+}) {
+  const { store: slug } = await params;
+  await requireCustomer(`/${slug}/orders`);
+  const store = await getStore(slug);
+  if (!store) notFound();
+  const orders = await getOrders(store.slug);
 
   if (!orders) {
     return (
@@ -23,12 +31,15 @@ export default async function OrdersPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold">Your orders</h1>
+      <h1 className="text-2xl font-bold">Your orders at {store.name}</h1>
       {orders.length === 0 ? (
         <div className="space-y-3">
           <p>You have no orders yet.</p>
-          <Link href="/catalog" className="text-blue-400 hover:underline">
-            Browse the catalog
+          <Link
+            href={`/${store.slug}`}
+            className="text-blue-400 hover:underline"
+          >
+            Browse {store.name}
           </Link>
         </div>
       ) : (
@@ -36,7 +47,7 @@ export default async function OrdersPage() {
           {orders.map((order) => (
             <li key={order.id}>
               <Link
-                href={`/orders/${order.id}`}
+                href={`/${store.slug}/orders/${order.id}`}
                 className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-gray-900"
               >
                 <span className="space-y-1">

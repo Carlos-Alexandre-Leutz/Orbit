@@ -72,9 +72,14 @@ export class OrdersController {
     );
   }
 
+  /** My orders; `?store=<link>` keeps only the ones of that store. */
   @Get()
-  mine(@Req() request: AuthenticatedRequest) {
-    return this.orders.listMine(request.user.id);
+  async mine(
+    @Req() request: AuthenticatedRequest,
+    @Query('store') store?: string,
+  ) {
+    const storeId = store ? (await this.stores.bySlug(store)).id : undefined;
+    return this.orders.listMine(request.user.id, storeId);
   }
 
   @Get(':id')
