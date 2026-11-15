@@ -112,6 +112,8 @@ model Order {
   shippedAt   DateTime?
   deliveredAt DateTime?
   cancelledAt DateTime?
+  // The provider's id of the payment that paid this order; set once, when the order becomes PAID.
+  paymentRef  String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -133,4 +135,11 @@ model OrderItem {
 
   @@unique([orderId, productId])
   @@index([productId])
+}
+
+// One row per payment-provider event already applied. The provider may send the same event more than once,
+// and the unique id makes a repeat do nothing.
+model ProcessedPaymentEvent {
+  id          String   @id
+  processedAt DateTime @default(now())
 }
