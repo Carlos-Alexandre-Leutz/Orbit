@@ -19,6 +19,7 @@ async function forward(
   const body = hasBody
     ? await request.json().catch(() => undefined)
     : undefined;
+  const idempotencyKey = request.headers.get('idempotency-key') ?? undefined;
   const result = await bffRequest(
     `/${path.map(encodeURIComponent).join('/')}`,
     {
@@ -26,6 +27,9 @@ async function forward(
       body,
       query,
       token: await sessionToken(),
+      headers: idempotencyKey
+        ? { 'Idempotency-Key': idempotencyKey }
+        : undefined,
     },
   );
   if (result.status === 204) return new NextResponse(null, { status: 204 });

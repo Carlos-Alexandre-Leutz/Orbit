@@ -6,7 +6,10 @@ import { validateEnv } from './config/validate-env';
 async function bootstrap() {
   validateEnv();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // The payment webhook is verified against the exact bytes the provider signed.
+    rawBody: true,
+  });
 
   // whitelist drops any field a DTO does not declare, such as a `role` sent at registration.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

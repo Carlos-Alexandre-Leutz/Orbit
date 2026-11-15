@@ -4,7 +4,7 @@ Where the project stands and what comes next. An AI session reads this first and
 
 ## Where it stands
 
-`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
+`staging` holds PBI-01 to PBI-08 and PBI-55, all with green checks. **PBI-09 is finished on the branch `pbi/09-orders-payment`** and its pull request into `staging` is open (the owner or the next session checks it is merged). Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
 
 | PBI | What it delivered |
 |---|---|
@@ -14,20 +14,20 @@ Where the project stands and what comes next. An AI session reads this first and
 | 07 | Product catalog: API, search, seed loader, integration tests on PostgreSQL |
 | 55 | Web session (httpOnly cookie, [ADR-003](adr/ADR-003-web-session-cookie.md)), menu by role, banner, catalog pages, seller pages |
 | 08 | Cart: model, rules with a row lock, cart page. The Redis task was cut. |
+| 09 | Orders and test payment: state machine, payment port with a fake and a Stripe adapter (never run against Stripe), webhook, idempotency, cancellation with refunds, confirmation e-mail, checkout and order pages. |
 
-Measured on 2026-11-14: API 120 unit tests and 34 integration tests, BFF 16, web 52, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
+Measured on 2026-11-14 on the PBI-09 branch: API 212 unit tests and 68 integration tests, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
 
 Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) and epic E14 (support tickets with AI triage, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
 
 ## Next step
 
-**PBI-09, orders and test payment**, then follow the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37.
+**Merge the PBI-09 pull request into `staging`, then start PBI-10**, following the order at the end of [`00-backlog.md`](00-backlog.md): PBI-10, PBI-11 to PBI-14, PBI-17 to PBI-21, PBI-37. Before PBI-10, check that no `task/*` branch is left.
 
-For PBI-09 in particular:
-- The cart only **warns** about stock. An order must check and take stock **atomically**, and freeze the price at that moment.
-- There are no Stripe keys: build the payment behind a port with a fake, and ask the owner for test keys ([`open-questions.md`](open-questions.md)).
-- The checkout and order pages are a task of PBI-09 itself, not of PBI-10.
-- The same applies later to the model (PBI-17): there is no Gemini key, so use a fake behind the port.
+PBI-09 is described in [`pbi/PBI-09.md`](pbi/PBI-09.md), with its evidence and limits. The ones a next session must remember:
+- `StripePaymentProvider.charge` and `.refund` were never run against Stripe (no keys); only the webhook signature is tested. The owner supplies test keys; then run one real payment, one decline, one refund and one webhook. The model (PBI-17) is in the same situation: no Gemini key, so use a fake behind the port.
+- An unpaid order keeps its stock until cancelled; nothing expires old ones.
+- No page ships or delivers orders yet, only the API.
 
 ## How a task and a PBI are done
 
@@ -55,5 +55,9 @@ The owner has a 1 TB SSD for AI projects and may move Docker's data there. The s
 ## Known risks (details in the PBI documents)
 
 - `POST /auth/anonymous` is public and creates a row per call; there is no request limit on login or registration; reset tokens are stored in plain text; the store API still has `enableCors()` open and its port published.
-- The API's error messages are in Portuguese and the pages in English.
+- The API's error messages and the e-mails are in Portuguese and the pages in English.
 - Not verified yet: the staging deploy (the placeholder only writes a note), the Turborepo cache hit in CI, the `Secure` cookie over https, the layout on a phone, and the 24-hour expiry of a visitor account.
+
+## Pace so far
+
+Merge times on 2026-11-14 (from the Git history of `staging`): PBI-05 at 11:27, PBI-06 at 12:36, PBI-07 at 13:24, PBI-55 at 18:54, PBI-08 at 19:33. Between 13:24 and 18:54 the time went mostly to rewriting the backlog, the parked ideas, disk space and pauses. With no interruptions a PBI of 3 to 5 tasks, including its full-stack validation and document, took about 40 to 70 minutes, roughly 13 minutes a task. On 2026-11-14 the backlog had 38 PBIs and 139 tasks left, not counting the parked epics E13 and E14; about 33 of those PBIs need nothing from the owner (the server, deploy, backups and the launch video do). A realistic estimate for those is 45 to 60 hours of active work, because the agent, RAG, machine learning and evaluation PBIs are slower than the store ones. This is an estimate from five data points, not a promise.

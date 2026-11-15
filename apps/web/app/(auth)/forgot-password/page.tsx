@@ -10,16 +10,19 @@ export default function ForgotPasswordPage() {
   const handleResetRequest = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BFF_URL}/auth/forgot-password`, {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BFF_URL}/auth/forgot-password`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
 
     if (response.ok) {
       setIsSent(true);
     } else {
-      alert("Error: User not found or server error.");
+      alert('Error: User not found or server error.');
     }
   };
 
@@ -31,7 +34,8 @@ export default function ForgotPasswordPage() {
         {!isSent ? (
           <form onSubmit={handleResetRequest} className="space-y-4">
             <p className="text-sm text-gray-600">
-              Enter your email address and we&apos;ll send you a link to reset your password.
+              Enter your email address and we&apos;ll send you a link to reset
+              your password.
             </p>
             <input
               type="email"
@@ -50,7 +54,8 @@ export default function ForgotPasswordPage() {
         ) : (
           <div className="text-center space-y-4">
             <div className="p-4 bg-green-100 text-green-700 rounded">
-              If an account exists for {email}, you will receive a password reset link shortly.
+              If an account exists for {email}, you will receive a password
+              reset link shortly.
             </div>
           </div>
         )}

@@ -13,6 +13,7 @@ export function menuFor(role: Role | undefined, cartCount = 0): MenuItem[] {
       href: '/cart',
       label: cartCount > 0 ? `Cart (${cartCount})` : 'Cart',
     });
+    items.push({ href: '/orders', label: 'Orders' });
   }
   if (role === 'SELLER' || role === 'ADMIN') {
     items.push({ href: '/seller/products', label: 'Manage products' });

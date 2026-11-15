@@ -81,12 +81,20 @@ export default async function CartPage() {
             ))}
           </ul>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <EmptyCartButton />
             <p className="text-xl">
               Total ({cart.itemCount} item{cart.itemCount === 1 ? '' : 's'}):{' '}
               <strong>{formatPrice(cart.totalCents)}</strong>
             </p>
+          </div>
+          <div className="flex justify-end">
+            <Link
+              href="/checkout"
+              className="rounded bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-500"
+            >
+              Checkout
+            </Link>
           </div>
         </>
       )}
