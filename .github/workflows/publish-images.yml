@@ -1,0 +1,68 @@
+name: publish-images
+
+# Builds the app images on GitHub and publishes them to GHCR so the QA environment on
+# Render only has to pull them. Runs on every push to `staging` and on demand.
+#
+# orbit-apps: runs the API and the BFF (the start command differs per service).
+# orbit-web:  the same Dockerfile, built with the public address of the QA BFF, because
+#             NEXT_PUBLIC_BFF_URL is baked into the web build. Set it as the repository
+#             variable QA_BFF_URL (Settings > Secrets and variables > Actions > Variables).
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: publish (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [apps, web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name and tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/orbit-${{ matrix.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Check the BFF address for the web image
+        if: matrix.name == 'web'
+        env:
+          QA_BFF_URL: ${{ vars.QA_BFF_URL }}
+        run: |
+          if [ -z "$QA_BFF_URL" ]; then
+            echo "::error::Set the repository variable QA_BFF_URL (public address of the QA BFF) before publishing the web image."
+            exit 1
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ${{ matrix.name == 'web' && format('NEXT_PUBLIC_BFF_URL={0}', vars.QA_BFF_URL) || 'NEXT_PUBLIC_BFF_URL=http://localhost:3001' }}
+          cache-from: type=gha,scope=publish-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.name }}
