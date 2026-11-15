@@ -5,11 +5,12 @@ import {
   InvalidSignatureError,
   PaymentEvent,
   PaymentProvider,
+  RefundRequest,
 } from './payment-provider';
 
 /**
  * The Stripe adapter, for test mode. Only its webhook signature check is covered by tests that run
- * without keys; `charge` has never run against Stripe because no key was available (see PBI-09).
+ * without keys; `charge` and `refund` have never run against Stripe because no key was available (see PBI-09).
  */
 export class StripePaymentProvider extends PaymentProvider {
   private readonly stripe: Stripe;
@@ -60,6 +61,17 @@ export class StripePaymentProvider extends PaymentProvider {
       }
       throw error;
     }
+  }
+
+  async refund(request: RefundRequest): Promise<{ reference: string }> {
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: request.paymentReference,
+        amount: request.amountCents,
+      },
+      { idempotencyKey: request.idempotencyKey },
+    );
+    return { reference: refund.id };
   }
 
   readEvent(rawBody: Buffer, signature: string | undefined): PaymentEvent {

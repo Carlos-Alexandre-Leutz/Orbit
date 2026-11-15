@@ -1,37 +1,15 @@
 import {
   ConflictException,
+  ForbiddenException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentsService } from '../payments/payments.service';
+import { presentOrder, WITH_ITEMS } from './order-presenter';
 import { canTransition, TIMESTAMP_OF } from './order-state';
-
-export const WITH_ITEMS = { items: { orderBy: { name: 'asc' as const } } };
-type OrderWithItems = Prisma.OrderGetPayload<{ include: typeof WITH_ITEMS }>;
-
-/** What the API shows of an order. */
-export function presentOrder(order: OrderWithItems) {
-  return {
-    id: order.id,
-    status: order.status,
-    currency: order.currency,
-    totalCents: order.totalCents,
-    items: order.items.map((item) => ({
-      productId: item.productId,
-      sku: item.sku,
-      name: item.name,
-      priceCents: item.priceCents,
-      quantity: item.quantity,
-      lineTotalCents: item.priceCents * item.quantity,
-    })),
-    createdAt: order.createdAt,
-    paidAt: order.paidAt,
-    shippedAt: order.shippedAt,
-    deliveredAt: order.deliveredAt,
-    cancelledAt: order.cancelledAt,
-  };
-}
 
 function refuse(code: string, message: string, extra: object = {}) {
   return new ConflictException({ statusCode: 409, message, code, ...extra });
@@ -39,7 +17,10 @@ function refuse(code: string, message: string, extra: object = {}) {
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly payments: PaymentsService,
+  ) {}
 
   /**
    * Turns the cart into an order in one transaction: the cart row is locked, the stock is taken with a
@@ -209,5 +190,94 @@ export class OrdersService {
       include: WITH_ITEMS,
     });
     return presentOrder(updated);
+  }
+
+  /**
+   * Cancels an order. The customer may cancel their own order only while it waits for payment. A seller or
+   * admin may also cancel a paid one, which is refunded. Shipped and delivered orders cannot be cancelled.
+   * The state change and the return of the stock happen in one transaction, and the state change names the
+   * old state, so the stock goes back exactly once. Cancelling a cancelled order changes nothing.
+   */
+  async cancel(id: string, viewer: { id: string; role: Role }) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: WITH_ITEMS,
+    });
+    const staff = viewer.role === 'SELLER' || viewer.role === 'ADMIN';
+    if (!order || (order.userId !== viewer.id && !staff)) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+    if (order.status === 'CANCELLED') {
+      if (staff) {
+        await this.refundIfNeeded(order.id);
+      }
+      return this.reload(order.id);
+    }
+    if (!canTransition(order.status, 'CANCELLED')) {
+      throw refuse(
+        'INVALID_TRANSITION',
+        `Um pedido ${order.status} não pode ser cancelado`,
+        { from: order.status, to: 'CANCELLED' },
+      );
+    }
+    if (!staff && order.status !== 'PENDING_PAYMENT') {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: 'CANCEL_NEEDS_STAFF',
+        message: 'Um pedido pago só pode ser cancelado pela loja',
+      });
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.order.updateMany({
+        where: { id, status: order.status },
+        data: { status: 'CANCELLED', cancelledAt: new Date() },
+      });
+      if (count === 0) {
+        throw refuse(
+          'STATE_CHANGED',
+          'O pedido mudou de estado; tente de novo',
+        );
+      }
+      // Fixed product order, so two cancellations that share products cannot deadlock.
+      const lines = [...order.items].sort((a, b) =>
+        a.productId.localeCompare(b.productId),
+      );
+      for (const { productId, quantity } of lines) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { stock: { increment: quantity } },
+        });
+      }
+    });
+    if (order.status === 'PAID') {
+      await this.refundIfNeeded(order.id);
+    }
+    return this.reload(order.id);
+  }
+
+  /** The order is already cancelled when this runs, so a failed refund is reported but never undone. */
+  private async refundIfNeeded(id: string) {
+    try {
+      await this.payments.refundOrder(id);
+    } catch {
+      throw new HttpException(
+        {
+          statusCode: 502,
+          code: 'REFUND_FAILED',
+          message:
+            'O pedido foi cancelado, mas o estorno falhou; cancele de novo para tentar o estorno',
+        },
+        502,
+      );
+    }
+  }
+
+  private async reload(id: string) {
+    return presentOrder(
+      await this.prisma.order.findUniqueOrThrow({
+        where: { id },
+        include: WITH_ITEMS,
+      }),
+    );
   }
 }

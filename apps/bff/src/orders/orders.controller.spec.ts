@@ -26,10 +26,11 @@ describe('BFF OrdersController', () => {
     await controller.mine('Bearer t');
     await controller.one('o1', 'Bearer t');
     await controller.pay('o1', {}, 'Bearer t');
+    await controller.cancel('o1', 'Bearer t');
     await controller.ship('o1', 'Bearer t');
     await controller.deliver('o1', 'Bearer t');
     const calls = [...http.post.mock.calls, ...http.get.mock.calls];
-    expect(calls).toHaveLength(6);
+    expect(calls).toHaveLength(7);
     for (const call of calls) {
       const config = call[call.length - 1] as { headers: object };
       expect(config.headers).toEqual({ Authorization: 'Bearer t' });

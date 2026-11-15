@@ -16,6 +16,14 @@ export interface ChargeResult {
   reason?: string;
 }
 
+export interface RefundRequest {
+  /** The reference of the payment to give back, as returned by `charge`. */
+  paymentReference: string;
+  amountCents: number;
+  /** The same key must never refund twice. */
+  idempotencyKey: string;
+}
+
 /** A provider event, reduced to what the store needs. */
 export interface PaymentEvent {
   id: string;
@@ -36,6 +44,9 @@ export class InvalidSignatureError extends Error {
  */
 export abstract class PaymentProvider {
   abstract charge(request: ChargeRequest): Promise<ChargeResult>;
+
+  /** Gives the whole payment back. The same idempotency key returns the same refund. */
+  abstract refund(request: RefundRequest): Promise<{ reference: string }>;
 
   /** Checks the signature on the raw body and reads the event. Throws `InvalidSignatureError`. */
   abstract readEvent(

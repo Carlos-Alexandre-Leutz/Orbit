@@ -114,6 +114,8 @@ model Order {
   cancelledAt    DateTime?
   // The provider's id of the payment that paid this order; set once, when the order becomes PAID.
   paymentRef     String?
+  // The provider's id of the refund, set once a cancelled paid order was refunded.
+  refundRef      String?
   // Chosen by the client when it places the order: a retry with the same key returns the same order.
   idempotencyKey String?
   createdAt      DateTime    @default(now())

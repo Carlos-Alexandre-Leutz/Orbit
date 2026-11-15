@@ -5,6 +5,7 @@ import {
   InvalidSignatureError,
   PaymentEvent,
   PaymentProvider,
+  RefundRequest,
 } from './payment-provider';
 
 export const FAKE_WEBHOOK_SECRET = 'fake-webhook-secret';
@@ -24,6 +25,7 @@ export function signFakeEvent(
  */
 export class FakePaymentProvider extends PaymentProvider {
   private readonly charged = new Map<string, ChargeResult>();
+  private readonly refunded = new Map<string, { reference: string }>();
 
   constructor(private readonly secret = FAKE_WEBHOOK_SECRET) {
     super();
@@ -44,6 +46,16 @@ export class FakePaymentProvider extends PaymentProvider {
       result = { status: 'succeeded', reference };
     }
     this.charged.set(request.idempotencyKey, result);
+    return Promise.resolve(result);
+  }
+
+  refund(request: RefundRequest): Promise<{ reference: string }> {
+    const previous = this.refunded.get(request.idempotencyKey);
+    if (previous) {
+      return Promise.resolve(previous);
+    }
+    const result = { reference: `fake_re_${randomUUID()}` };
+    this.refunded.set(request.idempotencyKey, result);
     return Promise.resolve(result);
   }
 

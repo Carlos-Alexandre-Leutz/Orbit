@@ -15,9 +15,10 @@ describe('OrdersService', () => {
   const tx = {
     $queryRaw: jest.fn(),
     cartItem: { findMany: jest.fn(), deleteMany: jest.fn() },
-    product: { updateMany: jest.fn() },
-    order: { create: jest.fn() },
+    product: { updateMany: jest.fn(), update: jest.fn() },
+    order: { create: jest.fn(), updateMany: jest.fn() },
   };
+  const payments = { refundOrder: jest.fn() };
   const prisma = {
     cart: { findUnique: jest.fn() },
     order: {
@@ -28,7 +29,7 @@ describe('OrdersService', () => {
     },
     $transaction: jest.fn(),
   };
-  const service = new OrdersService(prisma as never);
+  const service = new OrdersService(prisma as never, payments as never);
   const code = async (promise: Promise<unknown>) =>
     (
       (await promise.catch((e: unknown) => e)) as ConflictException
@@ -214,6 +215,110 @@ describe('OrdersService', () => {
       await expect(service.transition('o1', 'SHIPPED')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('cancel', () => {
+    const ana = { id: 'u1', role: 'CUSTOMER' as const };
+    const sam = { id: 's1', role: 'SELLER' as const };
+    const order = (status: string, over: object = {}) => ({
+      id: 'o1',
+      userId: 'u1',
+      status,
+      refundRef: null,
+      items: [
+        { productId: 'p2', quantity: 1 },
+        { productId: 'p1', quantity: 3 },
+      ],
+      ...over,
+    });
+    const found = (status: string, over: object = {}) => {
+      prisma.order.findUnique.mockResolvedValue(order(status, over));
+      prisma.order.findUniqueOrThrow.mockResolvedValue(order('CANCELLED'));
+      tx.order.updateMany.mockResolvedValue({ count: 1 });
+    };
+
+    it('lets the owner cancel an unpaid order and returns the stock, in product order', async () => {
+      found('PENDING_PAYMENT');
+      await service.cancel('o1', ana);
+      expect(tx.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'o1', status: 'PENDING_PAYMENT' },
+        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
+      });
+      expect(tx.product.update.mock.calls.map((c) => c[0])).toEqual([
+        { where: { id: 'p1' }, data: { stock: { increment: 3 } } },
+        { where: { id: 'p2' }, data: { stock: { increment: 1 } } },
+      ]);
+      expect(payments.refundOrder).not.toHaveBeenCalled();
+    });
+
+    it('refuses a customer cancelling a paid order, with a code, and changes nothing', async () => {
+      found('PAID');
+      const error = (await service
+        .cancel('o1', ana)
+        .catch((e: unknown) => e)) as { getResponse(): unknown };
+      expect(error.getResponse()).toMatchObject({ code: 'CANCEL_NEEDS_STAFF' });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('lets a seller cancel a paid order and refunds it after the state change', async () => {
+      found('PAID');
+      await service.cancel('o1', sam);
+      expect(tx.product.update).toHaveBeenCalledTimes(2);
+      expect(payments.refundOrder).toHaveBeenCalledWith('o1');
+    });
+
+    it.each(['SHIPPED', 'DELIVERED'])(
+      'refuses a %s order for everyone',
+      async (status) => {
+        found(status);
+        for (const viewer of [ana, sam]) {
+          expect(await code(service.cancel('o1', viewer))).toMatchObject({
+            code: 'INVALID_TRANSITION',
+          });
+        }
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    it("treats someone else's order as missing for a customer", async () => {
+      found('PENDING_PAYMENT');
+      await expect(
+        service.cancel('o1', { id: 'intruder', role: 'CUSTOMER' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('returns the stock only for the request that won the state change', async () => {
+      found('PENDING_PAYMENT');
+      tx.order.updateMany.mockResolvedValue({ count: 0 });
+      expect(await code(service.cancel('o1', ana))).toMatchObject({
+        code: 'STATE_CHANGED',
+      });
+      expect(tx.product.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing again for a cancelled order, except retrying a missing refund for staff', async () => {
+      found('CANCELLED');
+      await service.cancel('o1', ana);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(payments.refundOrder).not.toHaveBeenCalled();
+      await service.cancel('o1', sam);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(payments.refundOrder).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the order cancelled and answers 502 when the refund fails', async () => {
+      found('PAID');
+      payments.refundOrder.mockRejectedValue(new Error('provider down'));
+      const error = (await service
+        .cancel('o1', sam)
+        .catch((e: unknown) => e)) as {
+        getStatus(): number;
+        getResponse(): unknown;
+      };
+      expect(error.getStatus()).toBe(502);
+      expect(error.getResponse()).toMatchObject({ code: 'REFUND_FAILED' });
+      expect(tx.product.update).toHaveBeenCalledTimes(2);
     });
   });
 });
