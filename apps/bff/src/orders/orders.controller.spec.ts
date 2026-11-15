@@ -22,7 +22,7 @@ describe('BFF OrdersController', () => {
 
   it('forwards the session of the caller on every call', async () => {
     const controller = (await build()).get(OrdersController);
-    await controller.place('Bearer t');
+    await controller.place('loja-x', 'Bearer t');
     await controller.mine('Bearer t');
     await controller.one('o1', 'Bearer t');
     await controller.pay('o1', {}, 'Bearer t');
@@ -39,8 +39,8 @@ describe('BFF OrdersController', () => {
 
   it('forwards the idempotency key when there is one', async () => {
     const controller = (await build()).get(OrdersController);
-    await controller.place('Bearer t', 'checkout-1234abcd');
-    await controller.place('Bearer t');
+    await controller.place('loja-x', 'Bearer t', 'checkout-1234abcd');
+    await controller.place('loja-x', 'Bearer t');
     const [withKey, without] = http.post.mock.calls.map(
       (c) => (c[c.length - 1] as { headers: Record<string, string> }).headers,
     );

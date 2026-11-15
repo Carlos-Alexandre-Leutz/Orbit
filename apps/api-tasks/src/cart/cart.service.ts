@@ -21,31 +21,32 @@ export class CartService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Every user has exactly one cart; it is created the first time it is needed. Two requests that
+   * A customer has one cart per store; it is created the first time it is needed. Two requests that
    * arrive together for a new user both try to create it, and the database lets only one win, so the
    * loser reads the cart the winner made instead of failing.
    */
-  private async cartOf(userId: string) {
+  private async cartOf(userId: string, storeId: string) {
+    const where = { userId_storeId: { userId, storeId } };
     try {
       return await this.prisma.cart.upsert({
-        where: { userId },
+        where,
         update: {},
-        create: { userId },
+        create: { userId, storeId },
       });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        return this.prisma.cart.findUniqueOrThrow({ where: { userId } });
+        return this.prisma.cart.findUniqueOrThrow({ where });
       }
       throw error;
     }
   }
 
-  async view(userId: string) {
+  async view(userId: string, storeId: string) {
     const cart = await this.prisma.cart.findUnique({
-      where: { userId },
+      where: { userId_storeId: { userId, storeId } },
       include: WITH_PRODUCT,
     });
     return this.present(cart);
@@ -56,27 +57,47 @@ export class CartService {
    * written, so two requests for the same cart (two tabs, a double click) are handled one after the other
    * and can never push the cart past its limits together.
    */
-  async add(userId: string, productId: string, quantity: number) {
-    await this.change(userId, productId, (current) => current + quantity, true);
-    return this.view(userId);
+  async add(
+    userId: string,
+    storeId: string,
+    productId: string,
+    quantity: number,
+  ) {
+    await this.change(
+      userId,
+      storeId,
+      productId,
+      (current) => current + quantity,
+      true,
+    );
+    return this.view(userId, storeId);
   }
 
   /** Sets the quantity of a line that is already in the cart. Repeating it changes nothing. */
-  async setQuantity(userId: string, productId: string, quantity: number) {
-    await this.change(userId, productId, () => quantity, false);
-    return this.view(userId);
+  async setQuantity(
+    userId: string,
+    storeId: string,
+    productId: string,
+    quantity: number,
+  ) {
+    await this.change(userId, storeId, productId, () => quantity, false);
+    return this.view(userId, storeId);
   }
 
   private async change(
     userId: string,
+    storeId: string,
     productId: string,
     next: (current: number) => number,
     createIfMissing: boolean,
   ) {
-    const cart = await this.cartOf(userId);
+    const cart = await this.cartOf(userId, storeId);
     await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Cart" WHERE id = ${cart.id} FOR UPDATE`;
-      const product = await tx.product.findUnique({ where: { id: productId } });
+      // A product of another store is answered like one that does not exist: a cart holds one store only.
+      const product = await tx.product.findFirst({
+        where: { id: productId, storeId },
+      });
       if (!product) {
         throw new NotFoundException('Produto não encontrado');
       }
@@ -109,15 +130,15 @@ export class CartService {
     });
   }
 
-  async remove(userId: string, productId: string) {
-    const cart = await this.cartOf(userId);
+  async remove(userId: string, storeId: string, productId: string) {
+    const cart = await this.cartOf(userId, storeId);
     await this.prisma.cartItem.deleteMany({
       where: { cartId: cart.id, productId },
     });
   }
 
-  async clear(userId: string) {
-    const cart = await this.cartOf(userId);
+  async clear(userId: string, storeId: string) {
+    const cart = await this.cartOf(userId, storeId);
     await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
   }
 

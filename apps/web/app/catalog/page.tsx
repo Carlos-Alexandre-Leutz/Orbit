@@ -10,6 +10,7 @@ import {
   type Category,
   type ProductPage,
 } from '@/lib/catalog';
+import { CURRENT_STORE } from '@/lib/store';
 
 export const metadata = { title: 'Catalog | Orbit Supply Co.' };
 
@@ -22,6 +23,7 @@ export default async function CatalogPage({
   const [products, categories] = await Promise.all([
     bffRequest<ProductPage>('/products', {
       query: {
+        store: CURRENT_STORE,
         q: params.q,
         category: params.category,
         inStock: params.inStock ? 'true' : undefined,

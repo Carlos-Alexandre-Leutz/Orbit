@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { STORE_QUERY } from '@/lib/store';
 
 /**
  * Places the order from the cart. The idempotency key is made once per page, so a double click or a retry after
@@ -18,7 +19,7 @@ export function PlaceOrderButton() {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch('/api/bff/orders', {
+      const response = await fetch(`/api/bff/orders?${STORE_QUERY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

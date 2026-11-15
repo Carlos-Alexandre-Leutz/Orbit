@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { demoStoreId } from './support';
+import { TestSeller, removeTestData, sellerWithStore } from './support';
 
 interface CartBody {
   items: {
@@ -26,6 +26,8 @@ describe('cart (real database)', () => {
   const http = () => request(app.getHttpServer());
   const bearer: Record<string, string> = {};
   const products: Record<string, string> = {};
+  let shop: TestSeller;
+  const store = () => `store=${shop.slug}`;
 
   async function register(name: string) {
     const res = await http()
@@ -36,7 +38,8 @@ describe('cart (real database)', () => {
   }
   const as = (name: string) => ({ Authorization: bearer[name] });
   const cartOf = async (name: string) =>
-    (await http().get('/cart').set(as(name)).expect(200)).body as CartBody;
+    (await http().get(`/cart?${store()}`).set(as(name)).expect(200))
+      .body as CartBody;
 
   beforeAll(async () => {
     process.env.JWT_SECRET ??= 'an-integration-test-secret-1234567890';
@@ -48,6 +51,7 @@ describe('cart (real database)', () => {
       new ValidationPipe({ whitelist: true, transform: true }),
     );
     await app.init();
+    shop = await sellerWithStore(app, tag, 'shop');
     await register('ana');
     await register('bob');
     const category = await prisma.category.create({
@@ -59,7 +63,7 @@ describe('cart (real database)', () => {
     ] as const) {
       const product = await prisma.product.create({
         data: {
-          storeId: await demoStoreId(prisma),
+          storeId: shop.storeId,
           sku: `C${tag.toUpperCase()}-${key.toUpperCase()}`,
           name: `Cart item ${key}`,
           priceCents: price,
@@ -72,12 +76,7 @@ describe('cart (real database)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({
-      where: { email: { endsWith: `-${tag}@example.com` } },
-    });
-    await prisma.product.deleteMany({
-      where: { sku: { startsWith: `C${tag.toUpperCase()}-` } },
-    });
+    await removeTestData(prisma, tag, `C${tag.toUpperCase()}-`);
     await prisma.category.deleteMany({ where: { slug: `c${tag}` } });
     await prisma.$disconnect();
     await app.close();
@@ -93,17 +92,17 @@ describe('cart (real database)', () => {
 
   it('adds products, sums repeated adds and totals the lines', async () => {
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?${store()}`)
       .set(as('ana'))
       .send({ productId: products.a, quantity: 2 })
       .expect(201);
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?${store()}`)
       .set(as('ana'))
       .send({ productId: products.a, quantity: 1 })
       .expect(201);
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?${store()}`)
       .set(as('ana'))
       .send({ productId: products.b, quantity: 4 })
       .expect(201);
@@ -119,24 +118,24 @@ describe('cart (real database)', () => {
   it('keeps every user in their own cart', async () => {
     expect((await cartOf('bob')).items).toEqual([]);
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?${store()}`)
       .set(as('bob'))
       .send({ productId: products.b, quantity: 1 })
       .expect(201);
     expect((await cartOf('bob')).itemCount).toBe(1);
     expect((await cartOf('ana')).itemCount).toBe(7);
-    await http().delete('/cart').set(as('bob')).expect(204);
+    await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     expect((await cartOf('ana')).itemCount).toBe(7);
   });
 
   it('sets a quantity, and doing it again changes nothing', async () => {
     const first = await http()
-      .patch(`/cart/items/${products.a}`)
+      .patch(`/cart/items/${products.a}?${store()}`)
       .set(as('ana'))
       .send({ quantity: 5 })
       .expect(200);
     const second = await http()
-      .patch(`/cart/items/${products.a}`)
+      .patch(`/cart/items/${products.a}?${store()}`)
       .set(as('ana'))
       .send({ quantity: 5 })
       .expect(200);
@@ -150,12 +149,12 @@ describe('cart (real database)', () => {
   it('answers 404 for a product that does not exist or a line that is not in the cart', async () => {
     const ghost = '00000000-0000-4000-8000-000000000000';
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?${store()}`)
       .set(as('ana'))
       .send({ productId: ghost, quantity: 1 })
       .expect(404);
     await http()
-      .patch(`/cart/items/${ghost}`)
+      .patch(`/cart/items/${ghost}?${store()}`)
       .set(as('ana'))
       .send({ quantity: 1 })
       .expect(404);
@@ -178,11 +177,14 @@ describe('cart (real database)', () => {
   });
 
   it('removes a line and empties the cart', async () => {
-    await http().delete(`/cart/items/${products.b}`).set(as('ana')).expect(204);
+    await http()
+      .delete(`/cart/items/${products.b}?${store()}`)
+      .set(as('ana'))
+      .expect(204);
     expect((await cartOf('ana')).items.map((i) => i.productId)).toEqual([
       products.a,
     ]);
-    await http().delete('/cart').set(as('ana')).expect(204);
+    await http().delete(`/cart?${store()}`).set(as('ana')).expect(204);
     expect(await cartOf('ana')).toEqual({
       items: [],
       itemCount: 0,
@@ -196,23 +198,23 @@ describe('cart (real database)', () => {
       Authorization: `Bearer ${res.body.accessToken as string}`,
     };
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?${store()}`)
       .set(visitor)
       .send({ productId: products.a, quantity: 1 })
       .expect(201);
-    const cart = (await http().get('/cart').set(visitor).expect(200))
+    const cart = (await http().get(`/cart?${store()}`).set(visitor).expect(200))
       .body as CartBody;
     expect(cart.itemCount).toBe(1);
     await prisma.user.delete({ where: { id: res.body.user.id as string } });
   });
 
   it('refuses a session-less request and a database-level zero quantity', async () => {
-    await http().get('/cart').expect(401);
+    await http().get(`/cart?${store()}`).expect(401);
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: `ana-${tag}@example.com` },
     });
     const cart = await prisma.cart.findUniqueOrThrow({
-      where: { userId: user.id },
+      where: { userId_storeId: { userId: user.id, storeId: shop.storeId } },
     });
     await expect(
       prisma.cartItem.create({
@@ -223,12 +225,15 @@ describe('cart (real database)', () => {
 
   describe('the rules, on real data', () => {
     const give = (name: string, productId: string, quantity: number) =>
-      http().post('/cart/items').set(as(name)).send({ productId, quantity });
+      http()
+        .post(`/cart/items?${store()}`)
+        .set(as(name))
+        .send({ productId, quantity });
 
     it('never lets the cart hold more units than the stock', async () => {
       const scarce = await prisma.product.create({
         data: {
-          storeId: await demoStoreId(prisma),
+          storeId: shop.storeId,
           sku: `C${tag.toUpperCase()}-SCARCE`,
           name: 'Scarce',
           priceCents: 100,
@@ -245,25 +250,25 @@ describe('cart (real database)', () => {
       expect(refused.body).toMatchObject({ code: 'NOT_ENOUGH_STOCK' });
       expect(refused.body.message).toContain('3');
       await http()
-        .patch(`/cart/items/${scarce.id}`)
+        .patch(`/cart/items/${scarce.id}?${store()}`)
         .set(as('bob'))
         .send({ quantity: 4 })
         .expect(409);
       expect((await cartOf('bob')).itemCount).toBe(2);
-      await http().delete('/cart').set(as('bob')).expect(204);
+      await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     });
 
     it('refuses more than 10 units of one product', async () => {
       await give('bob', products.a, 10).expect(201);
       const refused = await give('bob', products.a, 1).expect(409);
       expect(refused.body).toMatchObject({ code: 'TOO_MANY_UNITS' });
-      await http().delete('/cart').set(as('bob')).expect(204);
+      await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     });
 
     it('refuses a product that was removed or has no stock, and leaves the cart as it was', async () => {
       const gone = await prisma.product.create({
         data: {
-          storeId: await demoStoreId(prisma),
+          storeId: shop.storeId,
           sku: `C${tag.toUpperCase()}-GONE`,
           name: 'Gone',
           priceCents: 100,
@@ -297,7 +302,7 @@ describe('cart (real database)', () => {
       for (let i = 0; i < 21; i++) {
         const p = await prisma.product.create({
           data: {
-            storeId: await demoStoreId(prisma),
+            storeId: shop.storeId,
             sku: `C${tag.toUpperCase()}-MANY${i}`,
             name: `Many ${i}`,
             priceCents: 100,
@@ -312,11 +317,11 @@ describe('cart (real database)', () => {
         code: 'TOO_MANY_PRODUCTS',
       });
       await http()
-        .patch(`/cart/items/${ids[0]}`)
+        .patch(`/cart/items/${ids[0]}?${store()}`)
         .set(as('bob'))
         .send({ quantity: 2 })
         .expect(200);
-      await http().delete('/cart').set(as('bob')).expect(204);
+      await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     });
 
     it('is safe against parallel requests: 15 adds of one unit end at the limit of 10', async () => {
@@ -327,7 +332,7 @@ describe('cart (real database)', () => {
       expect(statuses.filter((s) => s === 201)).toHaveLength(10);
       expect(statuses.filter((s) => s === 409)).toHaveLength(5);
       expect((await cartOf('bob')).items[0].quantity).toBe(10);
-      await http().delete('/cart').set(as('bob')).expect(204);
+      await http().delete(`/cart?${store()}`).set(as('bob')).expect(204);
     });
   });
 
@@ -337,7 +342,7 @@ describe('cart (real database)', () => {
       const results = await Promise.all(
         Array.from({ length: 12 }, () =>
           http()
-            .post('/cart/items')
+            .post(`/cart/items?${store()}`)
             .set(as('eve'))
             .send({ productId: products.b, quantity: 1 }),
         ),

@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient, Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { demoStoreId } from './support';
+import { TestSeller, removeTestData, sellerWithStore } from './support';
 import { signFakeEvent } from '../src/payments/fake-payment.provider';
 
 interface OrderBody {
@@ -19,6 +19,7 @@ describe('payments (real database)', () => {
   const prisma = new PrismaClient();
   let app: INestApplication;
   let productId: string;
+  let sam: TestSeller;
   let categoryId: string;
   const http = () => request(app.getHttpServer());
   const bearer: Record<string, string> = {};
@@ -45,12 +46,13 @@ describe('payments (real database)', () => {
   const as = (name: string) => ({ Authorization: bearer[name] });
   async function newOrder(name: string) {
     await http()
-      .post('/cart/items')
+      .post(`/cart/items?store=${sam.slug}`)
       .set(as(name))
       .send({ productId, quantity: 1 })
       .expect(201);
-    return (await http().post('/orders').set(as(name)).expect(201))
-      .body as OrderBody;
+    return (
+      await http().post(`/orders?store=${sam.slug}`).set(as(name)).expect(201)
+    ).body as OrderBody;
   }
   const pay = (name: string, id: string, paymentMethod?: string) =>
     http().post(`/orders/${id}/pay`).set(as(name)).send({ paymentMethod });
@@ -89,6 +91,8 @@ describe('payments (real database)', () => {
     await app.init();
     // Listening once keeps the parallel requests below from each opening the server on their own port.
     await app.listen(0);
+    sam = await sellerWithStore(app, tag, 'sam');
+    bearer.sam = sam.token;
     categoryId = (
       await prisma.category.create({
         data: { slug: `p${tag}`, name: 'Payment tests' },
@@ -97,7 +101,7 @@ describe('payments (real database)', () => {
     productId = (
       await prisma.product.create({
         data: {
-          storeId: await demoStoreId(prisma),
+          storeId: sam.storeId,
           sku: `P${tag.toUpperCase()}-A`,
           name: 'Payment item',
           priceCents: 700,
@@ -108,21 +112,13 @@ describe('payments (real database)', () => {
     ).id;
     await account('ana');
     await account('bob');
-    await account('sam', 'SELLER');
   });
 
   afterAll(async () => {
-    const users = await prisma.user.findMany({
-      where: { email: { endsWith: `-${tag}@example.com` } },
-      select: { id: true },
-    });
-    const ids = users.map((u) => u.id);
-    await prisma.order.deleteMany({ where: { userId: { in: ids } } });
-    await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await prisma.processedPaymentEvent.deleteMany({
       where: { id: { startsWith: `evt-${tag}-` } },
     });
-    await prisma.product.deleteMany({ where: { id: productId } });
+    await removeTestData(prisma, tag, `P${tag.toUpperCase()}-`);
     await prisma.category.deleteMany({ where: { id: categoryId } });
     await prisma.$disconnect();
     await app.close();

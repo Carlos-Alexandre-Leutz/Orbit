@@ -8,12 +8,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiProperty,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -53,9 +55,10 @@ export class SetQuantityBody {
   @ApiProperty({ minimum: 1 }) quantity: number;
 }
 
-/** The cart of the logged-in user; the store API reads the user from the session. */
+/** The cart of the logged-in customer in one store (`?store=<link>`); the store API reads the user from the session. */
 @ApiTags('cart')
 @ApiBearerAuth()
+@ApiQuery({ name: 'store', description: 'The link of the store' })
 @Controller('cart')
 export class CartController {
   constructor(private readonly http: HttpService) {}
@@ -63,9 +66,13 @@ export class CartController {
   @Get()
   @ApiOperation({ summary: 'Read my cart' })
   @ApiResponse({ status: 200, type: CartDto })
-  view(@Headers('authorization') authorization?: string) {
+  view(
+    @Query('store') store?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
     return callStoreApi(this.http, 'get', '/cart', {
       authorization,
+      query: { store },
       fallback: 'Erro ao carregar o carrinho',
     });
   }
@@ -77,11 +84,13 @@ export class CartController {
   @ApiResponse({ status: 409, description: 'Stock or cart limits exceeded' })
   add(
     @Body() body: AddToCartBody,
+    @Query('store') store?: string,
     @Headers('authorization') authorization?: string,
   ) {
     return callStoreApi(this.http, 'post', '/cart/items', {
       body,
       authorization,
+      query: { store },
       fallback: 'Erro ao adicionar ao carrinho',
     });
   }
@@ -94,6 +103,7 @@ export class CartController {
   setQuantity(
     @Param('productId') productId: string,
     @Body() body: SetQuantityBody,
+    @Query('store') store?: string,
     @Headers('authorization') authorization?: string,
   ) {
     return callStoreApi(
@@ -103,6 +113,7 @@ export class CartController {
       {
         body,
         authorization,
+        query: { store },
         fallback: 'Erro ao alterar o carrinho',
       },
     );
@@ -113,6 +124,7 @@ export class CartController {
   @ApiOperation({ summary: 'Remove a line from my cart' })
   removeLine(
     @Param('productId') productId: string,
+    @Query('store') store?: string,
     @Headers('authorization') authorization?: string,
   ) {
     return callStoreApi(
@@ -121,6 +133,7 @@ export class CartController {
       `/cart/items/${encodeURIComponent(productId)}`,
       {
         authorization,
+        query: { store },
         fallback: 'Erro ao remover do carrinho',
       },
     );
@@ -129,9 +142,13 @@ export class CartController {
   @Delete()
   @HttpCode(204)
   @ApiOperation({ summary: 'Empty my cart' })
-  clear(@Headers('authorization') authorization?: string) {
+  clear(
+    @Query('store') store?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
     return callStoreApi(this.http, 'delete', '/cart', {
       authorization,
+      query: { store },
       fallback: 'Erro ao esvaziar o carrinho',
     });
   }
