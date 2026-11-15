@@ -66,3 +66,36 @@ jobs:
             ${{ matrix.name == 'web' && format('NEXT_PUBLIC_BFF_URL={0}', vars.QA_BFF_URL) || 'NEXT_PUBLIC_BFF_URL=http://localhost:3001' }}
           cache-from: type=gha,scope=publish-${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=publish-${{ matrix.name }}
+
+  # Applies the pending Prisma migrations to the QA database (Neon). Render does not run
+  # `&&` chains in a start command, so the migrations cannot run when the API starts.
+  # It runs inside the image just published, so it uses the migrations of this commit.
+  # Needs the repository secret NEON_DATABASE_URL: the direct (not pooled) connection string.
+  migrate:
+    name: migrate (QA database)
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the database secret
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          if [ -z "$NEON_DATABASE_URL" ]; then
+            echo "::error::Set the repository secret NEON_DATABASE_URL (direct connection string of the QA database)."
+            exit 1
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply the migrations
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          image="ghcr.io/${OWNER,,}/orbit-apps:sha-${GITHUB_SHA::7}"
+          docker run --rm -e DATABASE_URL "$image" \
+            pnpm --filter @orbit/api-tasks exec prisma migrate deploy
