@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orbit: waking up the QA environment</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { font-size: 1.4rem; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid #8884; }
+    .waiting { color: #b7791f; }
+    .ready { color: #2f855a; }
+    .failed { color: #c53030; }
+    button { margin-top: 1rem; padding: .5rem 1rem; }
+    small { opacity: .7; }
+  </style>
+</head>
+<body>
+  <h1>Waking up Orbit</h1>
+  <p>The QA services run on Render's free plan, which puts them to sleep after a while without traffic.
+     This page calls each one and sends you to the login as soon as all of them answer
+     (the first start can take around a minute).</p>
+
+  <ul id="services"></ul>
+  <p id="message"></p>
+  <button id="retry" hidden>Try again</button>
+  <p><small>Orbit is a portfolio project: the data is simulated and payments are in test mode.</small></p>
+
+  <script>
+    // Edit this list when a Render address changes. Every service in it must answer before the redirect.
+    // `url` is only called to wake the service up; any HTTP answer counts as "awake".
+    const SERVICES = [
+      { name: 'API', url: 'https://REPLACE-ME-orbit-api.onrender.com/' },
+      { name: 'BFF', url: 'https://REPLACE-ME-orbit-bff.onrender.com/docs' },
+      { name: 'Web', url: 'https://REPLACE-ME-orbit-web.onrender.com/login' },
+    ];
+    // Where the visitor lands once everything is awake.
+    const LOGIN_URL = 'https://REPLACE-ME-orbit-web.onrender.com/login';
+
+    const ATTEMPT_TIMEOUT_MS = 20000;
+    const MAX_ATTEMPTS = 9;
+    const PAUSE_MS = 3000;
+
+    const list = document.getElementById('services');
+    const message = document.getElementById('message');
+    const retry = document.getElementById('retry');
+
+    const rows = SERVICES.map((service) => {
+      const li = document.createElement('li');
+      const label = document.createElement('span');
+      const status = document.createElement('span');
+      label.textContent = service.name;
+      li.append(label, status);
+      list.append(li);
+      return { service, status };
+    });
+
+    function show(row, text, kind) {
+      row.status.textContent = text;
+      row.status.className = kind;
+    }
+
+    // `no-cors` makes the call work without CORS headers: the answer is opaque, but it only resolves
+    // when the server replied, which is all we need to know.
+    async function ping(url) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ATTEMPT_TIMEOUT_MS);
+      try {
+        await fetch(url, { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+        return true;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function wake(row) {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        show(row, `waking up (try ${attempt})`, 'waiting');
+        if (await ping(row.service.url)) {
+          show(row, 'ready', 'ready');
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
+      }
+      show(row, 'no answer', 'failed');
+      return false;
+    }
+
+    async function start() {
+      retry.hidden = true;
+      message.textContent = '';
+      const results = await Promise.all(rows.map(wake));
+      if (results.every(Boolean)) {
+        message.textContent = 'Everything is awake. Redirecting to the login...';
+        window.location.replace(LOGIN_URL);
+      } else {
+        message.textContent = 'Some services did not answer. They may still be starting.';
+        retry.hidden = false;
+      }
+    }
+
+    retry.addEventListener('click', start);
+    start();
+  </script>
+</body>
+</html>
