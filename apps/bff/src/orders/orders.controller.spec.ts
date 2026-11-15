@@ -36,6 +36,20 @@ describe('BFF OrdersController', () => {
     }
   });
 
+  it('forwards the idempotency key when there is one', async () => {
+    const controller = (await build()).get(OrdersController);
+    await controller.place('Bearer t', 'checkout-1234abcd');
+    await controller.place('Bearer t');
+    const [withKey, without] = http.post.mock.calls.map(
+      (c) => (c[c.length - 1] as { headers: Record<string, string> }).headers,
+    );
+    expect(withKey).toEqual({
+      Authorization: 'Bearer t',
+      'Idempotency-Key': 'checkout-1234abcd',
+    });
+    expect(without).toEqual({ Authorization: 'Bearer t' });
+  });
+
   it('is in the OpenAPI document, protected by a bearer token', async () => {
     const app = (await build()).createNestApplication();
     await app.init();

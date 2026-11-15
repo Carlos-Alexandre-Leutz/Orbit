@@ -58,7 +58,7 @@ describe('orders HTTP', () => {
 
   it('places an order for the user of the token and reads it back through the same user', async () => {
     await server().post('/orders').set(as('CUSTOMER', 'user-9')).expect(201);
-    expect(orders.createFromCart).toHaveBeenCalledWith('user-9');
+    expect(orders.createFromCart).toHaveBeenCalledWith('user-9', undefined);
     await server()
       .get(`/orders/${ID}`)
       .set(as('CUSTOMER', 'user-9'))
@@ -67,6 +67,26 @@ describe('orders HTTP', () => {
       id: 'user-9',
       role: 'CUSTOMER',
     });
+  });
+
+  it('passes the idempotency key to the service and refuses a malformed one', async () => {
+    await server()
+      .post('/orders')
+      .set(as('CUSTOMER', 'user-9'))
+      .set('Idempotency-Key', 'checkout-1234abcd')
+      .expect(201);
+    expect(orders.createFromCart).toHaveBeenCalledWith(
+      'user-9',
+      'checkout-1234abcd',
+    );
+    for (const bad of ['short', 'has space in it', 'x'.repeat(129)]) {
+      await server()
+        .post('/orders')
+        .set(as('CUSTOMER'))
+        .set('Idempotency-Key', bad)
+        .expect(400);
+    }
+    expect(orders.createFromCart).toHaveBeenCalledTimes(1);
   });
 
   it('pays an order of the user of the token, with the chosen test card', async () => {

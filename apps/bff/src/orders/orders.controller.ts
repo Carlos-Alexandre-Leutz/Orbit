@@ -53,15 +53,23 @@ export class OrdersController {
   constructor(private readonly http: HttpService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Place an order from my cart' })
+  @ApiOperation({
+    summary: 'Place an order from my cart',
+    description:
+      'Send an Idempotency-Key header (8 to 128 letters, digits, - or _): a retry with the same key returns the same order instead of a second one.',
+  })
   @ApiResponse({ status: 201, type: OrderDto })
   @ApiResponse({
     status: 409,
     description: 'Empty cart, a product no longer on sale or not enough stock',
   })
-  place(@Headers('authorization') authorization?: string) {
+  place(
+    @Headers('authorization') authorization?: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
     return callStoreApi(this.http, 'post', '/orders', {
       authorization,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
       fallback: 'Erro ao fazer o pedido',
     });
   }
