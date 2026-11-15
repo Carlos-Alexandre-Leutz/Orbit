@@ -18,6 +18,8 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 - Task PRs target the PBI branch. PBI PRs target `staging`. Releases go `staging` → `main`.
 - `main` and `staging` are protected: a pull request and the checks `commitlint` and `scripts-tests` are required, with no approvals; there is no direct push, no force-push and no deletion, and admins are included. Never push directly to them. Never force-push a shared branch.
 - The AI runs the whole gitflow itself, including merging task and PBI PRs, once the checks pass.
+- **Do only what the owner asked, then stop and say it is done.** Do not start the next step, open a pull request, create a branch, commit or push something that was not asked for; ask first. If a task seems to need more, say so and wait.
+- **Do not run the test suites after every change.** It is slow and costs the owner tokens. The unit tests run in the pipeline on the pull request; say in the PR that they were left to the pipeline, and never claim they ran locally. Run something locally only when a hook needs it or the owner asks.
 - A PBI goes to `staging` only when all its tasks are done, its tests ran, bugs were checked and every acceptance criterion was validated. Nothing goes to `main` until a real release.
 - Before and after each task: find its issue, comment, move the Project item, link the PR, close it.
 - After a task PR merges, delete its `task/*` branch. Check that none is left before starting the next PBI. Do not delete `pbi/*` branches: the owner does that.

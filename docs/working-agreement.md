@@ -24,6 +24,8 @@ A chat is long, gets summarized, is forgotten when a session ends, is not versio
 - When a decision is taken in the chat, write it in the right place above, in a pull request, before the session ends. Do not wait to be asked and do not rely on a summary.
 - Update [`project-state.md`](project-state.md) at the end of every PBI and every session, and [`open-questions.md`](open-questions.md) whenever a question is asked or answered.
 - Hand a session over by pointing the next one at the repository (`AGENTS.md`, `project-state.md`, the `pbi/` documents), not by pasting a long summary. A pasted note is only a pointer; if it and the repository disagree, the repository wins.
+- Do only what the owner asked and then stop: no extra branches, commits, pull requests or next steps without being asked (owner's rule of 2026-11-15, also in `AGENTS.md`).
+- Leave the unit tests to the pipeline instead of running them after each change; the PR says so (same rule and date).
 - Explanations for the owner, small talk and one-off answers need not be written down.
 
 ## What is enforced and what is a habit
