@@ -169,6 +169,35 @@ describe('AuthService', () => {
     });
   });
 
+  describe('me', () => {
+    it("returns the seller's store, and null for a customer", async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(
+        makeUser({
+          role: 'SELLER',
+          store: { slug: 'loja', name: 'Loja', id: 's1' },
+        }),
+      );
+      expect(await service.me('u1')).toMatchObject({
+        role: 'SELLER',
+        store: { slug: 'loja', name: 'Loja' },
+      });
+      prisma.user.findUnique.mockResolvedValueOnce(makeUser());
+      expect(await service.me('u1')).toMatchObject({ store: null });
+    });
+
+    it('never returns the store id or the password hash', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(
+        makeUser({
+          role: 'SELLER',
+          store: { slug: 'loja', name: 'Loja', id: 's1' },
+        }),
+      );
+      const me = await service.me('u1');
+      expect(JSON.stringify(me)).not.toContain('s1');
+      expect(me).not.toHaveProperty('password');
+    });
+  });
+
   describe('login', () => {
     it('returns a session for the right password', async () => {
       users.set('ana@example.com', makeUser({ role: 'SELLER' }));

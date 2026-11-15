@@ -124,7 +124,7 @@ export function RegisterForm({ next }: { next: string }) {
       setBusy(false);
       return;
     }
-    router.replace(selling ? '/seller' : next);
+    router.replace(selling ? '/seller/products' : next);
     router.refresh();
   }
 
