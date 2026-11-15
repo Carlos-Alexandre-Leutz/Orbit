@@ -101,22 +101,25 @@ enum OrderStatus {
 
 // An order is a record of what was bought, at the prices of that moment. Only its status changes afterwards.
 model Order {
-  id          String      @id @default(uuid())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  status      OrderStatus @default(PENDING_PAYMENT)
-  currency    String      @default("USD")
-  totalCents  Int
-  items       OrderItem[]
-  paidAt      DateTime?
-  shippedAt   DateTime?
-  deliveredAt DateTime?
-  cancelledAt DateTime?
+  id             String      @id @default(uuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status         OrderStatus @default(PENDING_PAYMENT)
+  currency       String      @default("USD")
+  totalCents     Int
+  items          OrderItem[]
+  paidAt         DateTime?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
   // The provider's id of the payment that paid this order; set once, when the order becomes PAID.
-  paymentRef  String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  paymentRef     String?
+  // Chosen by the client when it places the order: a retry with the same key returns the same order.
+  idempotencyKey String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
 }
 

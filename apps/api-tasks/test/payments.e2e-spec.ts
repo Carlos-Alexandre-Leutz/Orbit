@@ -127,6 +127,18 @@ describe('payments (real database)', () => {
     expect((await rowOf(order.id)).paymentRef).toBe(first.paymentRef);
   });
 
+  it('pays once when the same payment arrives in parallel', async () => {
+    const order = await newOrder('ana');
+    const results = await Promise.all(
+      Array.from({ length: 8 }, () => pay('ana', order.id)),
+    );
+    expect(results.map((r) => r.status)).toEqual(Array(8).fill(201));
+    expect(results.map((r) => r.body.status)).toEqual(Array(8).fill('PAID'));
+    const row = await rowOf(order.id);
+    expect(row.status).toBe('PAID');
+    expect(row.paymentRef).toMatch(/^fake_pi_/);
+  });
+
   it('leaves the order unpaid and answers 402 for a declined card, then accepts another card', async () => {
     const order = await newOrder('ana');
     const declined = await pay(

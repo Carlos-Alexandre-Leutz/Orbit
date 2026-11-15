@@ -51,7 +51,10 @@ describe('orders (real database)', () => {
   const as = (name: string) => ({ Authorization: bearer[name] });
   const addToCart = (name: string, productId: string, quantity: number) =>
     http().post('/cart/items').set(as(name)).send({ productId, quantity });
-  const place = (name: string) => http().post('/orders').set(as(name));
+  const place = (name: string, key?: string) => {
+    const req = http().post('/orders').set(as(name));
+    return key ? req.set('Idempotency-Key', key) : req;
+  };
   const stockOf = async (productId: string) =>
     (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
       .stock;
@@ -279,6 +282,60 @@ describe('orders (real database)', () => {
           data: { stock: -1 },
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('idempotency key', () => {
+    beforeAll(async () => {
+      await newProduct('ka', 1000, 50);
+      await newProduct('kb', 250, 50);
+      await account('dee');
+      await account('eli');
+    });
+
+    const key = (n: string) => `key-${tag}-${n}`;
+    const ordersOf = (name: string) =>
+      prisma.order.count({ where: { userId: userId[name] } });
+
+    it('returns the same order on a retry, without taking the stock twice', async () => {
+      await addToCart('dee', products.ka, 2).expect(201);
+      const stockBefore = await stockOf(products.ka);
+      const first = await place('dee', key('retry')).expect(201);
+      const ordersBefore = await ordersOf('dee');
+      // The cart is empty now, as after a real checkout whose answer was lost.
+      const second = await place('dee', key('retry')).expect(201);
+      expect(second.body.id).toBe(first.body.id);
+      expect(await ordersOf('dee')).toBe(ordersBefore);
+      expect(await stockOf(products.ka)).toBe(stockBefore - 2);
+    });
+
+    it('creates one order from many parallel requests with the same key', async () => {
+      await addToCart('eli', products.kb, 3).expect(201);
+      const stockBefore = await stockOf(products.kb);
+      const ordersBefore = await ordersOf('eli');
+      const results = await Promise.all(
+        Array.from({ length: 8 }, () => place('eli', key('parallel'))),
+      );
+      expect(results.map((r) => r.status)).toEqual(Array(8).fill(201));
+      expect(new Set(results.map((r) => r.body.id as string)).size).toBe(1);
+      expect(await ordersOf('eli')).toBe(ordersBefore + 1);
+      expect(await stockOf(products.kb)).toBe(stockBefore - 3);
+    });
+
+    it('treats a new key as a new order and keeps keys apart per user', async () => {
+      await addToCart('dee', products.kb, 1).expect(201);
+      const mine = await place('dee', key('shared')).expect(201);
+      await addToCart('eli', products.kb, 1).expect(201);
+      const theirs = await place('eli', key('shared')).expect(201);
+      expect(theirs.body.id).not.toBe(mine.body.id);
+      await addToCart('dee', products.kb, 1).expect(201);
+      const next = await place('dee', key('other')).expect(201);
+      expect(next.body.id).not.toBe(mine.body.id);
+    });
+
+    it('still answers 409 for an empty cart when the key is new', async () => {
+      const res = await place('dee', key('empty')).expect(409);
+      expect(res.body).toMatchObject({ code: 'EMPTY_CART' });
     });
   });
 
