@@ -1,6 +1,6 @@
 # ADR-005: Many stores, each with its own link, seller panel and customers
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-15
 
 ## Context
@@ -13,7 +13,7 @@ Constraints: the first deploy is one small VPS (PBI-42), payments are Stripe in 
 
 ## Decision
 
-These are the proposed defaults. Two of them wait for the owner's answer (marked **to confirm**); the rest follow from the owner's description.
+The owner told the AI to run PBI-59 on 2026-11-15, so the two defaults marked **to confirm** (a path link, one customer account for all stores) were adopted; either can still be changed. The rest follows from the owner's description.
 
 - **A `Store` entity** with a name, a unique `slug` and an owner (a seller). A seller owns one store for now. Sellers pick "I want to sell" at sign-up and the store is created there.
 - **The link is a path, `/<slug>`** (**to confirm**; the alternative is a subdomain). Words the site itself uses (`login`, `register`, `cart`, `checkout`, `orders`, `panel`, `api`, and so on) are reserved and cannot be a slug. Slugs are lower case letters, digits and hyphens.
