@@ -7,6 +7,8 @@ import { bffRequest } from '@/lib/bff';
 import { formatPrice, type Product } from '@/lib/catalog';
 import { getStore } from '@/lib/stores';
 
+export const metadata = { title: 'Product | Orbit' };
+
 export default async function ProductPage({
   params,
 }: {

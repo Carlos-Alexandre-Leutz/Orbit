@@ -20,13 +20,6 @@ const SITE_PAGES = new Set([
   'favicon.ico',
 ]);
 
-/** The store link at the start of an address, or null when the address is a fixed page or the home page. */
-export function storeSlugFromPath(pathname: string): string | null {
-  const first = pathname.split('/').filter(Boolean)[0];
-  if (!first || SITE_PAGES.has(first)) return null;
-  return decodeURIComponent(first);
-}
-
 const STORE_PRIVATE = new Set(['cart', 'checkout', 'orders']);
 const SITE_PRIVATE = new Set(['dashboard', 'seller', 'admin']);
 

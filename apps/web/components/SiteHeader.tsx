@@ -1,9 +1,7 @@
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { getCart } from '@/lib/cart';
 import { menuFor } from '@/lib/menu';
-import { storeSlugFromPath } from '@/lib/routes';
 import { getStore } from '@/lib/stores';
 import { LogoutButton } from './LogoutButton';
 
@@ -13,11 +11,10 @@ const ROLE_LABEL = {
   ADMIN: 'Admin',
 } as const;
 
-export async function SiteHeader() {
+/** `storeSlug` is the store whose page this is, when it is a store page; the menu follows it. */
+export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
   const user = await getCurrentUser();
-  // The proxy hands over the address, so the menu can follow the store the visitor is in.
-  const slug = storeSlugFromPath((await headers()).get('x-pathname') ?? '/');
-  const store = slug ? await getStore(slug) : null;
+  const store = storeSlug ? await getStore(storeSlug) : null;
   const cart =
     user?.role === 'CUSTOMER' && store ? await getCart(store.slug) : null;
   return (

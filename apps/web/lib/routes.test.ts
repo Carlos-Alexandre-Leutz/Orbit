@@ -1,21 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsSession, storeSlugFromPath } from './routes';
-
-describe('storeSlugFromPath', () => {
-  it('reads the store link from the first part of the address', () => {
-    expect(storeSlugFromPath('/loja-do-joao')).toBe('loja-do-joao');
-    expect(storeSlugFromPath('/loja-do-joao/cart')).toBe('loja-do-joao');
-    expect(storeSlugFromPath('/loja-do-joao/products/abc')).toBe(
-      'loja-do-joao',
-    );
-  });
-
-  it('is null for the home page and the fixed pages of the site', () => {
-    for (const path of ['/', '/login', '/seller/products', '/cart', '/api/x']) {
-      expect(storeSlugFromPath(path)).toBeNull();
-    }
-  });
-});
+import { needsSession } from './routes';
 
 describe('needsSession', () => {
   it('asks for a session on the cart, checkout and orders of a store', () => {
