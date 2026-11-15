@@ -8,8 +8,6 @@ import { SESSION_COOKIE } from '@/lib/session';
  * The login and register pages are not gated here: they check the session themselves, so a stale cookie
  * cannot lock anyone out of them. It only checks that the cookie exists. Each page still asks the API who the user is and what the role
  * may do, because a proxy alone must not be the access control.
- *
- * It also passes the address on to the pages (`x-pathname`), so the header can tell which store the visitor is in.
  */
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -19,9 +17,7 @@ export function proxy(request: NextRequest) {
     login.searchParams.set('next', `${pathname}${search}`);
     return NextResponse.redirect(login);
   }
-  const headers = new Headers(request.headers);
-  headers.set('x-pathname', pathname);
-  return NextResponse.next({ request: { headers } });
+  return NextResponse.next();
 }
 
 export const config = {
