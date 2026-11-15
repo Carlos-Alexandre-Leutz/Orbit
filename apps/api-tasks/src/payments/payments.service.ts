@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { presentOrder, WITH_ITEMS } from '../orders/orders.service';
+import { presentOrder, WITH_ITEMS } from '../orders/order-presenter';
 import { PaymentProvider } from './payment-provider';
 
 /** Used when the customer picks nothing: Stripe's test card that always succeeds. */
@@ -68,7 +68,11 @@ export class PaymentsService {
       );
     }
     if (result.status === 'succeeded') {
-      await this.markPaid(this.prisma, order.id, result.reference);
+      const paid = await this.markPaid(this.prisma, order.id, result.reference);
+      if (!paid) {
+        // Money was taken but the order is no longer waiting for it (cancelled or paid by another call).
+        await this.refundStray(order.id, result.reference, order.totalCents);
+      }
     }
     // A pending payment stays PENDING_PAYMENT until the provider's webhook confirms it.
     const fresh = await this.prisma.order.findUniqueOrThrow({
@@ -87,6 +91,7 @@ export class PaymentsService {
     if (event.type === 'ignored') {
       return;
     }
+    let stray: { orderId: string; reference: string } | undefined;
     await this.prisma.$transaction(async (tx) => {
       const recorded = await tx.processedPaymentEvent.createMany({
         data: [{ id: event.id }],
@@ -98,12 +103,72 @@ export class PaymentsService {
       if (event.type === 'succeeded' && event.orderId && event.reference) {
         const paid = await this.markPaid(tx, event.orderId, event.reference);
         if (!paid) {
-          this.logger.warn(
-            `Payment ${event.reference} confirmed for order ${event.orderId}, which was not waiting for payment`,
-          );
+          stray = { orderId: event.orderId, reference: event.reference };
         }
       }
     });
+    if (stray) {
+      const order = await this.prisma.order.findUnique({
+        where: { id: stray.orderId },
+      });
+      if (order) {
+        await this.refundStray(order.id, stray.reference, order.totalCents);
+      }
+    }
+  }
+
+  /**
+   * Gives back the payment of a cancelled order. It is safe to call again: the refund has an idempotency key
+   * and the order keeps the refund reference, so a second call changes nothing.
+   */
+  async refundOrder(orderId: string): Promise<void> {
+    const order = await this.prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+    });
+    if (!order.paymentRef || order.refundRef) {
+      return;
+    }
+    const refund = await this.provider.refund({
+      paymentReference: order.paymentRef,
+      amountCents: order.totalCents,
+      idempotencyKey: `refund-${order.paymentRef}`,
+    });
+    await this.prisma.order.updateMany({
+      where: { id: orderId, refundRef: null },
+      data: { refundRef: refund.reference },
+    });
+  }
+
+  /**
+   * A payment arrived for an order that cannot take it. If the order is paid with this very payment there is
+   * nothing to do; otherwise the money is given back, and a cancelled order that has no payment of its own
+   * records this one so the refund is traceable.
+   */
+  private async refundStray(
+    orderId: string,
+    reference: string,
+    amountCents: number,
+  ): Promise<void> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (order?.paymentRef === reference) {
+      return;
+    }
+    this.logger.warn(
+      `Payment ${reference} reached order ${orderId} in state ${order?.status}; refunding it`,
+    );
+    const refund = await this.provider.refund({
+      paymentReference: reference,
+      amountCents,
+      idempotencyKey: `refund-${reference}`,
+    });
+    if (order && order.status === 'CANCELLED' && !order.paymentRef) {
+      await this.prisma.order.updateMany({
+        where: { id: orderId, paymentRef: null },
+        data: { paymentRef: reference, refundRef: refund.reference },
+      });
+    }
   }
 
   /** Moves a waiting order to PAID. Returns false when the order was not waiting (already paid, cancelled...). */

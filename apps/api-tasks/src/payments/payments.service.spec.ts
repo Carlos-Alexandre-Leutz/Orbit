@@ -25,7 +25,11 @@ describe('PaymentsService.pay', () => {
       updateMany: jest.fn(),
     },
   };
-  const provider = { charge: jest.fn(), readEvent: jest.fn() };
+  const provider = {
+    charge: jest.fn(),
+    refund: jest.fn(),
+    readEvent: jest.fn(),
+  };
   const service = new PaymentsService(
     prisma as never,
     provider as unknown as PaymentProvider,
@@ -94,5 +98,96 @@ describe('PaymentsService.pay', () => {
     prisma.order.findUniqueOrThrow.mockResolvedValue(order());
     expect((await service.pay('o1', 'u1')).status).toBe('PENDING_PAYMENT');
     expect(prisma.order.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaymentsService refunds', () => {
+  const prisma = {
+    order: {
+      findUnique: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+      updateMany: jest.fn(),
+    },
+  };
+
+  const provider = {
+    charge: jest.fn(),
+    refund: jest.fn(),
+    readEvent: jest.fn(),
+  };
+  const service = new PaymentsService(
+    prisma as never,
+    provider as unknown as PaymentProvider,
+  );
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    provider.refund.mockResolvedValue({ reference: 're1' });
+    prisma.order.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it('refunds the whole payment of an order once and records the refund', async () => {
+    prisma.order.findUniqueOrThrow.mockResolvedValue(
+      order({ paymentRef: 'pi1', refundRef: null }),
+    );
+    await service.refundOrder('o1');
+    expect(provider.refund).toHaveBeenCalledWith({
+      paymentReference: 'pi1',
+      amountCents: 5000,
+      idempotencyKey: 'refund-pi1',
+    });
+    expect(prisma.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'o1', refundRef: null },
+      data: { refundRef: 're1' },
+    });
+  });
+
+  it.each([
+    ['was never paid', { paymentRef: null, refundRef: null }],
+    ['was already refunded', { paymentRef: 'pi1', refundRef: 're0' }],
+  ])('does nothing for an order that %s', async (_name, fields) => {
+    prisma.order.findUniqueOrThrow.mockResolvedValue(order(fields));
+    await service.refundOrder('o1');
+    expect(provider.refund).not.toHaveBeenCalled();
+  });
+
+  it('refunds a charge that succeeded after the order was cancelled, and records it', async () => {
+    prisma.order.findUnique
+      .mockResolvedValueOnce(order())
+      .mockResolvedValueOnce(order({ status: 'CANCELLED', paymentRef: null }));
+    prisma.order.findUniqueOrThrow.mockResolvedValue(
+      order({ status: 'CANCELLED' }),
+    );
+    provider.charge.mockResolvedValue({
+      status: 'succeeded',
+      reference: 'pi9',
+    });
+    prisma.order.updateMany
+      .mockResolvedValueOnce({ count: 0 }) // the order no longer waits for payment
+      .mockResolvedValueOnce({ count: 1 });
+    await service.pay('o1', 'u1');
+    expect(provider.refund).toHaveBeenCalledWith({
+      paymentReference: 'pi9',
+      amountCents: 5000,
+      idempotencyKey: 'refund-pi9',
+    });
+    expect(prisma.order.updateMany).toHaveBeenLastCalledWith({
+      where: { id: 'o1', paymentRef: null },
+      data: { paymentRef: 'pi9', refundRef: 're1' },
+    });
+  });
+
+  it('does not refund the very payment that paid the order', async () => {
+    prisma.order.findUnique
+      .mockResolvedValueOnce(order())
+      .mockResolvedValueOnce(order({ status: 'PAID', paymentRef: 'pi9' }));
+    prisma.order.findUniqueOrThrow.mockResolvedValue(order({ status: 'PAID' }));
+    provider.charge.mockResolvedValue({
+      status: 'succeeded',
+      reference: 'pi9',
+    });
+    prisma.order.updateMany.mockResolvedValueOnce({ count: 0 });
+    await service.pay('o1', 'u1');
+    expect(provider.refund).not.toHaveBeenCalled();
   });
 });

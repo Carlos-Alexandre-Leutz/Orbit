@@ -25,5 +25,5 @@ Orders are paid through Stripe in test mode (PBI-09). No Stripe keys exist yet, 
 ## Consequences
 
 - When keys arrive, only the Stripe adapter's `charge` needs a first real run; its webhook signature check is already tested with Stripe's own signing helper.
-- The idempotency key of a charge is `order-<id>-<payment method>`: a retry with the same card never charges twice, a new card after a decline is a new attempt. Two parallel payments with two different cards could both succeed at the provider; refunding the second one is handled with cancellation (#50).
+- The idempotency key of a charge is `order-<id>-<payment method>`: a retry with the same card never charges twice, a new card after a decline is a new attempt. Two parallel payments with two different cards could both succeed at the provider; the one that did not pay the order is refunded (a "stray" payment), and so is a payment confirmed after the order was cancelled. Refunds have their own idempotency key, `refund-<payment reference>`.
 - The fake keeps its idempotency cache in memory, so it forgets on restart. That is fine for development.

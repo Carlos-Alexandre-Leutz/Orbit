@@ -73,6 +73,15 @@ export class OrdersController {
     return this.payments.pay(id, request.user.id, body.paymentMethod);
   }
 
+  /** Cancels an order: the owner while it waits for payment, a seller or admin also after it was paid. */
+  @Post(':id/cancel')
+  cancel(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.orders.cancel(id, request.user);
+  }
+
   @Post(':id/ship')
   @Auth('SELLER', 'ADMIN')
   ship(@Param('id', ParseUUIDPipe) id: string) {

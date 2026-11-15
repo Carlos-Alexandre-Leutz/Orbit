@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { signFakeEvent } from '../src/payments/fake-payment.provider';
@@ -23,15 +23,23 @@ describe('payments (real database)', () => {
   const bearer: Record<string, string> = {};
   let eventCount = 0;
 
-  async function account(name: string) {
-    const res = await http()
+  async function account(name: string, role: Role = 'CUSTOMER') {
+    const email = `${name}-${tag}@example.com`;
+    const password = 'a-good-password';
+    const reg = await http()
       .post('/auth/register')
-      .send({
-        email: `${name}-${tag}@example.com`,
-        password: 'a-good-password',
-      })
+      .send({ email, password })
       .expect(201);
-    bearer[name] = `Bearer ${res.body.accessToken as string}`;
+    let token = reg.body.accessToken as string;
+    if (role !== 'CUSTOMER') {
+      await prisma.user.update({ where: { email }, data: { role } });
+      const login = await http()
+        .post('/auth/login')
+        .send({ email, password })
+        .expect(201);
+      token = login.body.accessToken as string;
+    }
+    bearer[name] = `Bearer ${token}`;
   }
   const as = (name: string) => ({ Authorization: bearer[name] });
   async function newOrder(name: string) {
@@ -47,6 +55,11 @@ describe('payments (real database)', () => {
     http().post(`/orders/${id}/pay`).set(as(name)).send({ paymentMethod });
   const rowOf = (id: string) =>
     prisma.order.findUniqueOrThrow({ where: { id } });
+  const cancel = (name: string, id: string) =>
+    http().post(`/orders/${id}/cancel`).set(as(name));
+  const stockOf = async () =>
+    (await prisma.product.findUniqueOrThrow({ where: { id: productId } }))
+      .stock;
   const eventId = () => `evt-${tag}-${++eventCount}`;
   const webhook = (event: object, signature?: string) => {
     const body = JSON.stringify(event);
@@ -91,6 +104,7 @@ describe('payments (real database)', () => {
     ).id;
     await account('ana');
     await account('bob');
+    await account('sam', 'SELLER');
   });
 
   afterAll(async () => {
@@ -228,6 +242,107 @@ describe('payments (real database)', () => {
       await webhook(
         succeeded(eventId(), '6f1c1f0e-8a39-4a27-a2c1-1d6d8c7b9999', 'ref-z'),
       ).expect(200);
+    });
+  });
+
+  describe('cancellation', () => {
+    it('lets the owner cancel an unpaid order, returns the stock once and ignores a repeat', async () => {
+      const before = await stockOf();
+      const order = await newOrder('ana');
+      expect(await stockOf()).toBe(before - 1);
+      const res = await cancel('ana', order.id).expect(201);
+      expect(res.body.status).toBe('CANCELLED');
+      expect(res.body.cancelledAt).toBeTruthy();
+      expect(await stockOf()).toBe(before);
+      await cancel('ana', order.id).expect(201);
+      expect(await stockOf()).toBe(before);
+    });
+
+    it('returns the stock once when the same cancellation arrives in parallel', async () => {
+      const before = await stockOf();
+      const order = await newOrder('ana');
+      const results = await Promise.all(
+        Array.from({ length: 8 }, () => cancel('ana', order.id)),
+      );
+      for (const r of results) {
+        expect([201, 409]).toContain(r.status);
+      }
+      expect(results.some((r) => r.status === 201)).toBe(true);
+      expect((await rowOf(order.id)).status).toBe('CANCELLED');
+      expect(await stockOf()).toBe(before);
+    });
+
+    it('does not let a customer cancel a paid order, but lets a seller, who refunds it', async () => {
+      const before = await stockOf();
+      const order = await newOrder('ana');
+      await pay('ana', order.id).expect(201);
+      const refused = await cancel('ana', order.id).expect(403);
+      expect(refused.body.code).toBe('CANCEL_NEEDS_STAFF');
+      expect((await rowOf(order.id)).status).toBe('PAID');
+      expect(await stockOf()).toBe(before - 1);
+
+      const res = await cancel('sam', order.id).expect(201);
+      expect(res.body.status).toBe('CANCELLED');
+      expect(res.body.refunded).toBe(true);
+      const row = await rowOf(order.id);
+      expect(row.refundRef).toMatch(/^fake_re_/);
+      expect(await stockOf()).toBe(before);
+      await cancel('sam', order.id).expect(201);
+      expect((await rowOf(order.id)).refundRef).toBe(row.refundRef);
+      expect(await stockOf()).toBe(before);
+    });
+
+    it('refuses to cancel a shipped order and keeps the stock taken', async () => {
+      const order = await newOrder('ana');
+      await pay('ana', order.id).expect(201);
+      await http().post(`/orders/${order.id}/ship`).set(as('sam')).expect(201);
+      const before = await stockOf();
+      for (const who of ['ana', 'sam']) {
+        const res = await cancel(who, order.id).expect(409);
+        expect(res.body.code).toBe('INVALID_TRANSITION');
+      }
+      expect((await rowOf(order.id)).status).toBe('SHIPPED');
+      expect(await stockOf()).toBe(before);
+    });
+
+    it("does not let another customer cancel someone else's order", async () => {
+      const order = await newOrder('ana');
+      await cancel('bob', order.id).expect(404);
+      expect((await rowOf(order.id)).status).toBe('PENDING_PAYMENT');
+    });
+
+    it('settles a cancellation racing with shipping in exactly one way', async () => {
+      const before = await stockOf();
+      const order = await newOrder('ana');
+      await pay('ana', order.id).expect(201);
+      const [shipped, cancelled] = await Promise.all([
+        http().post(`/orders/${order.id}/ship`).set(as('sam')),
+        cancel('sam', order.id),
+      ]);
+      const row = await rowOf(order.id);
+      if (row.status === 'SHIPPED') {
+        expect([shipped.status, cancelled.status]).toEqual([201, 409]);
+        expect(row.refundRef).toBeNull();
+        expect(await stockOf()).toBe(before - 1);
+      } else {
+        expect(row.status).toBe('CANCELLED');
+        expect([shipped.status, cancelled.status]).toEqual([409, 201]);
+        expect(row.refundRef).toMatch(/^fake_re_/);
+        expect(await stockOf()).toBe(before);
+      }
+    });
+
+    it('refunds a payment that the provider confirms after the order was cancelled', async () => {
+      const order = await newOrder('ana');
+      await pay('ana', order.id, 'pm_card_pending').expect(201);
+      await cancel('ana', order.id).expect(201);
+      await webhook(succeeded(eventId(), order.id, 'ref-after-cancel')).expect(
+        200,
+      );
+      const row = await rowOf(order.id);
+      expect(row.status).toBe('CANCELLED');
+      expect(row.paymentRef).toBe('ref-after-cancel');
+      expect(row.refundRef).toMatch(/^fake_re_/);
     });
   });
 });

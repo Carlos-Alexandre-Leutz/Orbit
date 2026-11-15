@@ -33,6 +33,8 @@ export class OrderDto {
   @ApiProperty({ nullable: true }) shippedAt: string | null;
   @ApiProperty({ nullable: true }) deliveredAt: string | null;
   @ApiProperty({ nullable: true }) cancelledAt: string | null;
+  @ApiProperty({ description: 'A cancelled paid order was refunded' })
+  refunded: boolean;
 }
 
 export class PayOrderDto {
@@ -122,6 +124,32 @@ export class OrdersController {
         body: { paymentMethod: body?.paymentMethod },
         fallback: 'Erro ao pagar o pedido',
       },
+    );
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({
+    summary:
+      'Cancel an order: its owner while it waits for payment; a seller or admin also after payment (refunded)',
+  })
+  @ApiResponse({ status: 201, type: OrderDto })
+  @ApiResponse({
+    status: 403,
+    description: 'A customer cannot cancel a paid order',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'The order is shipped or delivered',
+  })
+  cancel(
+    @Param('id') id: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(
+      this.http,
+      'post',
+      `/orders/${encodeURIComponent(id)}/cancel`,
+      { authorization, fallback: 'Erro ao cancelar o pedido' },
     );
   }
 

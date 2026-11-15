@@ -17,6 +17,7 @@ describe('orders HTTP', () => {
     listMine: jest.fn().mockResolvedValue([]),
     get: jest.fn().mockResolvedValue({ id: ID }),
     transition: jest.fn().mockResolvedValue({ id: ID }),
+    cancel: jest.fn().mockResolvedValue({ id: ID }),
   };
   const payments = { pay: jest.fn().mockResolvedValue({ id: ID }) };
 
@@ -50,6 +51,7 @@ describe('orders HTTP', () => {
     ['get', '/orders'],
     ['get', `/orders/${ID}`],
     ['post', `/orders/${ID}/pay`],
+    ['post', `/orders/${ID}/cancel`],
     ['post', `/orders/${ID}/ship`],
     ['post', `/orders/${ID}/deliver`],
   ] as const)('%s %s needs a session', async (method, path) => {
@@ -100,6 +102,17 @@ describe('orders HTTP', () => {
       'user-9',
       'pm_card_chargeDeclined',
     );
+  });
+
+  it('cancels for the user of the token, whatever the role, and the service decides', async () => {
+    await server()
+      .post(`/orders/${ID}/cancel`)
+      .set(as('SELLER', 'seller-1'))
+      .expect(201);
+    expect(orders.cancel).toHaveBeenCalledWith(ID, {
+      id: 'seller-1',
+      role: 'SELLER',
+    });
   });
 
   it('refuses a payment method that is not a test id', async () => {
