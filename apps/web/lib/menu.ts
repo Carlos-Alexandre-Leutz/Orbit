@@ -37,8 +37,8 @@ export function menuFor(
   if (role === 'SELLER' && ownStore && ownStore.slug !== store?.slug) {
     items.push({ href: `/${ownStore.slug}`, label: 'My store' });
   }
-  if (role === 'SELLER' || role === 'ADMIN') {
-    items.push({ href: '/seller/products', label: 'Manage products' });
+  if (role === 'SELLER') {
+    items.push({ href: '/panel', label: 'Panel' });
   }
   return items;
 }

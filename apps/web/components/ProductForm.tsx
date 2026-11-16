@@ -82,7 +82,7 @@ export function ProductForm({
       setBusy(false);
       return;
     }
-    router.push('/seller/products');
+    router.push('/panel/products');
     router.refresh();
   }
 
@@ -99,7 +99,7 @@ export function ProductForm({
       setBusy(false);
       return;
     }
-    router.push('/seller/products');
+    router.push('/panel/products');
     router.refresh();
   }
 

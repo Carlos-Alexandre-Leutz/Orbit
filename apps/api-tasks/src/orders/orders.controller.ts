@@ -82,6 +82,15 @@ export class OrdersController {
     return this.orders.listMine(request.user.id, storeId);
   }
 
+  /** The orders of the seller's own store; the store comes from the session. */
+  @Get('store')
+  @Auth('SELLER')
+  async ofStore(@Req() request: AuthenticatedRequest) {
+    return this.orders.listForStore(
+      (await this.stores.ofSeller(request.user.id)).id,
+    );
+  }
+
   @Get(':id')
   async one(
     @Req() request: AuthenticatedRequest,

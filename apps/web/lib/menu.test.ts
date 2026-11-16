@@ -45,20 +45,20 @@ describe('menuFor', () => {
     }
   });
 
-  it('adds product management and a link to their own store for a seller', () => {
+  it('adds the panel and a link to their own store for a seller', () => {
     expect(hrefs('SELLER', { ownStore: joao })).toEqual([
       '/',
       '/loja-do-joao',
-      '/seller/products',
+      '/panel',
     ]);
-    expect(hrefs('ADMIN')).toContain('/seller/products');
+    expect(hrefs('ADMIN')).not.toContain('/panel');
   });
 
   it('does not repeat the own store of a seller who is looking at it', () => {
     expect(hrefs('SELLER', { store: joao, ownStore: joao })).toEqual([
       '/',
       '/loja-do-joao',
-      '/seller/products',
+      '/panel',
     ]);
   });
 });

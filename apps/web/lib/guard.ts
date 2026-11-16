@@ -25,3 +25,14 @@ export async function requireCustomer(path: string): Promise<CurrentUser> {
   if (user.role !== 'CUSTOMER') notFound();
   return user;
 }
+
+/**
+ * For the seller panel: only a seller opens it, and everything in it is about the seller's own store. A visitor goes
+ * to the login page and comes back; anyone else gets "not found". The API checks the role again on every call.
+ */
+export async function requireSeller(path: string): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect(loginUrl(path));
+  if (user.role !== 'SELLER') notFound();
+  return user;
+}

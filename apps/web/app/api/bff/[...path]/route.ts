@@ -9,6 +9,7 @@ const ALLOWED = new Set([
   'cart',
   'orders',
   'account',
+  'stores',
 ]);
 
 async function forward(

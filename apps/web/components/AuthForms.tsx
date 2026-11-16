@@ -288,7 +288,7 @@ export function SellerSignUpForm() {
       setBusy(false);
       return;
     }
-    router.replace('/seller/products');
+    router.replace('/panel');
     router.refresh();
   }
 
