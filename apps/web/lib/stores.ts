@@ -5,6 +5,12 @@ export interface Store {
   slug: string;
   name: string;
   description: string;
+  tagline?: string;
+  primaryColor?: string;
+  logoImageId?: string | null;
+  coverImageId?: string | null;
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 /** The store at a link, or null when no store has it (or the API cannot be reached). */

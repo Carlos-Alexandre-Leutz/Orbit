@@ -153,6 +153,7 @@ export class CartService {
         productId: product.id,
         sku: product.sku,
         name: product.name,
+        imageId: product.imageIds?.[0] ?? null,
         priceCents: product.priceCents,
         quantity,
         stock: product.stock,

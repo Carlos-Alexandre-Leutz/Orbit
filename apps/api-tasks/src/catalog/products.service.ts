@@ -94,6 +94,7 @@ export class ProductsService {
   async create(storeId: string, dto: CreateProductDto) {
     const { categorySlug, ...data } = dto;
     const categoryId = await this.categoryId(categorySlug);
+    await this.ownImagesOrFail(storeId, dto.imageIds);
     try {
       return await this.prisma.product.create({
         data: { ...data, categoryId, storeId },
@@ -110,6 +111,7 @@ export class ProductsService {
       ? await this.categoryId(categorySlug)
       : undefined;
     await this.ownOrNotFound(storeId, id);
+    await this.ownImagesOrFail(storeId, dto.imageIds);
     try {
       return await this.prisma.product.update({
         where: { id },
@@ -118,6 +120,17 @@ export class ProductsService {
       });
     } catch (error) {
       throw this.translate(error);
+    }
+  }
+
+  /** A product may only show pictures its own store uploaded. */
+  private async ownImagesOrFail(storeId: string, ids?: string[]) {
+    if (!ids || ids.length === 0) return;
+    const owned = await this.prisma.image.count({
+      where: { storeId, id: { in: ids } },
+    });
+    if (owned !== new Set(ids).size) {
+      throw new BadRequestException('A picture does not belong to this store');
     }
   }
 

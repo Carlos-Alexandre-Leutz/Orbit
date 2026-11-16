@@ -8,6 +8,7 @@ import {
   type ProductPage,
 } from '@/lib/catalog';
 import { requireSeller } from '@/lib/guard';
+import { LOW_STOCK } from '@/components/ProductCard';
 
 export const metadata = { title: 'Manage products | Orbit Supply Co.' };
 const PAGE_SIZE = 20;
@@ -92,7 +93,22 @@ export default async function SellerProductsPage({
                   <td className="py-2 pr-4 text-right">
                     {formatPrice(p.priceCents)}
                   </td>
-                  <td className="py-2 pr-4 text-right">{p.stock}</td>
+                  <td
+                    className={`py-2 pr-4 text-right ${
+                      p.stock === 0
+                        ? 'font-semibold text-red-400'
+                        : p.stock <= LOW_STOCK
+                          ? 'font-semibold text-amber-400'
+                          : ''
+                    }`}
+                  >
+                    {p.stock}
+                    {p.stock === 0
+                      ? ' (sold out)'
+                      : p.stock <= LOW_STOCK
+                        ? ' (low)'
+                        : ''}
+                  </td>
                   <td className="py-2 text-right">
                     <Link
                       href={`/panel/products/${p.id}/edit`}

@@ -56,6 +56,11 @@ export default async function PanelPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">{store.name}</h1>
 
+      <p className="rounded bg-amber-900/40 p-3 text-sm text-amber-200">
+        Payments are in test mode: customers pay with simulated test cards and
+        no real money moves. A real payment provider will replace this later.
+      </p>
+
       <section aria-label="Publish your store" className="space-y-2">
         <h2 className="text-lg font-semibold">Publish your store</h2>
         <p className="text-sm text-gray-400">

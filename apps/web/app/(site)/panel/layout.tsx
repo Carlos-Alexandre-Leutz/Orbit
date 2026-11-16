@@ -20,7 +20,7 @@ export default async function PanelLayout({
         <p className="mb-3 text-sm text-gray-400">
           {user.store?.name ?? 'Your store'}
         </p>
-        <nav aria-label="Panel" className="flex gap-3 md:flex-col md:gap-1">
+        <nav aria-label="Panel" className="flex flex-wrap gap-3 md:flex-col md:gap-1">
           {LINKS.map((link) => (
             <Link
               key={link.href}

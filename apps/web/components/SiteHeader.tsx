@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { getCart } from '@/lib/cart';
+import { imageSrc } from '@/lib/images';
 import { menuFor } from '@/lib/menu';
 import { getStore } from '@/lib/stores';
 import { LogoutButton } from './LogoutButton';
@@ -21,9 +22,26 @@ export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
     <header className="border-b border-gray-700">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold">
-            Orbit Supply Co.
-          </Link>
+          {store ? (
+            <Link
+              href={`/${store.slug}`}
+              className="flex items-center gap-2 text-lg font-bold"
+            >
+              {store.logoImageId && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageSrc(store.logoImageId)}
+                  alt=""
+                  className="h-8 w-8 rounded object-cover"
+                />
+              )}
+              {store.name}
+            </Link>
+          ) : (
+            <Link href="/" className="text-lg font-bold">
+              Orbit
+            </Link>
+          )}
           <nav aria-label="Main" className="flex gap-4 text-sm">
             {menuFor(user?.role, {
               store,

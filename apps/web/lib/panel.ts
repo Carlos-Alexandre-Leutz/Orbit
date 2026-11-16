@@ -6,6 +6,12 @@ export interface OwnStore {
   slug: string;
   name: string;
   description: string;
+  tagline: string;
+  primaryColor: string;
+  logoImageId: string | null;
+  coverImageId: string | null;
+  contactEmail: string;
+  contactPhone: string;
 }
 
 export interface Summary {

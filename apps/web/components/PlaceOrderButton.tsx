@@ -34,7 +34,7 @@ export function PlaceOrderButton({ store }: { store: string }) {
         message?: string;
       } | null;
       if (response.ok && data?.id) {
-        router.push(`/${store}/orders/${data.id}`);
+        router.push(`/${store}/orders/${data.id}/pay`);
         // The cart count in the header belongs to the layout, which a plain navigation keeps as it was.
         router.refresh();
         return;

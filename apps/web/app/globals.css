@@ -30,3 +30,18 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* A store sets --store-color on its pages; its buttons and links take it, so each store looks like itself. */
+.store-theme .bg-blue-600,
+.store-theme .bg-green-600 {
+  background-color: var(--store-color);
+  color: var(--store-on-color);
+}
+.store-theme .hover\:bg-blue-700:hover,
+.store-theme .hover\:bg-green-700:hover {
+  background-color: color-mix(in srgb, var(--store-color) 85%, black);
+}
+.store-theme .text-blue-400,
+.store-theme .text-blue-500 {
+  color: color-mix(in srgb, var(--store-color) 60%, white);
+}

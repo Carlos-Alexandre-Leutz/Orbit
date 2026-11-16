@@ -29,6 +29,24 @@ export class UpdateStoreBody {
 
   @ApiProperty({ required: false })
   description?: string;
+
+  @ApiProperty({ required: false, example: 'Handmade mugs' })
+  tagline?: string;
+
+  @ApiProperty({ required: false, example: '#2563eb' })
+  primaryColor?: string;
+
+  @ApiProperty({ required: false })
+  contactEmail?: string;
+
+  @ApiProperty({ required: false })
+  contactPhone?: string;
+
+  @ApiProperty({ required: false, nullable: true, format: 'uuid' })
+  logoImageId?: string | null;
+
+  @ApiProperty({ required: false, nullable: true, format: 'uuid' })
+  coverImageId?: string | null;
 }
 
 /** The stores are public: a buyer finds a store and opens it without an account. */

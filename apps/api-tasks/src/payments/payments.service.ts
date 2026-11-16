@@ -62,7 +62,7 @@ export class PaymentsService {
         {
           statusCode: 402,
           code: 'PAYMENT_DECLINED',
-          message: `Pagamento recusado${result.reason ? `: ${result.reason}` : ''}`,
+          message: `Payment declined${result.reason ? `: ${result.reason}` : ''}`,
         },
         402,
       );

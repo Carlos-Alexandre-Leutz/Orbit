@@ -4,7 +4,7 @@ Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e
 
 ## Onde estamos
 
-A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-62, PBI-63 e PBI-64, todos com os checks verdes. Cada PBI tem um documento com as evidências e os limites: [`pbi/`](pbi).
+A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-63, PBI-64 e PBI-65 a PBI-70, todos com os checks verdes. Cada PBI tem um documento com as evidências e os limites: [`pbi/`](pbi).
 
 | PBI | O que entregou |
 |---|---|
@@ -20,6 +20,13 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-62, PBI-63 e PBI
 | 62 | Fluxo de trabalho e scripts do dia a dia (`scripts/dev test` e `scripts/dev pr`), documentados em [`fluxo-de-trabalho.md`](fluxo-de-trabalho.md). |
 | 63 | E-mail do QA: porta `MailTransport` com adaptadores SMTP e HTTP (a API de e-mail do dono), falha de envio responde 503, páginas de senha pelas rotas `/api/session/*`. |
 | 64 | Deploy automático do QA: o job `redeploy` do `publish-images.yml` chama os deploy hooks do Render. |
+| 65 | Cadastros: o lojista se cadastra em `/sell`; o cliente se cadastra e entra dentro da loja (`/<slug>/register`, `/<slug>/login`); um e-mail tem um único papel. |
+| 70 | Conta global do cliente: `/account` com os pedidos de todas as lojas, ligação cliente × loja, consentimento de marketing por loja, apagar a conta. |
+| 61 | Painel do lojista em `/panel`: início com resumo e checklist, produtos, pedidos (enviar e entregar), clientes, configurações da loja. |
+| 66 | Aparência da loja: logo, capa, cor, slogan e contato, aplicados à vitrine e ao login da loja. |
+| 67 | Imagens (no banco, atrás da porta `ImageStorage`), galeria do produto, avisos de estoque baixo e esgotado. |
+| 68 | Vitrine com capa, categorias e cartões com foto; página do produto e carrinho redesenhados; página inicial da plataforma. |
+| 69 | Tela de pagamento simulado com cartão aprovado e recusado ([`pagamento-simulado.md`](pagamento-simulado.md)). |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 
@@ -29,19 +36,26 @@ Ideias paradas, ainda sem tarefas: épico E13 (recuperação de carrinho por Wha
 
 **O PBI-59 (lojas e propriedade) e o PBI-60 (vitrine no link da loja) estão prontos e validados** ([`pbi/PBI-59.md`](pbi/PBI-59.md), [`pbi/PBI-60.md`](pbi/PBI-60.md)). Um vendedor se cadastra com uma loja em `/<slug>`, e um comprador abre esse link, entra, enche o carrinho e compra dentro da loja. As duas escolhas do [ADR-005](adr/ADR-005-stores-and-storefronts.md) (link por caminho, uma conta de cliente para todas as lojas) foram adotadas por instrução do dono; qualquer uma ainda pode mudar.
 
-**Plano de 2026-11-16 (ainda não construído):** a plataforma ainda não parece uma loja virtual (a loja só tem nome e descrição, a vitrine é uma grade de texto, o cadastro mistura cliente e lojista). O [ADR-007](adr/ADR-007-sign-up-flows-and-global-customer-account.md) decide o modelo: o lojista se cadastra em `/sell`, o cliente se cadastra dentro da loja, a conta de cliente é global (`/account` com os pedidos de todas as lojas), um e-mail tem um único papel, e a loja ganha logo, capa, cor, fotos de produto e pagamento simulado. Os PBIs, nesta ordem: **65** (cadastros), **70** (conta global), **61** (painel do lojista), **66** (aparência da loja), **67** (imagens e estoque), **68** (vitrine e página inicial da plataforma), **69** (pagamento simulado). Todos vêm antes do PBI-11. O backlog foi atualizado, mas as issues ainda não foram criadas (`scripts/import_backlog.py`, quando o dono pedir). O `01-requirements.md` ainda está em inglês e não reflete este plano; atualizá-lo exige traduzir o arquivo inteiro.
+**A base de e-commerce está pronta na `staging`** (PBIs 65, 70, 61, 66, 67, 68 e 69, 2026-11-16; decisões no [ADR-007](adr/ADR-007-sign-up-flows-and-global-customer-account.md)). O lojista se cadastra em `/sell`, monta a loja no painel (`/panel`), e o cliente compra no link da loja com uma conta global (`/account`). Os documentos de cada PBI trazem as evidências e os limites. O que uma próxima sessão deve lembrar:
+
+- Nenhuma dessas telas foi vista num navegador em todas as larguras: o produto, o carrinho e o checkout não foram vistos no celular; o envio de 2 MB não foi testado de ponta a ponta.
+- Os testes de isolamento entre lojas são unitários (Prisma simulado); falta um teste de integração no PostgreSQL com duas lojas, inclusive para `/store-customers` e `/orders/store`.
+- O admin perdeu as páginas de produto (`/seller/products` agora redireciona para o painel, que é só do lojista).
+- As fotos ficam no banco; um armazenamento de objetos é o passo seguinte se o tráfego pedir. O token de sessão continua válido depois de apagar a conta, até expirar.
+- A `API` ainda tem mensagens em português (por exemplo "Produto sem estoque"); traduzir quando mexer nelas.
+- O `01-requirements.md` ainda está em inglês e não reflete este plano; atualizá-lo exige traduzir o arquivo inteiro.
+- No computador do dono a pasta `dist` dos apps pertence ao root (o contêiner escreve nela), então o `build` local da API e do BFF falha por permissão; o CI faz o build.
 
 A seguir, antes do PBI-10:
 
 - **PBI-63** e **PBI-64** (e-mail e deploy do QA): faltam coisas do dono. Preencher no Render as variáveis de e-mail (`MAIL_PROVIDER`, `MAIL_API_URL`, `MAIL_API_TOKEN`, `APP_URL` só com o endereço do site, sem caminho), conferir que o QA atualiza sozinho depois de um merge e testar a recuperação de senha lá ([`qa-email.md`](qa-email.md), [`qa-deploy.md`](qa-deploy.md), [ADR-006](adr/ADR-006-qa-auto-deploy.md)). O gatilho de deploy nunca é removido.
-- **PBI-61** painel do vendedor: layout, as páginas de produto movidas para ele, os pedidos da loja com enviar e entregar, edição do nome e da descrição da loja. Hoje o vendedor gerencia produtos em `/seller/products` e lê um pedido por id pela API, mas não consegue listar os pedidos da loja numa página, e o admin não vê pedidos de loja nas páginas.
 
 Depois, PBI-42 e PBI-43 com o dono (o primeiro deploy). O PBI-10 (página de chat com streaming) ainda precisa de um agente falso atrás de uma porta e de um ADR de streaming; ele espera. O dono ainda precisa dizer o que tem de existir antes do primeiro deploy público (ver [`open-questions.md`](open-questions.md)).
 
 O PBI-09 está descrito em [`pbi/PBI-09.md`](pbi/PBI-09.md), com evidências e limites. Os que uma próxima sessão deve lembrar:
 - `StripePaymentProvider.charge` e `.refund` nunca foram executados contra o Stripe (não há chaves); só a assinatura do webhook é testada. O dono fornece as chaves de teste; então rodar um pagamento real, uma recusa, um estorno e um webhook. O modelo (PBI-17) está na mesma situação: sem chave do Gemini, então usar um falso atrás da porta.
 - Um pedido não pago mantém o estoque até ser cancelado; nada expira os antigos.
-- Nenhuma página envia nem entrega pedidos ainda, só a API (o PBI-61 as adiciona).
+- O painel do lojista (PBI-61) envia e entrega pedidos pela página `/panel/orders`.
 
 Limites do PBI-59 que uma próxima sessão deve lembrar: o dono da loja de demonstração (`demo-seller@orbit.invalid`) não consegue entrar; um admin não tem loja, então não cria nem edita produtos; uma nova página de primeiro nível do web precisa ser adicionada aos links reservados da API (`store-slug.ts`) e a `apps/web/lib/routes.ts`.
 
