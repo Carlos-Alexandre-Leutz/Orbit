@@ -23,6 +23,7 @@ What came from the template and what was added is tracked in
 
 ## QA environment
 
+The QA link is https://carlos-alexandre-leutz.github.io/Orbit/
 The QA services run on Render's free plan and sleep when idle. Open the
 [wake-up page](https://carlos-alexandre-leutz.github.io/Orbit/) ([`index.html`](index.html)): it calls
 every service and sends you to the login once they all answer, which can take about a minute.
