@@ -3,11 +3,14 @@
 #
 #   scripts/dev test                       run only the checks the changed files need
 #   scripts/dev pr "feat: message" [paths] branch, commit, push and open a pull request to staging
+#   scripts/dev up                         start the Docker stack in dependency order, with retries (the owner runs it)
 #   scripts/dev classify                   read paths on stdin, print the checks they need (used by the tests)
 #   scripts/dev help
 #
 # `test` compares with origin/staging (changes in the working tree included). The CI still runs
 # everything and decides the merge; this only catches silly mistakes before the push.
+# `up` starts db, mongo and ml, then the API (retrying: it often fails right after the database starts),
+# then the BFF and the web. It never stops or removes anything. It is for the owner: an AI session must not run it.
 # `pr` never pushes to main or staging, never adds an attribution trailer and never merges.
 set -euo pipefail
 
@@ -16,7 +19,7 @@ cd "$(git rev-parse --show-toplevel)"
 BASE=origin/staging
 LOG_LINES=40
 
-usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # Node 20 is required by pnpm and by the commit hook; the machine default is 16.
 ensure_node() {
@@ -171,9 +174,51 @@ Written with AI assistance." --jq .html_url)
   echo "The merge is the owner's."
 }
 
+cmd_up() {
+  local port busy attempt
+  for port in 3000 3001 3002; do
+    busy=$(ss -ltnp 2>/dev/null | grep -E ":$port " | grep -v docker || true)
+    if [[ -n "$busy" ]]; then
+      echo "Port $port is already in use by a process outside Docker:" >&2
+      echo "$busy" >&2
+      echo "Stop it first (nothing was changed)." >&2
+      exit 1
+    fi
+  done
+
+  echo "1/4 database, mongo and ml"
+  docker compose up -d --wait db mongo ml
+
+  if ! docker compose exec -T ml python -c "import socket; socket.create_connection(('db', 5432), timeout=4)" >/dev/null 2>&1; then
+    echo "The containers cannot reach each other (db:5432 timed out)." >&2
+    echo "bridge-nf-call-iptables is $(cat /proc/sys/net/bridge/bridge-nf-call-iptables 2>/dev/null || echo unknown)." >&2
+    echo "If it is 1, run: sudo sysctl net.bridge.bridge-nf-call-iptables=0 (it resets on reboot)." >&2
+    exit 1
+  fi
+
+  echo "2/4 API (up to 4 attempts)"
+  for attempt in 1 2 3 4; do
+    if docker compose up -d --wait api-tasks; then break; fi
+    echo "Attempt $attempt failed. Last log lines:" >&2
+    docker compose logs --tail 6 api-tasks 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >&2 || true
+    if [[ "$attempt" -eq 4 ]]; then
+      echo "The API did not start after 4 attempts. See: docker compose logs api-tasks" >&2
+      exit 1
+    fi
+    sleep 5
+  done
+
+  echo "3/4 BFF"
+  docker compose up -d --wait bff
+  echo "4/4 web"
+  docker compose up -d --wait frontend
+  echo "Stack is up: web http://localhost:3000, BFF http://localhost:3001, API http://localhost:3002"
+}
+
 case "${1:-help}" in
   test) cmd_test ;;
   pr) shift; cmd_pr "$@" ;;
+  up) cmd_up ;;
   classify) classify ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 1 ;;

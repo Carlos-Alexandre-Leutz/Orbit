@@ -77,6 +77,7 @@ Ficam em `scripts/` e são versionados. O pipeline não os roda: ele tem os pró
 |---|---|
 | `scripts/dev test` | Roda só os checks que as mudanças pedem e imprime um resumo curto. |
 | `scripts/dev pr "tipo: mensagem"` | Branch, commit, push e PR para a `staging`. O merge é do dono. |
+| `scripts/dev up` | **Só o dono roda.** Sobe a stack do Docker na ordem das dependências (banco, mongo e ml; depois a API, com até 4 tentativas; depois BFF e web), avisa se uma porta está ocupada ou se os contêineres não se enxergam, e nunca para nem remove nada. A IA não roda este comando. |
 | `scripts/dev help` | Mostra os comandos. |
 
 Limites conhecidos: o filtro do `turbo` só enxerga dependências entre pacotes do monorepo, então uma mudança que afeta outro app sem passar por um import pode escapar (o CI pega, depois do push). O `ruff` é pulado se não estiver instalado. O `scripts/dev pr` ainda não foi rodado de ponta a ponta: o primeiro PR aberto por ele é o teste.
