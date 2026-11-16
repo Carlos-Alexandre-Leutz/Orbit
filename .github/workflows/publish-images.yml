@@ -99,3 +99,39 @@ jobs:
           image="ghcr.io/${OWNER,,}/orbit-apps:sha-${GITHUB_SHA::7}"
           docker run --rm -e DATABASE_URL "$image" \
             pnpm --filter @orbit/api-tasks exec prisma migrate deploy
+
+  # Tells Render to pull the images just published and restart the three QA services.
+  # Render does not watch GHCR: without this job the QA keeps running the old image after
+  # every merge. DO NOT REMOVE: see docs/qa-deploy.md and docs/adr/ADR-006-qa-auto-deploy.md.
+  # The deploy hooks are secrets (Render > service > Settings > Deploy Hook):
+  # RENDER_QA_API_HOOK, RENDER_QA_BFF_HOOK, RENDER_QA_WEB_HOOK. A missing secret is a
+  # warning, not a failure, so the images and the migrations still count as published.
+  redeploy:
+    name: redeploy (QA on Render)
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the Render deploy hooks
+        env:
+          RENDER_QA_API_HOOK: ${{ secrets.RENDER_QA_API_HOOK }}
+          RENDER_QA_BFF_HOOK: ${{ secrets.RENDER_QA_BFF_HOOK }}
+          RENDER_QA_WEB_HOOK: ${{ secrets.RENDER_QA_WEB_HOOK }}
+        run: |
+          failed=0
+          for name in API BFF WEB; do
+            var="RENDER_QA_${name}_HOOK"
+            hook="${!var}"
+            if [ -z "$hook" ]; then
+              echo "::warning::The secret $var is not set: the QA $name service was not redeployed."
+              echo "- $name: **not redeployed** (secret $var missing)" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            if curl -fsS -X POST "$hook" > /dev/null; then
+              echo "- $name: redeploy requested" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::Render refused the deploy hook of the QA $name service."
+              echo "- $name: **hook failed**" >> "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+          done
+          exit $failed

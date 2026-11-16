@@ -60,6 +60,24 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertIn("prisma migrate deploy", text)
         self.assertIn("test:e2e", text)
 
+    # The QA deploy trigger was removed once by accident (PBI-05) and the QA kept running old
+    # images after every merge. These tests exist so that cannot happen silently again.
+    def test_qa_redeploy_job_calls_the_three_render_hooks_after_the_migrations(self):
+        text = read("publish-images.yml")
+        self.assertIn("branches: [staging]", text)
+        self.assertRegex(text, r"(?m)^  redeploy:")
+        self.assertRegex(text, r"(?ms)^  redeploy:.*?needs: migrate")
+        for secret in ("RENDER_QA_API_HOOK", "RENDER_QA_BFF_HOOK", "RENDER_QA_WEB_HOOK"):
+            self.assertIn("secrets." + secret, text)
+        self.assertIn("curl", text)
+
+    def test_qa_deploy_is_documented_and_the_rule_is_in_the_ai_rules(self):
+        self.assertTrue((ROOT / "docs" / "qa-deploy.md").exists())
+        self.assertTrue(any((ROOT / "docs" / "adr").glob("ADR-006-*.md")))
+        rules = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("docs/qa-deploy.md", rules)
+        self.assertIn("RENDER_QA_", (ROOT / "docs" / "qa-deploy.md").read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

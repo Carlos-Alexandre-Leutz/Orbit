@@ -29,6 +29,7 @@ Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/
 Next, before PBI-10:
 
 - **PBI-63** e-mail for QA: the API sends through the `MailTransport` port (SMTP or the owner's mail API over HTTP), a send failure is a 503, and the reset pages go through `/api/session/*`. The owner still has to fill the variables on Render ([`qa-email.md`](qa-email.md)) and test there ([`pbi/PBI-63.md`](pbi/PBI-63.md)).
+- **PBI-64** automatic QA deploy: the `redeploy` job of `publish-images.yml` calls the three Render deploy hooks after every push to `staging`. The owner must create the secrets `RENDER_QA_API_HOOK`, `RENDER_QA_BFF_HOOK` and `RENDER_QA_WEB_HOOK` ([`qa-deploy.md`](qa-deploy.md), [ADR-006](adr/ADR-006-qa-auto-deploy.md)); never remove it.
 - **PBI-61** seller panel: layout, the product pages moved into it, the store's orders with ship and deliver, edit the store's name and description. Today a seller can manage products at `/seller/products` and read an order by id through the API, but cannot list their store's orders in a page, and an admin sees no store orders in the pages.
 
 Then PBI-42 and PBI-43 with the owner (the first deploy). PBI-10 (chat page with streaming) still needs a fake agent behind a port and a streaming ADR; it waits. The owner still has to say what must exist before the first public deploy (see [`open-questions.md`](open-questions.md)).

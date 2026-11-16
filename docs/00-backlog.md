@@ -75,6 +75,11 @@ main        ← production (only receives releases from staging)
 - T: Fix the forgot and reset password pages and the API answer when the e-mail cannot be sent
 - T: Record the mail sender in the AI rules and in the docs
 
+### PBI-64 [F1] Automatic QA deploy
+- T: Trigger the Render redeploy of the three QA services after the images are published and the database is migrated
+- T: Add tests that fail if the QA deploy trigger is removed
+- T: Document the QA deploy and the rule that it is never removed (ADR, AI rules, flow document)
+
 ## E2. Store domain [must]
 
 ### PBI-06 [F1] Users, roles and authentication
