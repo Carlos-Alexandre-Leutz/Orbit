@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export function LogoutButton() {
+/** `to` is where the visitor lands after signing out; the login page by default. */
+export function LogoutButton({ to = '/login' }: { to?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -12,7 +13,7 @@ export function LogoutButton() {
     await fetch('/api/session/logout', { method: 'POST' }).catch(
       () => undefined,
     );
-    router.replace('/login');
+    router.replace(to);
     router.refresh();
   }
 
