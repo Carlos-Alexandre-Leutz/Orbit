@@ -46,3 +46,10 @@ describe('slugFromName', () => {
     expect(slug.length).toBeLessThanOrEqual(SLUG_MAX);
   });
 });
+
+describe('links of the sign-up and account pages', () => {
+  it('reserves sell and account', () => {
+    expect(checkSlug('sell')).toBe('RESERVED');
+    expect(checkSlug('account')).toBe('RESERVED');
+  });
+});

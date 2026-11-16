@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { loginUrl } from './routes';
 import { canManageProducts, getCurrentUser, type CurrentUser } from './auth';
 
 /**
@@ -9,7 +10,7 @@ export async function requireProductManager(
   path: string,
 ): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(path)}`);
+  if (!user) redirect(loginUrl(path));
   if (!canManageProducts(user.role)) notFound();
   return user;
 }
@@ -20,7 +21,7 @@ export async function requireProductManager(
  */
 export async function requireCustomer(path: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(path)}`);
+  if (!user) redirect(loginUrl(path));
   if (user.role !== 'CUSTOMER') notFound();
   return user;
 }
