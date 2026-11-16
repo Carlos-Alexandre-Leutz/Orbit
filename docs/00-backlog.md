@@ -134,6 +134,8 @@ main        ← production (only receives releases from staging)
 - T: Move the product management pages into the panel
 - T: List the store's orders and let the seller ship and deliver them
 - T: Edit the store's name and description
+- T: Add the panel start page with a summary of orders and low stock
+- T: Add a "publish your store" checklist
 
 ### PBI-10 [F1] Web interface
 - T: Build the chat page with streaming
@@ -383,15 +385,58 @@ Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ide
 ### PBI-57 [F4] AI triage of a ticket against the documentation
 ### PBI-58 [F4] From a confirmed bug to a fix, a QA pull request, an approved release and the reply
 
+## E15. E-commerce platform [must]
+
+The basic online-store platform that the agent work sits on: sellers sign up and set up a store, customers shop and keep one account across stores. Decisions in [ADR-007](adr/ADR-007-sign-up-flows-and-global-customer-account.md). PBI-61 (seller panel) belongs to this epic's work but stays under E2, where its issue already is.
+
+### PBI-71 [F1] E-commerce platform plan
+- T: Write the e-commerce plan (ADR-007, backlog and project state)
+
+### PBI-65 [F1] Sign-up flows
+- T: Add the seller sign-up page at `/sell` and remove the "I want to sell" checkbox
+- T: Add customer sign-up and login inside the store, returning the customer to that store
+- T: Allow one role per e-mail and say so in the sign-up messages
+- T: Reserve the new top-level links (`sell`, `account`) and update the menu
+
+### PBI-70 [F1] Global customer account
+- T: Link each customer to the stores they joined or bought from
+- T: Show a seller only their own store's customers and the data of their orders, with isolation tests
+- T: Build the `/account` page with the orders of every store
+- T: Record marketing consent per store
+- T: Let a customer delete their account
+
+### PBI-66 [F1] Store appearance
+- T: Add logo, cover, main color, tagline and contact to the store
+- T: Build the store settings page in the panel
+- T: Apply the store's look to the storefront and to the store's sign-in pages
+- T: Add tests for color and image validation
+
+### PBI-67 [F1] Product images and stock
+- T: Add the product image model and an image storage port with a local disk adapter
+- T: Upload images in the product form and show a gallery on the product page
+- T: Warn about low stock in the panel and mark sold-out products in the storefront
+- T: Add tests for image type and size limits
+
+### PBI-68 [F1] Storefront and platform look
+- T: Build the storefront home with cover, category navigation and product cards with photos
+- T: Redesign the product page and the cart page
+- T: Build the platform home page that invites sellers to create a store
+- T: Check the pages on a phone
+
+### PBI-69 [F1] Simulated payment
+- T: Build the simulated payment screen (approve or decline with test cards) on top of the fake payment provider
+- T: Show the test payment mode in the panel and on the order pages
+- T: Document how the real payment provider replaces the simulation
+
 ---
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 61, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
-- First deploy (a basic store online, before the agent work): 01 to 09, 55, 59, 60, 61, then 42 and 43 with the owner. What else must come first (backups, hardening, rate limits) is an open question in `open-questions.md`.
+- First deploy (a basic store online, before the agent work): 01 to 09, 55, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, then 42 and 43 with the owner. What else must come first (backups, hardening, rate limits) is an open question in `open-questions.md`.
 - Parked, refine later: 47 to 54 (cart recovery and WhatsApp), 56 to 58 (support tickets with AI triage)
 
 Cut order if needed: Redis, second connector, MCP, stockout-risk model.

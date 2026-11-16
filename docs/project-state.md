@@ -21,13 +21,15 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-62, PBI-63 e PBI
 | 63 | E-mail do QA: porta `MailTransport` com adaptadores SMTP e HTTP (a API de e-mail do dono), falha de envio responde 503, páginas de senha pelas rotas `/api/session/*`. |
 | 64 | Deploy automático do QA: o job `redeploy` do `publish-images.yml` chama os deploy hooks do Render. |
 
-Medido em 2026-11-14 na branch do PBI-09 (o backlog tem hoje 15 épicos, 64 PBIs e 209 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
+Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 
 Ideias paradas, ainda sem tarefas: épico E13 (recuperação de carrinho por WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) e épico E14 (tickets de suporte com triagem por IA, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
 
 ## Próximo passo
 
 **O PBI-59 (lojas e propriedade) e o PBI-60 (vitrine no link da loja) estão prontos e validados** ([`pbi/PBI-59.md`](pbi/PBI-59.md), [`pbi/PBI-60.md`](pbi/PBI-60.md)). Um vendedor se cadastra com uma loja em `/<slug>`, e um comprador abre esse link, entra, enche o carrinho e compra dentro da loja. As duas escolhas do [ADR-005](adr/ADR-005-stores-and-storefronts.md) (link por caminho, uma conta de cliente para todas as lojas) foram adotadas por instrução do dono; qualquer uma ainda pode mudar.
+
+**Plano de 2026-11-16 (ainda não construído):** a plataforma ainda não parece uma loja virtual (a loja só tem nome e descrição, a vitrine é uma grade de texto, o cadastro mistura cliente e lojista). O [ADR-007](adr/ADR-007-sign-up-flows-and-global-customer-account.md) decide o modelo: o lojista se cadastra em `/sell`, o cliente se cadastra dentro da loja, a conta de cliente é global (`/account` com os pedidos de todas as lojas), um e-mail tem um único papel, e a loja ganha logo, capa, cor, fotos de produto e pagamento simulado. Os PBIs, nesta ordem: **65** (cadastros), **70** (conta global), **61** (painel do lojista), **66** (aparência da loja), **67** (imagens e estoque), **68** (vitrine e página inicial da plataforma), **69** (pagamento simulado). Todos vêm antes do PBI-11. O backlog foi atualizado, mas as issues ainda não foram criadas (`scripts/import_backlog.py`, quando o dono pedir). O `01-requirements.md` ainda está em inglês e não reflete este plano; atualizá-lo exige traduzir o arquivo inteiro.
 
 A seguir, antes do PBI-10:
 
