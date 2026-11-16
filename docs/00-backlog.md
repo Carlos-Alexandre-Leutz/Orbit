@@ -65,6 +65,11 @@ main        ← production (only receives releases from staging)
 - T: Add automatic deploy to staging (placeholder until E11)
 - T: Add caching and track pipeline time
 
+### PBI-62 [F1] Fluxo de trabalho e scripts do dia a dia
+- T: Escrever o documento do fluxo de trabalho em português e apontar o AGENTS.md para ele
+- T: Criar o `scripts/dev` (`test` só do que mudou, `pr` para abrir o pull request) com testes
+- T: Registrar os scripts nas regras de IA e no documento do fluxo
+
 ## E2. Store domain [must]
 
 ### PBI-06 [F1] Users, roles and authentication

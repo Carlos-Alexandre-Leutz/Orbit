@@ -1,6 +1,6 @@
 # Fluxo de trabalho
 
-**Última atualização: 2026-11-16.** Este é o documento que toda sessão de IA lê antes de começar. Se ele e outro arquivo discordarem sobre *como trabalhar*, vale este. O dono do projeto não precisa repetir o fluxo no chat.
+**Última atualização: 2026-11-16 (scripts do dia a dia adicionados).** Este é o documento que toda sessão de IA lê antes de começar. Se ele e outro arquivo discordarem sobre *como trabalhar*, vale este. O dono do projeto não precisa repetir o fluxo no chat.
 
 ## Regra de ouro
 
@@ -24,13 +24,17 @@ O **merge dos PRs é do dono**. A IA abre o PR, mostra o link e para.
 
 1. **Branch** a partir da `staging` atualizada: `git fetch && git checkout -b <tipo>/<nome-curto> origin/staging`. Sem task e sem número quando a mudança é pequena e avulsa.
 2. **Escrever** o código, os testes e a documentação da mudança.
-3. **Testar localmente só o que mudou**, antes do push:
+3. **Testar localmente só o que mudou**, antes do push, com o script do repositório:
    ```bash
-   pnpm exec turbo run lint test build --filter='...[origin/staging]'
+   scripts/dev test
    ```
-   Mudou só documentação ou `index.html`: não precisa rodar nada além do que o hook de commit já roda. Mudou Python ou scripts: `pnpm test:scripts` e `ruff check`. Espere o lint terminar antes de dar push.
+   Ele compara com a `staging`, roda só os checks que os arquivos alterados pedem e imprime uma linha por check (as últimas 40 linhas só quando falha). Mudou `apps/`: `turbo lint test build` com filtro. Mudou Python: `ruff` e `pytest`. Mudou só documentação ou `index.html`: apenas `pnpm test:scripts`. Espere o script terminar antes de dar push.
 4. **Commit** em inglês, no padrão Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`), pequeno e focado. Node 20 precisa estar no `PATH` (`nvm use`).
-5. **Push da branch** e **PR para a `staging`** com: o que foi feito, como foi testado e se usou IA. Use `gh api` (o `gh pr edit` falha neste repositório).
+5. **Commit, push da branch e PR para a `staging`** numa chamada só:
+   ```bash
+   scripts/dev pr "docs: mensagem em inglês" [arquivos...] [--tested "o que foi rodado"]
+   ```
+   O script recusa mensagem fora do Conventional Commits, cria a branch a partir da `staging` quando você está nela, nunca faz push em `main` ou `staging`, nunca mergeia e nunca coloca atribuição de IA. O PR sai com: o que foi feito, como foi testado e se usou IA. Para editar um PR depois, use `gh api` (o `gh pr edit` falha neste repositório).
 6. **O CI decide.** Os checks obrigatórios são `commitlint` e `scripts-tests`. `typescript`, `python` e `docker` também rodam, mas ainda não bloqueiam.
 7. **O dono faz o merge.** Depois, a branch só é apagada se o dono pedir.
 
@@ -40,11 +44,27 @@ Nada vai para a `main` sem o dono: o release da `staging` para a `main` é dele.
 
 Diga no PR e na resposta exatamente o que foi rodado localmente e o que ficou para o CI. Nunca diga que testou o que não rodou, e nunca liste no README algo que não está implementado nem um número que não foi medido.
 
+## Esperar o CI sem gastar token
+
+Quando preciso corrigir uma falha, espero os checks numa chamada só, em segundo plano: `gh pr checks <número> --watch`. Logo depois do push o GitHub pode levar alguns segundos para registrar os checks; se o comando disser que não há checks, espere um pouco e chame de novo. Se o dono vai mergear de qualquer jeito, não preciso esperar: passo o link e paro.
+
+## Scripts do dia a dia
+
+Ficam em `scripts/` e são versionados. O pipeline não os roda: ele tem os próprios checks e é ele que decide o merge. Os testes deles estão em `tests/test_dev_script.py`.
+
+| Comando | Para que serve |
+|---|---|
+| `scripts/dev test` | Roda só os checks que as mudanças pedem e imprime um resumo curto. |
+| `scripts/dev pr "tipo: mensagem"` | Branch, commit, push e PR para a `staging`. O merge é do dono. |
+| `scripts/dev help` | Mostra os comandos. |
+
+Limites conhecidos: o filtro do `turbo` só enxerga dependências entre pacotes do monorepo, então uma mudança que afeta outro app sem passar por um import pode escapar (o CI pega, depois do push). O `ruff` é pulado se não estiver instalado. O `scripts/dev pr` ainda não foi rodado de ponta a ponta: o primeiro PR aberto por ele é o teste.
+
 ## Ainda não existe (planejado)
 
 Estas melhorias foram combinadas em 2026-11-16, mas **não foram feitas**:
 
-- **Script `scripts/flow`:** faz de uma vez comentar, mover o card, abrir o PR, esperar os checks e limpar a branch. Para de vez se um check falhar. Quando existir, este documento passa a descrevê-lo.
+- **Script de contabilidade** (comentar na issue, mover o card, fechar a issue, apagar a branch). Só volta a valer a pena se o dono pedir de novo as issues e o Project em cada task.
 - **Filtro por caminho nos workflows** `typescript`, `python` e `docker`, para não rodarem quando só o `README.md` ou o `index.html` mudam. Não se aplica a `commitlint` e `scripts-tests`: se eles tivessem filtro, um PR que pulasse o filtro ficaria esperando o check para sempre e o merge travaria.
 
 ## Onde cada coisa fica

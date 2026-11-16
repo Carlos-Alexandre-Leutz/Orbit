@@ -18,7 +18,7 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 - Gitflow: `main` (production) ← `staging` (integration) ← `pbi/<nn>-<slug>` ← `task/<nn>-<slug>`.
 - Task PRs target the PBI branch. PBI PRs target `staging`. Releases go `staging` → `main`.
 - `main` and `staging` are protected: a pull request and the checks `commitlint` and `scripts-tests` are required, with no approvals; there is no direct push, no force-push and no deletion, and admins are included. Never push directly to them. Never force-push a shared branch.
-- The AI runs the whole gitflow itself, including merging task and PBI PRs, once the checks pass.
+- **The owner merges every pull request** into `staging` and `main`. The AI opens the PR, gives the link and stops; it never merges, even when the checks are green.
 - A PBI goes to `staging` only when all its tasks are done, its tests ran, bugs were checked and every acceptance criterion was validated. Nothing goes to `main` until a real release.
 - Before and after each task: find its issue, comment, move the Project item, link the PR, close it.
 - After a task PR merges, delete its `task/*` branch. Check that none is left before starting the next PBI. Do not delete `pbi/*` branches: the owner does that.
@@ -46,6 +46,7 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 - Node 20+ and pnpm 9 (`nvm use` reads `.nvmrc`). The default Node on the owner's machine is 16, which breaks pnpm/corepack and the commit hook, so make sure Node 20 is on the `PATH` before running `pnpm` or `git commit`.
 - Base code comes from `production-saas-template` (see `docs/template-origin.md`): `apps/web` (Next.js), `apps/bff` and `apps/api-tasks` (NestJS). There is no Python or ML service yet.
 - Tests: `pnpm test:scripts` (Python) and `pnpm test:commitlint` (Node). The TypeScript apps use `pnpm exec turbo run lint test build`; `lint` only reports, `pnpm lint:fix` inside an app rewrites. Python is checked with `ruff check services/ml scripts tests` and `pytest` in `services/ml` (`pip install -r services/ml/requirements-dev.txt`).
+- Before a push run `scripts/dev test` (only the checks the changed files need, short output) and open the PR with `scripts/dev pr "type: message"`; see `docs/fluxo-de-trabalho.md`. The CI still runs everything and decides.
 - CI runs five checks on every pull request: `commitlint`, `scripts-tests`, `typescript`, `python` and `docker`. Only the first two are required by branch protection so far.
 - NestJS add-ons: `@nestjs/jwt` 12 and `@nestjs/mapped-types` 12 are ES-module only and break the CommonJS build and jest; use `@nestjs/jwt` 11 and `@nestjs/mapped-types` 2. Keep code outside `apps/api-tasks/src` out of `tsconfig.build.json`, or `dist/main.js` moves and `start:prod` breaks (a test guards it).
 - Docker builds can fill the disk: check `df -h /` before a full-stack check, verify in a clone inside the repo folder (the daemon cannot see the sandbox `/tmp`), and remove only what you created.
