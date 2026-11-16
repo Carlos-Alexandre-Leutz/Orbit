@@ -1,0 +1,38 @@
+name: close-issues
+
+# GitHub only closes the issues named in a pull request when the PR targets the default branch
+# (`main`). Orbit's PRs target `staging`, so this closes them by hand after the merge.
+# The PR body names them with `Closes #12` (also `Fixes` and `Resolves`; `Closes #12, #13` works).
+# Moving the Project card to Done is left to the Project's own "item closed" automation.
+on:
+  pull_request:
+    types: [closed]
+    branches: [staging]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  close:
+    name: close the issues named in the pull request
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close them
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          numbers=$(printf '%s' "$PR_BODY" \
+            | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+([, ]+(and )?#[0-9]+)*' \
+            | grep -oE '#[0-9]+' | tr -d '#' | sort -un || true)
+          if [ -z "$numbers" ]; then
+            echo "No 'Closes #n' in the pull request body. Nothing to close."
+            exit 0
+          fi
+          for n in $numbers; do
+            gh issue close "$n" --reason completed --comment "Closed by #$PR_NUMBER, merged into staging."
+          done
