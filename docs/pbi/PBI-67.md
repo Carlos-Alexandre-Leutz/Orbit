@@ -1,6 +1,6 @@
 # PBI-67: Imagens e estoque
 
-Issue: #396. Tarefas: #397, #398, #399, #400. Pull request: `pbi/66-67-store-look` → `staging`. Decisões no [ADR-007](../adr/ADR-007-sign-up-flows-and-global-customer-account.md).
+Issue: #396. Tarefas: #397, #398, #399, #400. Pull request: `pbi/68-69-storefront-payment` → `staging` (junto com os PBIs 66, 68 e 69). Decisões no [ADR-007](../adr/ADR-007-sign-up-flows-and-global-customer-account.md).
 
 ## Objetivo
 

@@ -1,6 +1,6 @@
 # PBI-66: Aparência da loja
 
-Issue: #391. Tarefas: #392, #393, #394, #395. Pull request: `pbi/66-67-store-look` → `staging` (junto com o PBI-67). Decisões no [ADR-007](../adr/ADR-007-sign-up-flows-and-global-customer-account.md).
+Issue: #391. Tarefas: #392, #393, #394, #395. Pull request: `pbi/68-69-storefront-payment` → `staging` (junto com os PBIs 67, 68 e 69). Decisões no [ADR-007](../adr/ADR-007-sign-up-flows-and-global-customer-account.md).
 
 ## Objetivo
 
