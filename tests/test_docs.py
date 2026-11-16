@@ -57,14 +57,15 @@ class AiRulesTests(unittest.TestCase):
             self.assertIn(f"`{check}`", self.contributing)
 
     def test_both_files_state_the_core_rules(self):
-        for text in (self.agents, self.contributing):
+        # AGENTS.md is in Portuguese since 2026-11-16 (the owner asked for whole files, not mixed languages).
+        for text, english in ((self.agents, "inglês"), (self.contributing, "English")):
             self.assertIn("Co-authored-by", text)
-            self.assertIn("English", text)
+            self.assertIn(english, text)
             self.assertIn("task/*", text)
             self.assertIn("Conventional Commits", text)
 
     def test_agents_md_has_the_main_sections(self):
-        for heading in ("## Language", "## Workflow", "## Commits and PRs", "## Engineering rules", "## Local environment"):
+        for heading in ("## Idioma", "## Fluxo de trabalho", "## Commits e PRs", "## Regras de engenharia", "## Ambiente local"):
             self.assertIn(heading, self.agents)
 
 
@@ -198,7 +199,7 @@ class WorkingAgreementTests(unittest.TestCase):
 
     def test_agents_md_states_the_rule_and_links_the_agreement(self):
         text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-        self.assertIn("Decisions live in the repository, not in the chat", text)
+        self.assertIn("As decisões vivem no repositório, não no chat", text)
         self.assertIn("docs/working-agreement.md", text)
         self.assertIn("docs/project-state.md", text)
 
@@ -209,9 +210,9 @@ class WorkingAgreementTests(unittest.TestCase):
 
     def test_project_state_has_its_sections_and_a_date(self):
         text = self.read("project-state.md")
-        for heading in ("## Where it stands", "## Next step", "## Environment traps", "## Known risks"):
+        for heading in ("## Onde estamos", "## Próximo passo", "## Armadilhas do ambiente", "## Riscos conhecidos"):
             self.assertIn(heading, text)
-        self.assertRegex(text, r"\*\*Last updated: \d{4}-\d{2}-\d{2}\.\*\*")
+        self.assertRegex(text, r"\*\*Última atualização: \d{4}-\d{2}-\d{2}\.\*\*")
 
     def test_every_pbi_the_state_and_questions_name_exists_in_the_backlog(self):
         backlog = (ROOT / "docs" / "00-backlog.md").read_text(encoding="utf-8")
@@ -222,8 +223,8 @@ class WorkingAgreementTests(unittest.TestCase):
 
     def test_open_questions_separates_decisions_from_owner_only_actions(self):
         text = self.read("open-questions.md")
-        self.assertIn("## Decisions", text)
-        self.assertIn("## Only the owner can do these", text)
+        self.assertIn("## Decisões", text)
+        self.assertIn("## Só o dono pode fazer estas", text)
 
 
 if __name__ == "__main__":

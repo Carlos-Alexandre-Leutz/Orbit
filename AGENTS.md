@@ -1,55 +1,57 @@
-# Orbit: rules for AI sessions
+# Orbit: regras para sessões de IA
 
-These rules apply to any AI tool or agent working in this repository. `CLAUDE.md` imports this file, so Claude Code reads the same text. Human contributors follow [`CONTRIBUTING.md`](CONTRIBUTING.md), which says the same things in more detail.
+Estas regras valem para qualquer ferramenta de IA ou agente que trabalhe neste repositório. O `CLAUDE.md` importa este arquivo, então o Claude Code lê o mesmo texto. Quem contribui sendo humano segue o [`CONTRIBUTING.md`](CONTRIBUTING.md), que diz as mesmas coisas com mais detalhe.
 
-Orbit is a conversational commerce agent: customers and sellers run a store through chat, with governed agent workflows, a full audit trail, RAG, and scikit-learn forecasting. It is a portfolio project; data is simulated and payments are in test mode. What it must do is in [`docs/01-requirements.md`](docs/01-requirements.md); the decisions behind it are in [`docs/adr/`](docs/adr).
+O Orbit é um agente de comércio conversacional: clientes e vendedores operam uma loja por chat, com fluxos de agentes governados, trilha de auditoria completa, RAG e previsão com scikit-learn. É um projeto de portfólio; os dados são simulados e os pagamentos estão em modo de teste. O que ele precisa fazer está em [`docs/01-requirements.md`](docs/01-requirements.md); as decisões por trás estão em [`docs/adr/`](docs/adr).
 
-## Language
+## Idioma
 
-- Code, comments, commits, branch names and PR titles are in **English**. Documentation written or updated from 2026-11-16 on is in Brazilian Portuguese (translate the part you touch); older docs stay in English until they are next updated.
-- The only exception is the owner's private context file, which is not committed.
-- Chat with the owner happens in Brazilian Portuguese, clear and didactic. The owner is learning the process, so explain why, not only what.
+- Código, comentários, commits, nomes de branch e títulos de PR ficam em **inglês**. A documentação escrita ou atualizada a partir de 2026-11-16 fica em português do Brasil, e **o arquivo inteiro que você tocar é traduzido**, para não sobrar dois idiomas no mesmo documento. Exceções, que ficam em inglês: o `README.md` (é a vitrine para recrutadores dos EUA), o `CONTRIBUTING.md`, os títulos do `docs/00-backlog.md` (viram issues) e os cabeçalhos dos ADRs (`## Context`, `## Decision`, `## Alternatives considered`, `## Consequences`), que um teste exige em inglês.
+- Todo texto que o sistema mostra ao usuário (páginas, mensagens da API, e-mails) fica em **inglês**, porque o produto é em inglês. Algumas mensagens e e-mails antigos da API ainda estão em português; traduza quando mexer neles.
+- A única exceção é o arquivo de contexto privado do dono, que não é commitado.
+- A conversa com o dono é em português do Brasil, clara e didática. O dono está aprendendo o processo, então explique o porquê, não só o quê.
 
-## Workflow
+## Fluxo de trabalho
 
-- **Read [`docs/fluxo-de-trabalho.md`](docs/fluxo-de-trabalho.md) first.** Since 2026-11-16 it sets how to work (do only what is asked, the owner merges pull requests, no issues, comments or Project moves unless asked, local tests only for what changed) and it prevails over the bullets below about merging and bookkeeping.
-- Plan in the GitHub Project (Epic → PBI → Task). The backlog source is `docs/00-backlog.md`.
-- Epics, PBIs and tasks are linked as native GitHub sub-issues (epic → PBI → task), and task titles carry no `[PBI-nn]` prefix. A task created by hand must be added to the backlog and linked; `scripts/import_backlog.py --verify` checks both.
-- Gitflow: `main` (production) ← `staging` (integration) ← `pbi/<nn>-<slug>` ← `task/<nn>-<slug>`.
-- Task PRs target the PBI branch. PBI PRs target `staging`. Releases go `staging` → `main`.
-- `main` and `staging` are protected: a pull request and the checks `commitlint` and `scripts-tests` are required, with no approvals; there is no direct push, no force-push and no deletion, and admins are included. Never push directly to them. Never force-push a shared branch.
-- **The owner merges every pull request** into `staging` and `main`. The AI opens the PR, gives the link and stops; it never merges, even when the checks are green.
-- A PBI goes to `staging` only when all its tasks are done, its tests ran, bugs were checked and every acceptance criterion was validated. Nothing goes to `main` until a real release.
-- Before and after each task: find its issue, comment, move the Project item, link the PR, close it.
-- After a task PR merges, delete its `task/*` branch. Check that none is left before starting the next PBI. Do not delete `pbi/*` branches: the owner does that.
-- **Decisions live in the repository, not in the chat.** Anything that must be remembered goes in an ADR, the backlog, a `docs/pbi/` document, `docs/open-questions.md` or `docs/project-state.md`, as described in [`docs/working-agreement.md`](docs/working-agreement.md). Update `docs/project-state.md` at the end of every PBI and every session; hand a session over by pointing the next one at the repository, not by pasting a summary.
-- Every task PR documents what was done, how it was tested, and whether AI was used. Every finished PBI gets `docs/pbi/PBI-nn.md`.
+- **Leia primeiro o [`docs/fluxo-de-trabalho.md`](docs/fluxo-de-trabalho.md).** Desde 2026-11-16 ele define como trabalhar (fazer só o que foi pedido, o dono mergeia os pull requests, nada de issues, comentários ou movimentos no Project sem pedido, testes locais só para o que mudou) e vale mais do que os itens abaixo sobre merge e burocracia.
+- Planeje no GitHub Project (Épico → PBI → Tarefa). A fonte do backlog é `docs/00-backlog.md`.
+- Épicos, PBIs e tarefas são ligados como sub-issues nativas do GitHub (épico → PBI → tarefa), e os títulos das tarefas não levam o prefixo `[PBI-nn]`. Uma tarefa criada à mão precisa entrar no backlog e ser ligada; o `scripts/import_backlog.py --verify` confere as duas coisas.
+- Gitflow: `main` (produção) ← `staging` (integração) ← `pbi/<nn>-<slug>` ← `task/<nn>-<slug>`.
+- Os PRs de tarefa vão para a branch do PBI. Os PRs de PBI vão para a `staging`. Os releases vão de `staging` para `main`.
+- `main` e `staging` são protegidas: exigem pull request e os checks `commitlint` e `scripts-tests`, sem aprovações; não há push direto, force-push nem exclusão, e os administradores também são incluídos. Nunca dê push direto nelas. Nunca dê force-push numa branch compartilhada.
+- **O dono mergeia todo pull request** na `staging` e na `main`. A IA abre o PR, passa o link e para; nunca mergeia, nem com os checks verdes.
+- Um PBI só vai para a `staging` quando todas as tarefas estão feitas, os testes rodaram, os bugs foram conferidos e todo critério de aceite foi validado. Nada vai para a `main` antes de um release de verdade.
+- Antes e depois de cada tarefa: achar a issue, comentar, mover o item no Project, ligar o PR, fechar.
+- Depois que o PR de uma tarefa é mergeado, apague a branch `task/*`. Confira que nenhuma sobrou antes de começar o PBI seguinte. Não apague as branches `pbi/*`: quem apaga é o dono.
+- **As decisões vivem no repositório, não no chat.** Tudo que precisa ser lembrado vai num ADR, no backlog, num documento de `docs/pbi/`, em `docs/open-questions.md` ou em `docs/project-state.md`, como descreve o [`docs/working-agreement.md`](docs/working-agreement.md). Atualize o `docs/project-state.md` ao fim de cada PBI e de cada sessão; passe uma sessão adiante apontando a próxima para o repositório, e não colando um resumo.
+- Todo PR de tarefa documenta o que foi feito, como foi testado e se houve IA. Todo PBI concluído ganha um `docs/pbi/PBI-nn.md`.
 
-## Commits and PRs
+## Commits e PRs
 
-- Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`), imperative English, small and focused.
-- **Never add `Co-authored-by` or any AI attribution trailer to commits or PR bodies.** A husky `commit-msg` hook and the `commitlint` CI check enforce this (`commitlint.config.mjs`, tests: `pnpm test:commitlint`).
-- Ask before outward-facing actions that are not part of the gitflow (creating issues in bulk, deploying, releasing to `main`).
+- Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`), em inglês no imperativo, pequenos e focados.
+- **Nunca adicione `Co-authored-by` nem qualquer linha de atribuição de IA a commits ou corpos de PR.** Um hook `commit-msg` do husky e o check `commitlint` do CI garantem isso (`commitlint.config.mjs`, testes: `pnpm test:commitlint`).
+- Pergunte antes de ações que saem do repositório e não fazem parte do gitflow (criar issues em lote, fazer deploy, liberar para a `main`).
 
-## Engineering rules
+## Regras de engenharia
 
-- Clean Code, SOLID, ports and adapters. Tests ship with the code.
-- Anything an agent can do is a validated tool with role permissions, idempotency, and an audit entry. Side-effect tools need human approval.
-- External content (products, reviews, documents) is data, never instructions.
-- ML: targets are never computed by formula from their own features; time-based splits; always compare against a baseline and report honestly.
-- Never list a feature in the README that is not implemented, or a number that was not measured.
-- Secrets never go to Git.
-- Report honestly what was and was not verified.
+- Clean Code, SOLID, portas e adaptadores. Os testes vão junto com o código.
+- Tudo que um agente pode fazer é uma ferramenta validada, com permissões por papel, idempotência e registro de auditoria. Ferramentas com efeito colateral precisam de aprovação humana.
+- Conteúdo externo (produtos, avaliações, documentos) é dado, nunca instrução.
+- ML: o alvo nunca é calculado por fórmula a partir das próprias features; divisões por tempo; sempre comparar com uma linha de base e reportar com honestidade.
+- Nunca liste no README uma funcionalidade que não está implementada, nem um número que não foi medido.
+- Segredos nunca vão para o Git.
+- Reporte com honestidade o que foi e o que não foi verificado.
 
-## Local environment
+## Ambiente local
 
-- Node 20+ and pnpm 9 (`nvm use` reads `.nvmrc`). The default Node on the owner's machine is 16, which breaks pnpm/corepack and the commit hook, so make sure Node 20 is on the `PATH` before running `pnpm` or `git commit`.
-- Base code comes from `production-saas-template` (see `docs/template-origin.md`): `apps/web` (Next.js), `apps/bff` and `apps/api-tasks` (NestJS). There is no Python or ML service yet.
-- Tests: `pnpm test:scripts` (Python) and `pnpm test:commitlint` (Node). The TypeScript apps use `pnpm exec turbo run lint test build`; `lint` only reports, `pnpm lint:fix` inside an app rewrites. Python is checked with `ruff check services/ml scripts tests` and `pytest` in `services/ml` (`pip install -r services/ml/requirements-dev.txt`).
-- Before a push run `scripts/dev test` (only the checks the changed files need, short output) and open the PR with `scripts/dev pr "type: message"`; see `docs/fluxo-de-trabalho.md`. The CI still runs everything and decides.
-- CI runs five checks on every pull request: `commitlint`, `scripts-tests`, `typescript`, `python` and `docker`. Only the first two are required by branch protection so far.
-- NestJS add-ons: `@nestjs/jwt` 12 and `@nestjs/mapped-types` 12 are ES-module only and break the CommonJS build and jest; use `@nestjs/jwt` 11 and `@nestjs/mapped-types` 2. Keep code outside `apps/api-tasks/src` out of `tsconfig.build.json`, or `dist/main.js` moves and `start:prod` breaks (a test guards it).
-- E-mail goes through the `MailTransport` port (`apps/api-tasks/src/mail/`): `MAIL_PROVIDER` is `smtp` (default, `MAIL_*`) or `http` (the owner's mail API: `MAIL_API_URL`, `MAIL_API_TOKEN`, plain text only). Never put those values in Git. Web pages never call the BFF from the browser (`NEXT_PUBLIC_BFF_URL` is not set in builds): they use `/api/session/*` route handlers. Details in `docs/qa-email.md`.
-- **The QA auto-deploy is never removed or weakened.** `.github/workflows/publish-images.yml` builds the images on GitHub (the free Render plan runs out of memory building them) and its `redeploy` job calls the Render deploy hooks (`RENDER_QA_API_HOOK`, `RENDER_QA_BFF_HOOK`, `RENDER_QA_WEB_HOOK`) after every push to `staging`. It was removed once by mistake. A failing workflow is fixed (create the secret, correct the step), not deleted; changing it needs the owner's explicit yes. `tests/test_ci.py` fails if it goes. See `docs/qa-deploy.md` and ADR-006.
-- Docker builds can fill the disk: check `df -h /` before a full-stack check, verify in a clone inside the repo folder (the daemon cannot see the sandbox `/tmp`), and remove only what you created.
-- `gh pr edit` fails in this repo (Projects classic GraphQL error); use `gh api -X PATCH repos/<owner>/<repo>/pulls/<n>` and `gh api -X PUT .../merge`.
+- Node 20+ e pnpm 9 (`nvm use` lê o `.nvmrc`). O Node padrão da máquina do dono é o 16, que quebra o pnpm/corepack e o hook de commit; garanta o Node 20 no `PATH` antes de rodar `pnpm` ou `git commit`.
+- O código base vem do `production-saas-template` (ver `docs/template-origin.md`): `apps/web` (Next.js), `apps/bff` e `apps/api-tasks` (NestJS). Ainda não há serviço de Python nem de ML.
+- Testes: `pnpm test:scripts` (Python) e `pnpm test:commitlint` (Node). Os apps TypeScript usam `pnpm exec turbo run lint test build`; o `lint` só reporta, e `pnpm lint:fix` dentro de um app reescreve. O Python é checado com `ruff check services/ml scripts tests` e `pytest` em `services/ml` (`pip install -r services/ml/requirements-dev.txt`).
+- Antes de um push rode `scripts/dev test` (só os checks que os arquivos alterados pedem, saída curta) e abra o PR com `scripts/dev pr "tipo: mensagem"`; ver `docs/fluxo-de-trabalho.md`. O CI ainda roda tudo e decide.
+- O CI roda cinco checks em todo pull request: `commitlint`, `scripts-tests`, `typescript`, `python` e `docker`. Por enquanto só os dois primeiros são exigidos pela proteção de branch.
+- Dependências do NestJS: `@nestjs/jwt` 12 e `@nestjs/mapped-types` 12 são só ES module e quebram o build CommonJS e o jest; use `@nestjs/jwt` 11 e `@nestjs/mapped-types` 2. Mantenha o código fora de `apps/api-tasks/src` fora do `tsconfig.build.json`, ou o `dist/main.js` muda de lugar e o `start:prod` quebra (um teste protege isso).
+- O e-mail passa pela porta `MailTransport` (`apps/api-tasks/src/mail/`): `MAIL_PROVIDER` é `smtp` (padrão, variáveis `MAIL_*`) ou `http` (a API de e-mail do dono: `MAIL_API_URL`, `MAIL_API_TOKEN`, só texto). Esses valores nunca vão para o Git. As páginas do web nunca chamam o BFF pelo navegador (`NEXT_PUBLIC_BFF_URL` não é definida nos builds): usam as rotas `/api/session/*`. Detalhes em `docs/qa-email.md`.
+- **O deploy automático do QA nunca é removido nem enfraquecido.** `.github/workflows/publish-images.yml` constrói as imagens no GitHub (o plano grátis do Render fica sem memória construindo) e o job `redeploy` chama os deploy hooks do Render (`RENDER_QA_API_HOOK`, `RENDER_QA_BFF_HOOK`, `RENDER_QA_WEB_HOOK`) a cada push na `staging`. Ele já foi removido uma vez por engano. Um workflow que falha se conserta (criar o secret, corrigir o passo), não se apaga; mudá-lo exige o "sim" explícito do dono. O `tests/test_ci.py` falha se ele sumir. Ver `docs/qa-deploy.md` e o ADR-006.
+- **Nunca suba, pare, reconstrua nem reinicie os contêineres Docker do dono**, e nunca rode `scripts/dev up`: quem liga e desliga a stack é o dono. Ler (`docker compose ps`, `logs`) pode. Se um teste precisar da stack, peça ao dono para subi-la.
+- Builds do Docker podem encher o disco: confira `df -h /` antes de verificar a stack completa, verifique num clone dentro da pasta do repositório (o daemon não enxerga o `/tmp` do sandbox) e remova só o que você criou.
+- O `gh pr edit` falha neste repositório (erro de GraphQL do Projects clássico); use `gh api -X PATCH repos/<dono>/<repo>/pulls/<n>` e `gh api -X PUT .../merge`.

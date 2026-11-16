@@ -207,7 +207,7 @@ export class AuthService {
         `Could not send the password reset e-mail: ${String(error)}`,
       );
       throw new ServiceUnavailableException(
-        'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.',
+        'Could not send the e-mail right now. Try again in a few minutes.',
       );
     }
 

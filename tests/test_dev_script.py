@@ -18,6 +18,11 @@ class DevScriptTests(unittest.TestCase):
     def test_is_executable(self):
         self.assertTrue(DEV.stat().st_mode & 0o111)
 
+    def test_help_lists_up_and_the_script_never_removes_containers(self):
+        self.assertIn("scripts/dev up", run("help").stdout)
+        text = DEV.read_text(encoding="utf-8")
+        self.assertNotRegex(text, r"docker compose (down|rm|stop|restart)|docker (rm|stop|kill)")
+
     def classify(self, *paths):
         result = run("classify", stdin="\n".join(paths) + "\n")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -54,7 +59,7 @@ class DevScriptTests(unittest.TestCase):
         self.assertNotIn("Co-authored-by", text)
         self.assertNotIn("/merge", text)
         self.assertNotIn("push -f", text)
-        self.assertNotIn("--force", text)
+        self.assertNotRegex(text, r"--force(?!-recreate)|push[^\n]*\s-f\b")  # --force-recreate (docker) is fine
 
 
 if __name__ == "__main__":
