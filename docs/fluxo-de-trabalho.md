@@ -40,6 +40,25 @@ O **merge dos PRs é do dono**. A IA abre o PR, mostra o link e para.
 
 Nada vai para a `main` sem o dono: o release da `staging` para a `main` é dele.
 
+## Receitas por tipo de tarefa
+
+Siga a receita do tipo de tarefa e **não faça** o que ela não lista. Em caso de dúvida real, pergunte uma vez. Em todas, issues, comentários, títulos de PR e commits ficam **em inglês**; só a documentação é em português.
+
+| Tarefa | Passos | Não faça |
+|---|---|---|
+| **Mudança só de documentação** (`.md`, `index.html`) | Editar, `scripts/dev pr "docs: ..."`, passar o link do PR. | Testes locais (o CI cobre), ler de volta o que acabei de escrever. |
+| **Mudança de código** | Editar, `scripts/dev test`, `scripts/dev pr "tipo: ..."`, passar o link. | Rodar a stack completa no Docker (só no fim de um PBI, e se o dono pedir). |
+| **Criar PBI e tasks** (quando o dono pedir) | Escrever no `docs/00-backlog.md` em inglês, `scripts/import_backlog.py`, **atribuir toda issue ao dono (`Carlos-Alexandre-Leutz`)**, mover os cards para In Progress, um comentário em cada issue com o link do PR. | `--verify` e `--dry-run` quando o escopo já é claro, `scripts/dev test` para texto, qualquer teste só por hábito. |
+| **Apagar branches** (quando o dono pedir) | Listar o que está mergeado e sem PR aberto, apagar local e remoto, dizer o que foi apagado e o que ficou. | Apagar branch com commit que não está na `staging`: perguntar antes. |
+| **Corrigir falha do CI** | `gh pr checks <número> --watch` em segundo plano, ler só o erro, corrigir, `scripts/dev test`, push. | Perguntar o status a cada 30 segundos. |
+
+## Economizar tempo e token
+
+- **Não conferir o que a ferramenta já confirmou.** Se o comando disse "created 4 issues" e "links added", essa é a prova. Conferência extra só com dúvida real.
+- **Chamadas independentes vão na mesma mensagem**, em paralelo. Só espero uma para começar a outra quando a segunda depende do resultado da primeira.
+- **Não reler o que acabei de escrever** nem o que a ferramenta já devolveu.
+- **Respostas curtas.** Texto e relatório longo também custam token: digo o que fiz, o que não foi verificado e o que preciso do dono.
+
 ## Honestidade sobre testes
 
 Diga no PR e na resposta exatamente o que foi rodado localmente e o que ficou para o CI. Nunca diga que testou o que não rodou, e nunca liste no README algo que não está implementado nem um número que não foi medido.
