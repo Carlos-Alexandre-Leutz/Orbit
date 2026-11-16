@@ -8,7 +8,7 @@ hierarchy and task progress; missing links are added on every run.
 
   scripts/import_backlog.py --dry-run     show what would be created, change nothing
   scripts/import_backlog.py --verify      compare the backlog with the existing issues
-  scripts/import_backlog.py               create the missing issues
+  scripts/import_backlog.py               create the missing issues, assigned to the repository owner
 """
 import argparse
 import json
@@ -25,9 +25,15 @@ PHASE_LABELS = {"F1", "F2", "F3", "F4"}
 class GhCli:
     """Thin wrapper over the gh CLI, so tests can replace it."""
 
-    def __init__(self, repo=None):
+    def __init__(self, repo=None, assignee=None):
         self.repo = ["--repo", repo] if repo else []
         self._slug = repo
+        self._assignee = assignee
+
+    @property
+    def assignee(self):
+        """Every issue is assigned to this login; by default the owner of the repository."""
+        return self._assignee or self.slug.split("/")[0]
 
     @property
     def slug(self):
@@ -43,7 +49,7 @@ class GhCli:
         return json.loads(out)
 
     def create_issue(self, title, body, labels):
-        args = ["issue", "create", "--title", title, "--body", body, *self.repo]
+        args = ["issue", "create", "--title", title, "--body", body, "--assignee", self.assignee, *self.repo]
         for label in labels:
             args += ["--label", label]
         return int(self._run(*args).rsplit("/", 1)[1])
@@ -124,12 +130,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--backlog", default="docs/00-backlog.md")
     parser.add_argument("--repo", help="owner/repo (defaults to the current repository)")
+    parser.add_argument("--assignee", help="login that every created issue is assigned to (defaults to the repository owner)")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--verify", action="store_true")
     args = parser.parse_args()
     items = parse_backlog(Path(args.backlog).read_text(encoding="utf-8"))
-    gh = GhCli(args.repo)
+    gh = GhCli(args.repo, args.assignee)
     return run_verify(items, gh) if args.verify else run_import(items, gh, args.dry_run)
 
 

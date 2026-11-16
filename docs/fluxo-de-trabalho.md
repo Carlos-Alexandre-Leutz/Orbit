@@ -48,7 +48,7 @@ Siga a receita do tipo de tarefa e **não faça** o que ela não lista. Em caso 
 |---|---|---|
 | **Mudança só de documentação** (`.md`, `index.html`) | Editar, `scripts/dev pr "docs: ..."`, passar o link do PR. | Testes locais (o CI cobre), ler de volta o que acabei de escrever. |
 | **Mudança de código** | Editar, `scripts/dev test`, `scripts/dev pr "tipo: ..."`, passar o link. | Rodar a stack completa no Docker (só no fim de um PBI, e se o dono pedir). |
-| **Criar PBI e tasks** (quando o dono pedir) | Escrever no `docs/00-backlog.md` em inglês, `scripts/import_backlog.py`, **atribuir toda issue ao dono (`Carlos-Alexandre-Leutz`)**, mover os cards para In Progress, um comentário em cada issue com o link do PR. | `--verify` e `--dry-run` quando o escopo já é claro, `scripts/dev test` para texto, qualquer teste só por hábito. |
+| **Criar PBI e tasks** (quando o dono pedir) | Escrever no `docs/00-backlog.md` em inglês, `scripts/import_backlog.py` (ele já atribui toda issue ao dono do repositório, `Carlos-Alexandre-Leutz`), mover os cards para In Progress, um comentário em cada issue com o link do PR. | `--verify` e `--dry-run` quando o escopo já é claro, `scripts/dev test` para texto, qualquer teste só por hábito. |
 | **Apagar branches** (quando o dono pedir) | Listar o que está mergeado e sem PR aberto, apagar local e remoto, dizer o que foi apagado e o que ficou. | Apagar branch com commit que não está na `staging`: perguntar antes. |
 | **Corrigir falha do CI** | `gh pr checks <número> --watch` em segundo plano, ler só o erro, corrigir, `scripts/dev test`, push. | Perguntar o status a cada 30 segundos. |
 
