@@ -99,6 +99,12 @@ describe('stores (real database)', () => {
       slug: slug('lia'),
       name: 'Store lia',
       description: '',
+      tagline: '',
+      primaryColor: '#2563eb',
+      logoImageId: null,
+      coverImageId: null,
+      contactEmail: '',
+      contactPhone: '',
     });
     const list = await http().get('/stores').expect(200);
     expect(

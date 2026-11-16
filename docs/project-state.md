@@ -55,7 +55,7 @@ Depois, PBI-42 e PBI-43 com o dono (o primeiro deploy). O PBI-10 (página de cha
 O PBI-09 está descrito em [`pbi/PBI-09.md`](pbi/PBI-09.md), com evidências e limites. Os que uma próxima sessão deve lembrar:
 - `StripePaymentProvider.charge` e `.refund` nunca foram executados contra o Stripe (não há chaves); só a assinatura do webhook é testada. O dono fornece as chaves de teste; então rodar um pagamento real, uma recusa, um estorno e um webhook. O modelo (PBI-17) está na mesma situação: sem chave do Gemini, então usar um falso atrás da porta.
 - Um pedido não pago mantém o estoque até ser cancelado; nada expira os antigos.
-- Nenhuma página envia nem entrega pedidos ainda, só a API (o PBI-61 as adiciona).
+- O painel do lojista (PBI-61) envia e entrega pedidos pela página `/panel/orders`.
 
 Limites do PBI-59 que uma próxima sessão deve lembrar: o dono da loja de demonstração (`demo-seller@orbit.invalid`) não consegue entrar; um admin não tem loja, então não cria nem edita produtos; uma nova página de primeiro nível do web precisa ser adicionada aos links reservados da API (`store-slug.ts`) e a `apps/web/lib/routes.ts`.
 
