@@ -36,54 +36,70 @@ export default async function ProductPage({
   // A product of another store is not found under this link.
   if (product.store.slug !== store.slug) notFound();
   const user = await getCurrentUser();
+  const pictures = product.imageIds ?? [];
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-8">
+    <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 px-4 py-8">
       <Link
         href={`/${store.slug}`}
         className="text-sm text-blue-400 hover:underline"
       >
         Back to {store.name}
       </Link>
-      <p className="text-xs uppercase tracking-wide text-gray-400">
-        {product.category.name}
-      </p>
-      {product.imageIds?.length > 0 && (
+      <div className="grid gap-8 md:grid-cols-2">
         <div className="space-y-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageSrc(product.imageIds[0])}
-            alt={product.name}
-            className="max-h-96 w-full rounded border border-gray-700 object-contain"
-          />
-          {product.imageIds.length > 1 && (
-            <ul className="flex flex-wrap gap-2">
-              {product.imageIds.slice(1).map((id, i) => (
-                <li key={id}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageSrc(id)}
-                    alt={`${product.name}, picture ${i + 2}`}
-                    className="h-20 w-20 rounded border border-gray-700 object-cover"
-                  />
-                </li>
-              ))}
-            </ul>
+          {pictures.length > 0 ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageSrc(pictures[0])}
+                alt={product.name}
+                className="aspect-square w-full rounded-lg border border-gray-700 object-cover"
+              />
+              {pictures.length > 1 && (
+                <ul className="flex flex-wrap gap-2">
+                  {pictures.slice(1).map((id, i) => (
+                    <li key={id}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imageSrc(id)}
+                        alt={`${product.name}, picture ${i + 2}`}
+                        className="h-20 w-20 rounded border border-gray-700 object-cover"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <div
+              aria-hidden="true"
+              className="flex aspect-square w-full items-center justify-center rounded-lg bg-gray-900 text-7xl text-gray-600"
+            >
+              {product.name.slice(0, 1)}
+            </div>
           )}
         </div>
-      )}
-      <h1 className="text-3xl font-bold">{product.name}</h1>
-      <p className="text-gray-300">
-        {product.description || 'No description.'}
-      </p>
-      <p className="text-2xl font-bold">{formatPrice(product.priceCents)}</p>
-      <StockLabel stock={product.stock} />
-      <AddToCart
-        store={store.slug}
-        productId={product.id}
-        stock={product.stock}
-        signedIn={Boolean(user)}
-      />
-      <p className="text-xs text-gray-500">SKU {product.sku}</p>
+        <div className="space-y-4">
+          <p className="text-xs uppercase tracking-wide text-gray-400">
+            {product.category.name}
+          </p>
+          <h1 className="text-3xl font-bold">{product.name}</h1>
+          <p className="text-3xl font-bold">
+            {formatPrice(product.priceCents)}
+          </p>
+          <StockLabel stock={product.stock} />
+          <AddToCart
+            store={store.slug}
+            productId={product.id}
+            stock={product.stock}
+            signedIn={Boolean(user)}
+          />
+          <p className="whitespace-pre-line text-gray-300">
+            {product.description || 'No description.'}
+          </p>
+          <p className="text-xs text-gray-500">SKU {product.sku}</p>
+        </div>
+      </div>
     </main>
   );
 }

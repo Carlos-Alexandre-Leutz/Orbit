@@ -45,4 +45,3 @@ body {
 .store-theme .text-blue-500 {
   color: color-mix(in srgb, var(--store-color) 60%, white);
 }
-

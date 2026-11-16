@@ -1,13 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import {
-  canCancel,
-  canPay,
-  TEST_CARDS,
-  type OrderStatus,
-} from '@/lib/orders-shared';
+import { canCancel, canPay, type OrderStatus } from '@/lib/orders-shared';
 
 async function post(path: string, body?: object): Promise<string | null> {
   try {
@@ -37,11 +33,12 @@ export function OrderActions({
   role: 'CUSTOMER' | 'SELLER' | 'ADMIN';
 }) {
   const router = useRouter();
-  const [card, setCard] = useState<string>(TEST_CARDS[0].id);
+  const pathname = usePathname();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const base = `/api/bff/orders/${orderId}`;
+  const payPath = `${pathname}/pay`;
 
   async function run(action: () => Promise<string | null>) {
     setBusy(true);
@@ -56,33 +53,12 @@ export function OrderActions({
   return (
     <div className="space-y-3">
       {canPay(status) && role === 'CUSTOMER' && (
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm">
-            <span className="mr-2">Test card</span>
-            <select
-              value={card}
-              disabled={busy}
-              onChange={(e) => setCard(e.target.value)}
-              className="rounded border border-gray-500 bg-transparent p-1"
-            >
-              {TEST_CARDS.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              run(() => post(`${base}/pay`, { paymentMethod: card }))
-            }
-            className="rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
-          >
-            Pay now
-          </button>
-        </div>
+        <Link
+          href={`${payPath}`}
+          className="inline-block rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-500"
+        >
+          Pay now
+        </Link>
       )}
       {canCancel(role, status) &&
         (confirming ? (

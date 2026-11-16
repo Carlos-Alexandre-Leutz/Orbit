@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { SiteHeader } from '@/components/SiteHeader';
+import { StoreFooter } from '@/components/StoreFooter';
 import { onColor, safeColor } from '@/lib/images';
 import { getStore } from '@/lib/stores';
 
@@ -26,6 +27,7 @@ export default async function StoreLayout({
     <div className="store-theme contents" style={style}>
       <SiteHeader storeSlug={slug} />
       {children}
+      {store && <StoreFooter store={store} />}
     </div>
   );
 }

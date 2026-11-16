@@ -6,6 +6,8 @@ export interface CartLine {
   productId: string;
   sku: string;
   name: string;
+  /** The cover picture of the product, when it has one. */
+  imageId: string | null;
   priceCents: number;
   quantity: number;
   stock: number;

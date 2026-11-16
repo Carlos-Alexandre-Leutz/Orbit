@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
+import { StoreHero } from '@/components/StoreHero';
 import { bffRequest, messageOf } from '@/lib/bff';
 import {
   PAGE_SIZE,
@@ -53,12 +54,27 @@ export default async function StorePage({
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">{store.name}</h1>
-        {store.description && (
-          <p className="text-gray-400">{store.description}</p>
-        )}
-      </div>
+      <StoreHero store={store} />
+
+      {categories.ok && categories.data.length > 0 && (
+        <nav aria-label="Categories" className="flex flex-wrap gap-2 text-sm">
+          <Link
+            href={catalogHref(params, { category: '', page: 1 }, base)}
+            className={`rounded-full border px-3 py-1 ${params.category ? 'border-gray-600 hover:bg-gray-800' : 'border-gray-300 bg-gray-800'}`}
+          >
+            All
+          </Link>
+          {categories.data.map((c) => (
+            <Link
+              key={c.slug}
+              href={catalogHref(params, { category: c.slug, page: 1 }, base)}
+              className={`rounded-full border px-3 py-1 ${params.category === c.slug ? 'border-gray-300 bg-gray-800' : 'border-gray-600 hover:bg-gray-800'}`}
+            >
+              {c.name}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <form
         method="get"

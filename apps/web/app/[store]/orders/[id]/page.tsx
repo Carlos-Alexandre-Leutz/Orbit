@@ -84,6 +84,10 @@ export default async function OrderPage({
         )}
       </ul>
 
+      <p className="text-xs text-gray-500">
+        Payments are simulated (test mode): no real money moved.
+      </p>
+
       <OrderActions orderId={order.id} status={order.status} role={user.role} />
     </main>
   );
