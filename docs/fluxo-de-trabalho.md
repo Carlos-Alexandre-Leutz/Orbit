@@ -16,7 +16,7 @@
 
 ## Idioma
 
-- **Documentação daqui para frente: português do Brasil.** Todo documento que for criado ou atualizado passa a ficar em pt-BR, e a parte que for tocada é traduzida junto.
+- **Documentação daqui para frente: português do Brasil.** Todo documento que for criado ou atualizado passa a ficar em pt-BR, e **o arquivo inteiro que for tocado é traduzido**, para não ficar com dois idiomas no mesmo documento. **Exceção: o `README.md` e o `CONTRIBUTING.md` ficam em inglês**, porque o README é a vitrine para recrutadores dos EUA.
 - Continuam em inglês: código, comentários, nomes de branch, mensagens de commit (Conventional Commits) e títulos de PR, porque o `commitlint` e as ferramentas esperam isso.
 - Conversa com o dono: português do Brasil, claro e didático, explicando o porquê.
 
@@ -48,8 +48,9 @@ Siga a receita do tipo de tarefa e **não faça** o que ela não lista. Em caso 
 
 | Tarefa | Passos | Não faça |
 |---|---|---|
-| **Mudança só de documentação** (`.md`, `index.html`) | Editar, `scripts/dev pr "docs: ..."`, passar o link do PR. | Testes locais (o CI cobre), ler de volta o que acabei de escrever. |
-| **Mudança de código** | Editar, `scripts/dev test`, `scripts/dev pr "tipo: ..."`, passar o link. | Rodar a stack completa no Docker (só no fim de um PBI, e se o dono pedir). |
+| **Mudança só de documentação** (`.md`, `index.html`) | Editar, `scripts/dev pr "docs: ..."`, passar o link do PR. | Teste nenhum: nem `scripts/dev test`, nem `unittest` ou `pytest` à mão (o CI cobre), nem ler de volta o que acabei de escrever. **Exceção:** se a mudança também mexe em `tests/` ou em código, vale a receita de código. |
+| **Mudança de código** | Editar, `scripts/dev test`, `scripts/dev pr "tipo: ..."`, passar o link. | Rodar a stack completa no Docker (só no fim de um PBI, e se o dono pedir). Rodar `unittest` ou `pytest` direto, ou repetir os testes a cada edição: é **um** `scripts/dev test`, depois da última edição e antes do PR. |
+| **Traduzir um documento para pt-BR** | Traduzir o **arquivo inteiro** (não só o trecho que mexi). Se um teste confere títulos ou frases dele (`tests/test_docs.py`), ajustar o teste junto. Aí, e só aí, um `scripts/dev test` antes do PR, porque o teste mudou. | Traduzir só uma parte, deixar dois idiomas no mesmo arquivo, rodar testes a cada arquivo traduzido. O `README.md`, o `CONTRIBUTING.md`, os títulos do `docs/00-backlog.md` (viram issues) e os cabeçalhos dos ADRs (um teste os exige) ficam em inglês. |
 | **Criar PBI e tasks** (quando o dono pedir) | Escrever no `docs/00-backlog.md` em inglês, `scripts/import_backlog.py` (ele já atribui toda issue ao dono do repositório, `Carlos-Alexandre-Leutz`), mover os cards para In Progress, um comentário em cada issue com o link do PR. | `--verify` e `--dry-run` quando o escopo já é claro, `scripts/dev test` para texto, qualquer teste só por hábito. |
 | **Apagar branches** (quando o dono pedir) | Listar o que está mergeado e sem PR aberto, apagar local e remoto, dizer o que foi apagado e o que ficou. | Apagar branch com commit que não está na `staging`: perguntar antes. |
 | **Corrigir falha do CI** | `gh pr checks <número> --watch` em segundo plano, ler só o erro, corrigir, `scripts/dev test`, push. | Perguntar o status a cada 30 segundos. |
@@ -58,6 +59,7 @@ Siga a receita do tipo de tarefa e **não faça** o que ela não lista. Em caso 
 
 - **Não conferir o que a ferramenta já confirmou.** Se o comando disse "created 4 issues" e "links added", essa é a prova. Conferência extra só com dúvida real.
 - **Chamadas independentes vão na mesma mensagem**, em paralelo. Só espero uma para começar a outra quando a segunda depende do resultado da primeira.
+- **Teste só quando o que mudou pede.** Texto puro não pede teste. Código ou arquivo em `tests/` pede **um** `scripts/dev test` antes do PR, não um por edição.
 - **Não reler o que acabei de escrever** nem o que a ferramenta já devolveu.
 - **Respostas curtas.** Texto e relatório longo também custam token: digo o que fiz, o que não foi verificado e o que preciso do dono.
 
@@ -77,7 +79,7 @@ Ficam em `scripts/` e são versionados. O pipeline não os roda: ele tem os pró
 |---|---|
 | `scripts/dev test` | Roda só os checks que as mudanças pedem e imprime um resumo curto. |
 | `scripts/dev pr "tipo: mensagem"` | Branch, commit, push e PR para a `staging`. O merge é do dono. |
-| `scripts/dev up` | **Só o dono roda.** Sobe a stack do Docker na ordem das dependências (banco, mongo e ml; depois a API, o BFF e o web, **recriados** e não reiniciados, porque um contêiner antigo perdia a conexão com o banco recriado), avisa se uma porta está ocupada ou se os contêineres não se enxergam, e nunca para nem remove nada. A IA não roda este comando. |
+| `scripts/dev up [--built]` | **Só o dono roda.** Sobe a stack do Docker em modo de desenvolvimento (`docker-compose.dev.yml`: o código é montado no contêiner e recarrega ao salvar; `--built` usa as imagens construídas, do `docker-compose.yml`). Sobe na ordem das dependências (banco, mongo e ml; depois a API, o BFF e o web, **recriados** e não reiniciados, porque um contêiner antigo perdia a conexão com o banco recriado), avisa se uma porta está ocupada ou se os contêineres não se enxergam, e nunca para nem remove nada. A IA não roda este comando. |
 | `scripts/dev help` | Mostra os comandos. |
 
 Limites conhecidos: o filtro do `turbo` só enxerga dependências entre pacotes do monorepo, então uma mudança que afeta outro app sem passar por um import pode escapar (o CI pega, depois do push). O `ruff` é pulado se não estiver instalado. O `scripts/dev pr` ainda não foi rodado de ponta a ponta: o primeiro PR aberto por ele é o teste.

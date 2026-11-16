@@ -34,6 +34,12 @@ must be filled in first (see the `SERVICES` list in `index.html`).
 
 ```bash
 cp .env.example .env
+
+# To start the containers, just run the script below. It brings everything up in the right
+# dependency order (database, API, BFF, web) and reloads the code on save. With `--built` it uses the built images.
+scripts/dev up
+
+# Build the images and start the whole stack without the script (plain Docker Compose):
 docker compose up -d --build --wait
 ```
 

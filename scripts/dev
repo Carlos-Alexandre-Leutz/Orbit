@@ -3,7 +3,7 @@
 #
 #   scripts/dev test                       run only the checks the changed files need
 #   scripts/dev pr "feat: message" [paths] branch, commit, push and open a pull request to staging
-#   scripts/dev up                         start the Docker stack in dependency order (the owner runs it)
+#   scripts/dev up [--built]               start the Docker stack in dependency order, reloading on save (the owner runs it)
 #   scripts/dev classify                   read paths on stdin, print the checks they need (used by the tests)
 #   scripts/dev help
 #
@@ -174,6 +174,9 @@ Written with AI assistance." --jq .html_url)
 }
 
 cmd_up() {
+  # Default: the development stack (code mounted, reloads on save). `--built`: the images built from the code.
+  local DC=(docker compose -f docker-compose.dev.yml) build=(--build)
+  if [[ "${1:-}" == "--built" ]]; then DC=(docker compose); build=(); fi
   local port busy attempt
   for port in 3000 3001 3002; do
     busy=$(ss -ltnp 2>/dev/null | grep -E ":$port " | grep -v docker || true)
@@ -186,9 +189,9 @@ cmd_up() {
   done
 
   echo "1/4 database, mongo and ml"
-  docker compose up -d --wait db mongo ml
+  "${DC[@]}" up -d --wait db mongo ml
 
-  if ! docker compose exec -T ml python -c "import socket; socket.create_connection(('db', 5432), timeout=4)" >/dev/null 2>&1; then
+  if ! "${DC[@]}" exec -T ml python -c "import socket; socket.create_connection(('db', 5432), timeout=4)" >/dev/null 2>&1; then
     echo "The containers cannot reach each other (db:5432 timed out)." >&2
     echo "bridge-nf-call-iptables is $(cat /proc/sys/net/bridge/bridge-nf-call-iptables 2>/dev/null || echo unknown)." >&2
     echo "If it is 1, run: sudo sysctl net.bridge.bridge-nf-call-iptables=0 (it resets on reboot)." >&2
@@ -199,9 +202,9 @@ cmd_up() {
   # the database was recreated and could not reach it (P1001), while a new one could. They hold no data.
   echo "2/4 API"
   for attempt in 1 2; do
-    if docker compose up -d --force-recreate --wait api-tasks; then break; fi
+    if "${DC[@]}" up -d "${build[@]}" --force-recreate --wait api-tasks; then break; fi
     echo "Attempt $attempt failed. Last log lines:" >&2
-    docker compose logs --tail 6 api-tasks 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >&2 || true
+    "${DC[@]}" logs --tail 6 api-tasks 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >&2 || true
     if [[ "$attempt" -eq 2 ]]; then
       echo "The API did not start. See: docker compose logs -t api-tasks" >&2
       exit 1
@@ -210,16 +213,16 @@ cmd_up() {
   done
 
   echo "3/4 BFF"
-  docker compose up -d --force-recreate --wait bff
+  "${DC[@]}" up -d "${build[@]}" --force-recreate --wait bff
   echo "4/4 web"
-  docker compose up -d --force-recreate --wait frontend
+  "${DC[@]}" up -d "${build[@]}" --force-recreate --wait frontend
   echo "Stack is up: web http://localhost:3000, BFF http://localhost:3001, API http://localhost:3002"
 }
 
 case "${1:-help}" in
   test) cmd_test ;;
   pr) shift; cmd_pr "$@" ;;
-  up) cmd_up ;;
+  up) shift; cmd_up "$@" ;;
   classify) classify ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 1 ;;

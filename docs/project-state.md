@@ -1,75 +1,79 @@
-# Project state
+# Estado do projeto
 
-Where the project stands and what comes next. An AI session reads this first and updates it at the end of every PBI and every session (see [`working-agreement.md`](working-agreement.md)). Questions for the owner are in [`open-questions.md`](open-questions.md). **Last updated: 2026-11-15.**
+Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e atualiza ao fim de cada PBI e de cada sessão (ver [`working-agreement.md`](working-agreement.md)). As perguntas para o dono estão em [`open-questions.md`](open-questions.md). **Última atualização: 2026-11-16.**
 
-## Where it stands
+## Onde estamos
 
-`staging` holds PBI-01 to PBI-09, PBI-55, PBI-59 and PBI-60, all with green checks. Each PBI has a document with its evidence and its limits: [`pbi/`](pbi).
+A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-62, PBI-63 e PBI-64, todos com os checks verdes. Cada PBI tem um documento com as evidências e os limites: [`pbi/`](pbi).
 
-| PBI | What it delivered |
+| PBI | O que entregou |
 |---|---|
-| 01 to 04 | GitHub workflow, base from the SaaS template, starting documentation, local environment |
-| 05 | CI: TypeScript, Python and Docker checks, an inert staging deploy, a script for pipeline times |
-| 06 | Roles (customer, seller, admin), signed sessions, role guards, temporary visitor accounts |
-| 07 | Product catalog: API, search, seed loader, integration tests on PostgreSQL |
-| 55 | Web session (httpOnly cookie, [ADR-003](adr/ADR-003-web-session-cookie.md)), menu by role, banner, catalog pages, seller pages |
-| 08 | Cart: model, rules with a row lock, cart page. The Redis task was cut. |
-| 09 | Orders and test payment: state machine, payment port with a fake and a Stripe adapter (never run against Stripe), webhook, idempotency, cancellation with refunds, confirmation e-mail, checkout and order pages. |
-| 59 | Stores and ownership: store model and link rules, seller sign-up that creates the store, products, carts and orders scoped to a store (existing data in a demo store), isolation tests ([ADR-005](adr/ADR-005-stores-and-storefronts.md), accepted). |
-| 60 | Storefront at the store link: `/<slug>` store page with search, product pages, cart, checkout and orders under the link, the stores list on the home page, a menu by role and store. |
+| 01 a 04 | Fluxo no GitHub, base do template SaaS, documentação inicial, ambiente local |
+| 05 | CI: checks de TypeScript, Python e Docker, um deploy inerte da staging, um script de tempos do pipeline |
+| 06 | Papéis (cliente, vendedor, admin), sessões assinadas, guardas por papel, contas temporárias de visitante |
+| 07 | Catálogo de produtos: API, busca, carga de dados de exemplo, testes de integração no PostgreSQL |
+| 55 | Sessão do web (cookie httpOnly, [ADR-003](adr/ADR-003-web-session-cookie.md)), menu por papel, banner, páginas do catálogo, páginas do vendedor |
+| 08 | Carrinho: modelo, regras com trava de linha, página do carrinho. A tarefa do Redis foi cortada. |
+| 09 | Pedidos e pagamento de teste: máquina de estados, porta de pagamento com um falso e um adaptador do Stripe (nunca executado contra o Stripe), webhook, idempotência, cancelamento com estorno, e-mail de confirmação, páginas de checkout e de pedido. |
+| 59 | Lojas e propriedade: modelo de loja e regras do link, cadastro de vendedor que cria a loja, produtos, carrinhos e pedidos por loja (dados existentes numa loja de demonstração), testes de isolamento ([ADR-005](adr/ADR-005-stores-and-storefronts.md), aceito). |
+| 60 | Vitrine no link da loja: página `/<slug>` com busca, páginas de produto, carrinho, checkout e pedidos sob o link, a lista de lojas na página inicial, menu por papel e por loja. |
+| 62 | Fluxo de trabalho e scripts do dia a dia (`scripts/dev test` e `scripts/dev pr`), documentados em [`fluxo-de-trabalho.md`](fluxo-de-trabalho.md). |
+| 63 | E-mail do QA: porta `MailTransport` com adaptadores SMTP e HTTP (a API de e-mail do dono), falha de envio responde 503, páginas de senha pelas rotas `/api/session/*`. |
+| 64 | Deploy automático do QA: o job `redeploy` do `publish-images.yml` chama os deploy hooks do Render. |
 
-Measured on 2026-11-14 on the PBI-09 branch (the backlog now has 15 epics, 61 PBIs and 200 tasks, 276 items; the three new PBIs are not on GitHub until the plan PR is merged): API 212 unit tests and 68 integration tests, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; `scripts/import_backlog.py --verify` reports 260 items and 0 problems.
+Medido em 2026-11-14 na branch do PBI-09 (o backlog tem hoje 15 épicos, 64 PBIs e 209 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 
-Parked ideas, with no tasks yet: epic E13 (cart recovery over WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) and epic E14 (support tickets with AI triage, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
+Ideias paradas, ainda sem tarefas: épico E13 (recuperação de carrinho por WhatsApp, [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md)) e épico E14 (tickets de suporte com triagem por IA, [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md)).
 
-## Next step
+## Próximo passo
 
-**PBI-59 (stores and ownership) and PBI-60 (storefront at the store link) are done and validated** ([`pbi/PBI-59.md`](pbi/PBI-59.md), [`pbi/PBI-60.md`](pbi/PBI-60.md)). A seller signs up with a store at `/<slug>`, and a buyer opens that link, logs in, fills a cart and buys inside the store. The two choices of [ADR-005](adr/ADR-005-stores-and-storefronts.md) (path link, one customer account for all stores) were adopted on the owner's instruction; either can still change.
+**O PBI-59 (lojas e propriedade) e o PBI-60 (vitrine no link da loja) estão prontos e validados** ([`pbi/PBI-59.md`](pbi/PBI-59.md), [`pbi/PBI-60.md`](pbi/PBI-60.md)). Um vendedor se cadastra com uma loja em `/<slug>`, e um comprador abre esse link, entra, enche o carrinho e compra dentro da loja. As duas escolhas do [ADR-005](adr/ADR-005-stores-and-storefronts.md) (link por caminho, uma conta de cliente para todas as lojas) foram adotadas por instrução do dono; qualquer uma ainda pode mudar.
 
-Next, before PBI-10:
+A seguir, antes do PBI-10:
 
-- **PBI-63** e-mail for QA: the API sends through the `MailTransport` port (SMTP or the owner's mail API over HTTP), a send failure is a 503, and the reset pages go through `/api/session/*`. The owner still has to fill the variables on Render ([`qa-email.md`](qa-email.md)) and test there ([`pbi/PBI-63.md`](pbi/PBI-63.md)).
-- **PBI-64** automatic QA deploy: the `redeploy` job of `publish-images.yml` calls the three Render deploy hooks after every push to `staging`. The owner must create the secrets `RENDER_QA_API_HOOK`, `RENDER_QA_BFF_HOOK` and `RENDER_QA_WEB_HOOK` ([`qa-deploy.md`](qa-deploy.md), [ADR-006](adr/ADR-006-qa-auto-deploy.md)); never remove it.
-- **PBI-61** seller panel: layout, the product pages moved into it, the store's orders with ship and deliver, edit the store's name and description. Today a seller can manage products at `/seller/products` and read an order by id through the API, but cannot list their store's orders in a page, and an admin sees no store orders in the pages.
+- **PBI-63** e **PBI-64** (e-mail e deploy do QA): faltam coisas do dono. Preencher no Render as variáveis de e-mail (`MAIL_PROVIDER`, `MAIL_API_URL`, `MAIL_API_TOKEN`, `APP_URL` só com o endereço do site, sem caminho), conferir que o QA atualiza sozinho depois de um merge e testar a recuperação de senha lá ([`qa-email.md`](qa-email.md), [`qa-deploy.md`](qa-deploy.md), [ADR-006](adr/ADR-006-qa-auto-deploy.md)). O gatilho de deploy nunca é removido.
+- **PBI-61** painel do vendedor: layout, as páginas de produto movidas para ele, os pedidos da loja com enviar e entregar, edição do nome e da descrição da loja. Hoje o vendedor gerencia produtos em `/seller/products` e lê um pedido por id pela API, mas não consegue listar os pedidos da loja numa página, e o admin não vê pedidos de loja nas páginas.
 
-Then PBI-42 and PBI-43 with the owner (the first deploy). PBI-10 (chat page with streaming) still needs a fake agent behind a port and a streaming ADR; it waits. The owner still has to say what must exist before the first public deploy (see [`open-questions.md`](open-questions.md)).
+Depois, PBI-42 e PBI-43 com o dono (o primeiro deploy). O PBI-10 (página de chat com streaming) ainda precisa de um agente falso atrás de uma porta e de um ADR de streaming; ele espera. O dono ainda precisa dizer o que tem de existir antes do primeiro deploy público (ver [`open-questions.md`](open-questions.md)).
 
-PBI-09 is described in [`pbi/PBI-09.md`](pbi/PBI-09.md), with its evidence and limits. The ones a next session must remember:
-- `StripePaymentProvider.charge` and `.refund` were never run against Stripe (no keys); only the webhook signature is tested. The owner supplies test keys; then run one real payment, one decline, one refund and one webhook. The model (PBI-17) is in the same situation: no Gemini key, so use a fake behind the port.
-- An unpaid order keeps its stock until cancelled; nothing expires old ones.
-- No page ships or delivers orders yet, only the API (PBI-61 adds them).
+O PBI-09 está descrito em [`pbi/PBI-09.md`](pbi/PBI-09.md), com evidências e limites. Os que uma próxima sessão deve lembrar:
+- `StripePaymentProvider.charge` e `.refund` nunca foram executados contra o Stripe (não há chaves); só a assinatura do webhook é testada. O dono fornece as chaves de teste; então rodar um pagamento real, uma recusa, um estorno e um webhook. O modelo (PBI-17) está na mesma situação: sem chave do Gemini, então usar um falso atrás da porta.
+- Um pedido não pago mantém o estoque até ser cancelado; nada expira os antigos.
+- Nenhuma página envia nem entrega pedidos ainda, só a API (o PBI-61 as adiciona).
 
-PBI-59 limits a next session must remember: the demo store's owner (`demo-seller@orbit.invalid`) cannot log in; an admin has no store, so an admin cannot create or edit products; a new top-level page of the web app must be added to the reserved links of the API (`store-slug.ts`) and to `apps/web/lib/routes.ts`.
+Limites do PBI-59 que uma próxima sessão deve lembrar: o dono da loja de demonstração (`demo-seller@orbit.invalid`) não consegue entrar; um admin não tem loja, então não cria nem edita produtos; uma nova página de primeiro nível do web precisa ser adicionada aos links reservados da API (`store-slug.ts`) e a `apps/web/lib/routes.ts`.
 
-## How a task and a PBI are done
+## Como uma tarefa e um PBI são feitos
 
-- Plan from the issue; branch `task/<nn>-<slug>` from the PBI branch, which comes from `staging`. Never push to `main` or `staging`.
-- Write the PBI's acceptance criteria in its issue before starting. Comment on each task issue, move it in the Project, open the pull request (what was done, how it was tested, what was **not** verified, that AI was used), wait for all six checks, merge through `gh api` (`gh pr edit` fails here), delete the task branch, close the issue.
-- A new issue for the Project needs `gh project item-add`, then `scripts/setup_project.py` to set Phase and Priority. A task added to the backlog is created by `scripts/import_backlog.py`; its `--verify` must end with 0 problems.
-- At the end of a PBI, check **each** criterion for real: for the back end, the full Compose stack through the BFF; for the front end, a real browser. Write `docs/pbi/PBI-nn.md` and open the PBI pull request into `staging`.
+- Planeje a partir da issue; branch `task/<nn>-<slug>` a partir da branch do PBI, que sai da `staging`. Nunca dê push na `main` nem na `staging`.
+- Escreva os critérios de aceite do PBI na issue antes de começar. Comente em cada issue de tarefa, mova no Project, abra o pull request (o que foi feito, como foi testado, o que **não** foi verificado, que houve IA), espere os seis checks, mergeie pelo `gh api` (o `gh pr edit` falha aqui), apague a branch da tarefa, feche a issue.
+- Uma issue nova para o Project precisa de `gh project item-add` e depois `scripts/setup_project.py` para definir Fase e Prioridade. Uma tarefa adicionada ao backlog é criada pelo `scripts/import_backlog.py`; o `--verify` dele deve terminar com 0 problemas.
+- No fim de um PBI, confira **cada** critério de verdade: no back end, a stack completa do Compose pelo BFF; no front end, um navegador real. Escreva o `docs/pbi/PBI-nn.md` e abra o pull request do PBI para a `staging`.
 
-## Environment traps
+## Armadilhas do ambiente
 
-- The default Node is 16. Put Node 20 on the `PATH` before `pnpm` or `git commit`.
-- The Docker daemon cannot see the sandbox `/tmp`. Verify the full stack from a clone **inside the repository folder** (for example `.verifyNN`, listed in `.git/info/exclude`), then run `docker compose -p <project> down -v --rmi local` and delete the clone.
-- The owner's own stack uses ports 3000 to 3002 and the container `orbit-postgres-db`. In a verification clone, change the published ports (13000 to 13002), `POSTGRES_PORT`, `MONGO_PORT` and the `container_name`. Never stop the owner's containers.
-- Commands that run longer than about two minutes are moved to the background: wait for the notification instead of polling. The Docker check takes about four minutes per pull request.
-- Next.js here is version 16: read `apps/web/node_modules/next/dist/docs` first (`middleware` is `proxy`, `cookies()` and route params are asynchronous).
-- `@nestjs/jwt` and `@nestjs/mapped-types` version 12 are ES-module only; use 11 and 2.x. Code outside `apps/api-tasks/src` must stay out of `tsconfig.build.json`. A client component must not import server-only code such as `next/headers`.
-- Do not push before the local lint has finished: a pull request started too early once failed in CI for that reason.
+- O Node padrão é o 16. Ponha o Node 20 no `PATH` antes de `pnpm` ou `git commit`.
+- O daemon do Docker não enxerga o `/tmp` do sandbox. Verifique a stack completa num clone **dentro da pasta do repositório** (por exemplo `.verifyNN`, listado em `.git/info/exclude`), depois rode `docker compose -p <projeto> down -v --rmi local` e apague o clone.
+- A stack do próprio dono usa as portas 3000 a 3002 e o contêiner `orbit-postgres-db`. Num clone de verificação, mude as portas publicadas (13000 a 13002), `POSTGRES_PORT`, `MONGO_PORT` e o `container_name`. Nunca pare os contêineres do dono.
+- Comandos que passam de uns dois minutos vão para segundo plano: espere a notificação em vez de ficar consultando. O check do Docker leva uns quatro minutos por pull request.
+- O Next.js aqui é a versão 16: leia `apps/web/node_modules/next/dist/docs` primeiro (`middleware` virou `proxy`, `cookies()` e os parâmetros de rota são assíncronos).
+- `@nestjs/jwt` e `@nestjs/mapped-types` na versão 12 são só ES module; use a 11 e a 2.x. Código fora de `apps/api-tasks/src` precisa ficar fora do `tsconfig.build.json`. Um componente de cliente não pode importar código só de servidor, como `next/headers`.
+- Não dê push antes de o lint local terminar: um pull request aberto cedo demais já falhou no CI por isso.
+- No computador do dono, os contêineres precisaram de regras de firewall à mão (`sudo iptables -I DOCKER-FORWARD ...` para a ida e para a volta da rede do Orbit) e de `sysctl net.bridge.bridge-nf-call-iptables=0`; as duas coisas somem no reboot. Sem elas, a API não alcança o banco nem a internet (o e-mail falha com timeout).
+- `scripts/dev up` (só o dono roda) sobe a stack de desenvolvimento e **não** reconstrói imagens: depois de mudar o código da API, `docker compose up -d --build --force-recreate api-tasks`.
 
-## Disk
+## Disco
 
-On 2026-11-14 the disk was 97% full (about 7.6 GB free) because Docker's build cache had grown to about 39 GB. Clearing the build cache and three old verification images brought it to about 43 GB free (81%). A full-stack verification costs a few GB. If free space falls near 5 GB, stop and tell the owner. Docker keeps its data in `/var/snap/docker/common/var-lib-docker` (a snap install).
+Em 2026-11-14 o disco estava 97% cheio (uns 7,6 GB livres) porque o cache de build do Docker tinha crescido para uns 39 GB. Limpar o cache de build e três imagens antigas de verificação levou a uns 43 GB livres (81%). Uma verificação da stack completa custa alguns GB. Se o espaço livre chegar perto de 5 GB, pare e avise o dono. O Docker guarda os dados em `/var/snap/docker/common/var-lib-docker` (instalação por snap).
 
-The owner has a 1 TB SSD for AI projects and may move Docker's data there. The steps: connect and mount it with an ext4 file system by UUID in `fstab`; back up the database volumes; stop Docker; `rsync` the directory to the SSD; point Docker's data root at it; start Docker; check that the containers and volumes are intact; only then delete the old directory. Formatting erases the disk, so the owner confirms that step.
+O dono tem um SSD de 1 TB para projetos de IA e pode mover os dados do Docker para lá. Os passos: conectar e montar com sistema de arquivos ext4 por UUID no `fstab`; fazer backup dos volumes dos bancos; parar o Docker; `rsync` do diretório para o SSD; apontar a raiz de dados do Docker para ele; iniciar o Docker; conferir que os contêineres e volumes estão intactos; só então apagar o diretório antigo. Formatar apaga o disco, então o dono confirma esse passo.
 
-## Known risks (details in the PBI documents)
+## Riscos conhecidos (detalhes nos documentos dos PBIs)
 
-- `POST /auth/anonymous` is public and creates a row per call; there is no request limit on login or registration; reset tokens are stored in plain text; the store API still has `enableCors()` open and its port published.
-- The API's error messages and the e-mails are in Portuguese and the pages in English.
-- Not verified yet: the staging deploy (the placeholder only writes a note), the Turborepo cache hit in CI, the `Secure` cookie over https, the layout on a phone, and the 24-hour expiry of a visitor account.
+- `POST /auth/anonymous` é público e cria uma linha por chamada; não há limite de requisições em login nem em cadastro; os tokens de recuperação de senha ficam em texto puro; a API da loja ainda tem `enableCors()` aberto e a porta publicada.
+- As mensagens de erro da API e os e-mails ainda estão em português e as páginas em inglês; o produto deve ser todo em inglês, então falta traduzir (a regra está no `AGENTS.md`).
+- Ainda não verificado: o deploy da staging (o placeholder só escreve uma nota; o QA é atualizado pelo job `redeploy`, que depende dos secrets do dono), o acerto de cache do Turborepo no CI, o cookie `Secure` em https, o layout no celular e a expiração de 24 horas de uma conta de visitante.
 
-## Pace so far
+## Ritmo até aqui
 
-Merge times on 2026-11-14 (from the Git history of `staging`): PBI-05 at 11:27, PBI-06 at 12:36, PBI-07 at 13:24, PBI-55 at 18:54, PBI-08 at 19:33. Between 13:24 and 18:54 the time went mostly to rewriting the backlog, the parked ideas, disk space and pauses. With no interruptions a PBI of 3 to 5 tasks, including its full-stack validation and document, took about 40 to 70 minutes, roughly 13 minutes a task. On 2026-11-14 the backlog had 38 PBIs and 139 tasks left, not counting the parked epics E13 and E14; about 33 of those PBIs need nothing from the owner (the server, deploy, backups and the launch video do). A realistic estimate for those is 45 to 60 hours of active work, because the agent, RAG, machine learning and evaluation PBIs are slower than the store ones. This is an estimate from five data points, not a promise.
+Horários de merge em 2026-11-14 (do histórico do Git da `staging`): PBI-05 às 11:27, PBI-06 às 12:36, PBI-07 às 13:24, PBI-55 às 18:54, PBI-08 às 19:33. Entre 13:24 e 18:54 o tempo foi sobretudo para reescrever o backlog, as ideias paradas, o espaço em disco e pausas. Sem interrupções, um PBI de 3 a 5 tarefas, com a validação da stack completa e o documento, levou uns 40 a 70 minutos, cerca de 13 minutos por tarefa. Em 2026-11-14 o backlog tinha 38 PBIs e 139 tarefas restantes, sem contar os épicos parados E13 e E14; uns 33 desses PBIs não dependem do dono (o servidor, o deploy, os backups e o vídeo de lançamento dependem). Uma estimativa realista para eles é de 45 a 60 horas de trabalho ativo, porque os PBIs de agente, RAG, aprendizado de máquina e avaliação são mais lentos que os da loja. É uma estimativa a partir de cinco pontos, não uma promessa.

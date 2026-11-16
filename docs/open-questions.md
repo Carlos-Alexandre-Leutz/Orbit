@@ -1,25 +1,27 @@
-# Open questions and owner-only actions
+# Perguntas em aberto e ações só do dono
 
-Things only the owner can decide or do. An AI session adds a row when it asks something that must survive the chat, and removes it (with the answer written where it belongs) when it is settled. Last updated 2026-11-15.
+Coisas que só o dono pode decidir ou fazer. Uma sessão de IA acrescenta uma linha quando pergunta algo que precisa sobreviver ao chat, e a remove (com a resposta escrita onde ela pertence) quando está resolvido. Última atualização: 2026-11-16.
 
-## Decisions
+## Decisões
 
-| Question | Blocks | Notes |
+| Pergunta | Bloqueia | Observações |
 |---|---|---|
-| What must exist before the first public deploy? Candidates: rate limits on login and registration, hashing reset tokens, closing the open CORS and the published store-API port, backups, server hardening (PBI-44), a real mail provider. | PBI-42 and PBI-43 | These are listed under Known risks in [`project-state.md`](project-state.md). Today PBI-37 (security) and PBI-44 come after the agent work in the order; a public store may need part of them first. |
-| Make the checks `typescript`, `python` and `docker` required on `staging` and `main`? | Nothing; makes the pipeline stricter | Today only `commitlint` and `scripts-tests` are required. It changes `scripts/protect-branches.sh` and the test that compares it with `AGENTS.md` and `CONTRIBUTING.md`. |
-| E-mail do QA pela API própria (`free-email-send-api`): o que ajustar nela? | Nada hoje; melhora o e-mail | Decidido em 2026-11-16: o Orbit envia por HTTP ([`qa-email.md`](qa-email.md)). Faltam: aceitar HTML (o link do e-mail chega como texto), confirmar que o filtro de spam deixa passar o link de reset, e o nome do remetente ("... via free.email.sender"). |
-| What CORS settings should the BFF have? | Nothing today | The owner said they want to change it; an AI never changed it. The web app no longer depends on it: the browser only talks to its own site ([ADR-003](adr/ADR-003-web-session-cookie.md)). |
-| Does the cart recovery SaaS (epic E13) live in this repository or in a new one? Which store platform comes first? | Turning E13 into a detailed backlog | See [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md). The Meta rules in it were written from memory and must be checked first. |
-| Support tickets with AI triage (epic E14): who answers a ticket, and where is the "expected behaviour" read from? | Turning E14 into a detailed backlog | Open questions are in [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md). |
+| O que precisa existir antes do primeiro deploy público? Candidatos: limite de requisições em login e cadastro, hash dos tokens de recuperação de senha, fechar o CORS aberto e a porta publicada da API da loja, backups, endurecimento do servidor (PBI-44), um provedor de e-mail de verdade. | PBI-42 e PBI-43 | Estão listados em Riscos conhecidos no [`project-state.md`](project-state.md). Hoje o PBI-37 (segurança) e o PBI-44 vêm depois do trabalho dos agentes na ordem; uma loja pública pode precisar de parte deles antes. |
+| Tornar os checks `typescript`, `python` e `docker` obrigatórios na `staging` e na `main`? | Nada; deixa o pipeline mais rígido | Hoje só `commitlint` e `scripts-tests` são obrigatórios. Muda o `scripts/protect-branches.sh` e o teste que o compara com o `AGENTS.md` e o `CONTRIBUTING.md`. |
+| E-mail do QA pela API própria (`free-email-send-api`): o que ajustar nela? | Nada hoje; melhora o e-mail | Decidido em 2026-11-16: o Orbit envia por HTTP ([`qa-email.md`](qa-email.md)). Faltam: aceitar HTML (o link do e-mail chega como texto), confirmar que o filtro de spam deixa passar o link de recuperação, e o nome do remetente ("... via free.email.sender"). |
+| Como as regras de firewall do Docker deste computador devem ficar permanentes? | Nada no projeto; só o ambiente local do dono | As regras `DOCKER-FORWARD` da rede do Orbit e o `bridge-nf-call-iptables=0` foram aplicados à mão e somem no reboot. Falta descobrir por que o Docker não cria as regras sozinho (suspeita: algo que recarrega o firewall, como o FortiClient). Ver [`project-state.md`](project-state.md). |
+| Que configuração de CORS o BFF deve ter? | Nada hoje | O dono disse que quer mudar; uma IA nunca mudou. O web não depende mais disso: o navegador só fala com o próprio site ([ADR-003](adr/ADR-003-web-session-cookie.md)). |
+| O SaaS de recuperação de carrinho (épico E13) fica neste repositório ou em um novo? Qual plataforma de loja vem primeiro? | Transformar o E13 num backlog detalhado | Ver [`ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md). As regras da Meta ali foram escritas de memória e precisam ser conferidas primeiro. |
+| Tickets de suporte com triagem por IA (épico E14): quem responde um ticket, e de onde se lê o "comportamento esperado"? | Transformar o E14 num backlog detalhado | As perguntas em aberto estão em [`ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md). |
 
-## Only the owner can do these
+## Só o dono pode fazer estas
 
-| Action | Why it is the owner's |
+| Ação | Por que é do dono |
 |---|---|
-| Set up the VPS, deploy, and release `staging` to `main` | The project rule: nothing reaches `main` or production without the owner. PBI-42 to PBI-44 depend on it. |
-| Give test keys for Stripe and for the Gemini API | An AI session has none and must not invent them. Until then the payment and the model are built behind a port with a fake. For Stripe: a test secret key and the signing secret of a test-mode webhook that points at `<BFF>/payments/webhook` go in `.env` as `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` ([ADR-004](adr/ADR-004-payments-behind-a-port.md), [PBI-09](pbi/PBI-09.md)). |
-| Delete the merged `pbi/*` branches (01 to 09 and 55) | `AGENTS.md`: the owner deletes them after checking each merge. |
-| Update the local `.env` from `.env.example` (`MONGO_*`, `JWT_SECRET`, the ports) | Only the owner's machine has that file. |
-| Reset the old PostgreSQL volume (`docker compose down -v`) to get pgvector | It deletes development data, so it is the owner's call. |
-| Move Docker's data to the 1 TB SSD, when it is connected | Needs the disk mounted, an ext4 file system, a mount by UUID in `fstab` and a backup of the database volumes. Steps are in [`project-state.md`](project-state.md). |
+| Montar a VPS, fazer o deploy e liberar a `staging` para a `main` | A regra do projeto: nada chega à `main` nem à produção sem o dono. Os PBI-42 a PBI-44 dependem disso. |
+| Criar os secrets do deploy do QA no GitHub (`RENDER_QA_API_HOOK`, `RENDER_QA_BFF_HOOK`, `RENDER_QA_WEB_HOOK`) e as variáveis de e-mail no Render | Os valores são segredos; uma IA não os cria nem os vê. Ver [`qa-deploy.md`](qa-deploy.md) e [`qa-email.md`](qa-email.md). |
+| Fornecer chaves de teste do Stripe e da API do Gemini | Uma sessão de IA não tem nenhuma e não deve inventar. Até lá, o pagamento e o modelo são construídos atrás de uma porta com um falso. Para o Stripe: uma chave secreta de teste e o segredo de assinatura de um webhook em modo de teste que aponte para `<BFF>/payments/webhook` vão no `.env` como `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` ([ADR-004](adr/ADR-004-payments-behind-a-port.md), [PBI-09](pbi/PBI-09.md)). |
+| Apagar as branches `pbi/*` já mergeadas (01 a 09 e 55) | `AGENTS.md`: o dono as apaga depois de conferir cada merge. |
+| Atualizar o `.env` local a partir do `.env.example` (`MONGO_*`, `JWT_SECRET`, as portas) | Só a máquina do dono tem esse arquivo. |
+| Zerar o volume antigo do PostgreSQL (`docker compose down -v`) para ter o pgvector | Apaga dados de desenvolvimento, então a decisão é do dono. |
+| Mover os dados do Docker para o SSD de 1 TB, quando ele estiver conectado | Precisa do disco montado, de um sistema de arquivos ext4, de uma montagem por UUID no `fstab` e de um backup dos volumes dos bancos. Os passos estão em [`project-state.md`](project-state.md). |
