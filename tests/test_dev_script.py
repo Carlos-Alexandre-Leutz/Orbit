@@ -59,7 +59,7 @@ class DevScriptTests(unittest.TestCase):
         self.assertNotIn("Co-authored-by", text)
         self.assertNotIn("/merge", text)
         self.assertNotIn("push -f", text)
-        self.assertNotIn("--force", text)
+        self.assertNotRegex(text, r"--force(?!-recreate)|push[^\n]*\s-f\b")  # --force-recreate (docker) is fine
 
 
 if __name__ == "__main__":

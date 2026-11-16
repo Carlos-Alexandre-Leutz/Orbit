@@ -3,14 +3,13 @@
 #
 #   scripts/dev test                       run only the checks the changed files need
 #   scripts/dev pr "feat: message" [paths] branch, commit, push and open a pull request to staging
-#   scripts/dev up                         start the Docker stack in dependency order, with retries (the owner runs it)
+#   scripts/dev up                         start the Docker stack in dependency order (the owner runs it)
 #   scripts/dev classify                   read paths on stdin, print the checks they need (used by the tests)
 #   scripts/dev help
 #
 # `test` compares with origin/staging (changes in the working tree included). The CI still runs
 # everything and decides the merge; this only catches silly mistakes before the push.
-# `up` starts db, mongo and ml, then the API (retrying: it often fails right after the database starts),
-# then the BFF and the web. It never stops or removes anything. It is for the owner: an AI session must not run it.
+# `up` starts db, mongo and ml, then recreates the API, the BFF and the web in that order. It never stops or removes anything. It is for the owner: an AI session must not run it.
 # `pr` never pushes to main or staging, never adds an attribution trailer and never merges.
 set -euo pipefail
 
@@ -196,22 +195,24 @@ cmd_up() {
     exit 1
   fi
 
-  echo "2/4 API (up to 4 attempts)"
-  for attempt in 1 2 3 4; do
-    if docker compose up -d --wait api-tasks; then break; fi
+  # The app containers are recreated, not restarted: an old container kept a network setup from before
+  # the database was recreated and could not reach it (P1001), while a new one could. They hold no data.
+  echo "2/4 API"
+  for attempt in 1 2; do
+    if docker compose up -d --force-recreate --wait api-tasks; then break; fi
     echo "Attempt $attempt failed. Last log lines:" >&2
     docker compose logs --tail 6 api-tasks 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >&2 || true
-    if [[ "$attempt" -eq 4 ]]; then
-      echo "The API did not start after 4 attempts. See: docker compose logs api-tasks" >&2
+    if [[ "$attempt" -eq 2 ]]; then
+      echo "The API did not start. See: docker compose logs -t api-tasks" >&2
       exit 1
     fi
     sleep 5
   done
 
   echo "3/4 BFF"
-  docker compose up -d --wait bff
+  docker compose up -d --force-recreate --wait bff
   echo "4/4 web"
-  docker compose up -d --wait frontend
+  docker compose up -d --force-recreate --wait frontend
   echo "Stack is up: web http://localhost:3000, BFF http://localhost:3001, API http://localhost:3002"
 }
 
