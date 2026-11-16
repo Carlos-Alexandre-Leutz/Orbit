@@ -6,12 +6,13 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 
 ## Language
 
-- Everything in the repository is in **English**: code, comments, commits, branch names, issues, PBIs, PRs, docs, ADRs.
+- Code, comments, commits, branch names and PR titles are in **English**. Documentation written or updated from 2026-11-16 on is in Brazilian Portuguese (translate the part you touch); older docs stay in English until they are next updated.
 - The only exception is the owner's private context file, which is not committed.
 - Chat with the owner happens in Brazilian Portuguese, clear and didactic. The owner is learning the process, so explain why, not only what.
 
 ## Workflow
 
+- **Read [`docs/fluxo-de-trabalho.md`](docs/fluxo-de-trabalho.md) first.** Since 2026-11-16 it sets how to work (do only what is asked, the owner merges pull requests, no issues, comments or Project moves unless asked, local tests only for what changed) and it prevails over the bullets below about merging and bookkeeping.
 - Plan in the GitHub Project (Epic → PBI → Task). The backlog source is `docs/00-backlog.md`.
 - Epics, PBIs and tasks are linked as native GitHub sub-issues (epic → PBI → task), and task titles carry no `[PBI-nn]` prefix. A task created by hand must be added to the backlog and linked; `scripts/import_backlog.py --verify` checks both.
 - Gitflow: `main` (production) ← `staging` (integration) ← `pbi/<nn>-<slug>` ← `task/<nn>-<slug>`.
