@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   ConflictException,
   UnauthorizedException,
   BadRequestException,
@@ -18,6 +19,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
@@ -194,7 +197,14 @@ export class AuthService {
       },
     });
 
-    await this.mailService.sendPasswordReset(user.email, token);
+    // The answer must not depend on the e-mail: a failure here would also tell a stranger the account exists.
+    try {
+      await this.mailService.sendPasswordReset(user.email, token);
+    } catch (error) {
+      this.logger.error(
+        `Could not send the password reset e-mail: ${String(error)}`,
+      );
+    }
 
     return { message };
   }

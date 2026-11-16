@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { Inject, Injectable } from '@nestjs/common';
+import { MAIL_TRANSPORT } from './mail-transport';
+import type { MailTransport } from './mail-transport';
 
 /** What the confirmation e-mail shows of an order. */
 export interface OrderMailData {
@@ -25,15 +26,18 @@ export function formatMoney(cents: number, currency: string): string {
 
 @Injectable()
 export class MailService {
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(
+    @Inject(MAIL_TRANSPORT) private readonly transport: MailTransport,
+  ) {}
 
   async sendPasswordReset(email: string, token: string) {
     const baseUrl = process.env.APP_URL || 'http://localhost:3000';
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-    await this.mailerService.sendMail({
+    await this.transport.send({
       to: email,
       subject: 'Recuperação de Senha',
+      text: `Você solicitou a alteração de senha. Abra o link abaixo para cadastrar uma nova senha:\n\n${resetUrl}\n\nSe você não solicitou essa alteração, ignore este e-mail. O link expira em 1 hora.`,
       html: `
         <h1>Recuperação de Senha</h1>
         <p>Você solicitou a alteração de senha. Clique no link abaixo para cadastrar uma nova senha:</p>
@@ -54,9 +58,17 @@ export class MailService {
       )
       .join('');
 
-    await this.mailerService.sendMail({
+    const lines = order.items
+      .map(
+        (item) =>
+          `- ${item.name} x${item.quantity}: ${formatMoney(item.priceCents * item.quantity, order.currency)}`,
+      )
+      .join('\n');
+
+    await this.transport.send({
       to: email,
       subject: `Pedido ${order.id.slice(0, 8)} recebido`,
+      text: `Recebemos o seu pedido ${order.id}. Ele será enviado depois que o pagamento for confirmado.\n\n${lines}\n\nTotal: ${formatMoney(order.totalCents, order.currency)}\n\nVer o pedido e pagar: ${baseUrl}/orders/${order.id}`,
       html: `
         <h1>Recebemos o seu pedido</h1>
         <p>Pedido <strong>${order.id}</strong>. Ele será enviado depois que o pagamento for confirmado.</p>

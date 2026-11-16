@@ -198,6 +198,37 @@ describe('AuthService', () => {
     });
   });
 
+  describe('forgotPassword', () => {
+    const generic = 'Se o e-mail estiver cadastrado, enviaremos as instruções.';
+
+    beforeEach(() => {
+      (prisma.user as Record<string, unknown>).update = jest
+        .fn()
+        .mockResolvedValue(undefined);
+    });
+
+    it('answers the same text when the e-mail fails to send', async () => {
+      users.set('ana@example.com', makeUser());
+      const mail = {
+        sendPasswordReset: jest.fn().mockRejectedValue(new Error('SMTP down')),
+      };
+      service = new AuthService(prisma as never, mail as never, jwt);
+      await expect(service.forgotPassword('ana@example.com')).resolves.toEqual({
+        message: generic,
+      });
+      expect(mail.sendPasswordReset).toHaveBeenCalledTimes(1);
+    });
+
+    it('answers the same text and sends nothing for an unknown e-mail', async () => {
+      const mail = { sendPasswordReset: jest.fn() };
+      service = new AuthService(prisma as never, mail as never, jwt);
+      await expect(service.forgotPassword('no@example.com')).resolves.toEqual({
+        message: generic,
+      });
+      expect(mail.sendPasswordReset).not.toHaveBeenCalled();
+    });
+  });
+
   describe('login', () => {
     it('returns a session for the right password', async () => {
       users.set('ana@example.com', makeUser({ role: 'SELLER' }));
