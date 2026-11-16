@@ -18,6 +18,9 @@ import { RegisterDto } from './dto/register.dto';
 import { SLUG_MESSAGES, checkSlug, slugFromName } from '../stores/store-slug';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+const EMAIL_TAKEN =
+  'This e-mail already has an account. An e-mail is either a customer or a seller, so use another e-mail for the other role.';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -45,7 +48,7 @@ export class AuthService {
       where: { email: data.email },
     });
     if (exists) {
-      throw new ConflictException('Este e-mail já está cadastrado');
+      throw new ConflictException(EMAIL_TAKEN);
     }
     const store = await this.storeToCreate(data);
     try {
@@ -79,7 +82,7 @@ export class AuthService {
         if (Array.isArray(target) && target.includes('slug')) {
           throw new ConflictException('This store link is already taken');
         }
-        throw new ConflictException('Este e-mail já está cadastrado');
+        throw new ConflictException(EMAIL_TAKEN);
       }
       throw error;
     }

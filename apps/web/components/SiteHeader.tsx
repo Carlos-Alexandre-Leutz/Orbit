@@ -53,14 +53,17 @@ export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:underline">
+              <Link
+                href={store ? `/${store.slug}/login` : '/login'}
+                className="hover:underline"
+              >
                 Sign in
               </Link>
               <Link
-                href="/register"
+                href={store ? `/${store.slug}/register` : '/sell'}
                 className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
               >
-                Sign up
+                {store ? 'Sign up' : 'Create your store'}
               </Link>
             </>
           )}

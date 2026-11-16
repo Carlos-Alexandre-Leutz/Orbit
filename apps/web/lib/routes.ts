@@ -4,6 +4,7 @@
  * (and a few more) out of the links a seller may choose, so the two can never meet.
  */
 const SITE_PAGES = new Set([
+  'account',
   'api',
   'admin',
   'cart',
@@ -13,15 +14,23 @@ const SITE_PAGES = new Set([
   'forgot-password',
   'login',
   'orders',
+  'panel',
   'register',
   'reset-password',
+  'sell',
   'seller',
   '_next',
   'favicon.ico',
 ]);
 
 const STORE_PRIVATE = new Set(['cart', 'checkout', 'orders']);
-const SITE_PRIVATE = new Set(['dashboard', 'seller', 'admin']);
+const SITE_PRIVATE = new Set([
+  'account',
+  'dashboard',
+  'panel',
+  'seller',
+  'admin',
+]);
 
 /** Pages that only make sense with a session: the cart, checkout and orders of a store, and the staff pages. */
 export function needsSession(pathname: string): boolean {
@@ -29,4 +38,15 @@ export function needsSession(pathname: string): boolean {
   if (!first) return false;
   if (SITE_PRIVATE.has(first)) return true;
   return !SITE_PAGES.has(first) && STORE_PRIVATE.has(second ?? '');
+}
+
+/**
+ * Where to send a visitor who must sign in to reach `pathname`. Inside a store the login is the store's own
+ * page, so a customer signs in where they were shopping; everywhere else it is the platform login.
+ */
+export function loginUrl(pathname: string): string {
+  const next = encodeURIComponent(pathname);
+  const first = pathname.split('/').filter(Boolean)[0];
+  if (first && !SITE_PAGES.has(first)) return `/${first}/login?next=${next}`;
+  return `/login?next=${next}`;
 }

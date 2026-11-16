@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsSession } from './routes';
+import { loginUrl, needsSession } from './routes';
 
 describe('needsSession', () => {
   it('asks for a session on the cart, checkout and orders of a store', () => {
@@ -24,5 +24,18 @@ describe('needsSession', () => {
     ]) {
       expect(needsSession(path)).toBe(false);
     }
+  });
+});
+
+describe('loginUrl', () => {
+  it('sends a visitor of a store to that store login', () => {
+    expect(loginUrl('/loja/cart')).toBe('/loja/login?next=%2Floja%2Fcart');
+  });
+
+  it('sends the staff pages to the platform login', () => {
+    expect(loginUrl('/seller/products')).toBe(
+      '/login?next=%2Fseller%2Fproducts',
+    );
+    expect(loginUrl('/account')).toBe('/login?next=%2Faccount');
   });
 });

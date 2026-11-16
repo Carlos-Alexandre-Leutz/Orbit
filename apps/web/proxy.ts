@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { needsSession } from '@/lib/routes';
+import { loginUrl, needsSession } from '@/lib/routes';
 import { SESSION_COOKIE } from '@/lib/session';
 
 /**
@@ -13,9 +13,9 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (needsSession(pathname) && !request.cookies.has(SESSION_COOKIE)) {
-    const login = new URL('/login', request.url);
-    login.searchParams.set('next', `${pathname}${search}`);
-    return NextResponse.redirect(login);
+    return NextResponse.redirect(
+      new URL(loginUrl(`${pathname}${search}`), request.url),
+    );
   }
   return NextResponse.next();
 }
