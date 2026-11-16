@@ -9,14 +9,14 @@ No QA, "recuperar conta" mostrava "Error: User not found or server error." para 
 ## O que mudou
 
 - **Provedor escolhido:** a API própria do dono, [`free-email-send-api`](https://github.com/Carlos-Alexandre-Leutz/free-email-send-api), por HTTP (`POST /v1/send`, token em `X-Api-Token`). Por quê: não precisa de servidor SMTP, funciona no Render grátis, e a conta do dono tem o limite do Gmail (400 por dia). O SMTP continua disponível (`MAIL_PROVIDER` ausente ou `smtp`).
-- **API (`api-tasks`):** o envio fica atrás de uma porta (`MailTransport`) com dois adaptadores, SMTP e HTTP. Se o envio do e-mail de recuperação falhar, o erro vai para o log (`AuthService`) e a resposta continua a mensagem genérica, sem 500.
-- **Tela `forgot-password`:** chama `/api/session/forgot-password` no próprio site (não mais o BFF direto pelo navegador) e mostra a mensagem que o servidor devolveu, ou "servidor inacessível".
+- **API (`api-tasks`):** o envio fica atrás de uma porta (`MailTransport`) com dois adaptadores, SMTP e HTTP. Se o envio do e-mail de recuperação falhar, o erro vai para o log (`AuthService`) e a resposta é **503** com uma mensagem clara, em vez de 500.
+- **Telas `forgot-password` e `reset-password`:** chamam `/api/session/forgot-password` e `/api/session/reset-password` no próprio site (não mais o BFF direto pelo navegador) e mostram a mensagem que o servidor devolveu, ou "servidor inacessível".
 
 ## Limites conhecidos
 
 - A API de e-mail só aceita **texto**: o link chega como texto, não como botão. O e-mail de confirmação de pedido também vai em texto pelo HTTP.
 - O filtro de spam dela pode bloquear (422) e não foi testado com o link de reset.
-- Falha de envio agora só aparece no log: o usuário vê "enviado" mesmo assim.
+- O 503 de falha de envio só acontece para conta que existe, então revela que ela existe, e só quando o e-mail está quebrado. Foi escolhido para o QA mostrar o erro real; se virar problema, volta para a resposta genérica.
 - Não rodei o envio real; só testes unitários.
 
 ## Variáveis no Render

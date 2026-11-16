@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  ServiceUnavailableException,
   ConflictException,
   UnauthorizedException,
   BadRequestException,
@@ -197,12 +198,16 @@ export class AuthService {
       },
     });
 
-    // The answer must not depend on the e-mail: a failure here would also tell a stranger the account exists.
+    // A failure is logged and reported as 503, not 500: the request was fine, the mail service is down.
+    // The cost: this answer only happens for an existing account, so it reveals that the account exists.
     try {
       await this.mailService.sendPasswordReset(user.email, token);
     } catch (error) {
       this.logger.error(
         `Could not send the password reset e-mail: ${String(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.',
       );
     }
 

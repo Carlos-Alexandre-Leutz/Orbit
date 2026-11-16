@@ -46,16 +46,15 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BFF_URL}/auth/reset-password`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword }),
-        },
-      );
+      const response = await fetch('/api/session/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      });
 
-      const data = await response.json();
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
 
       if (!response.ok) {
         throw new Error(data.message || 'Error resetting the password.');

@@ -70,6 +70,11 @@ main        ← production (only receives releases from staging)
 - T: Add `scripts/dev` (`test` for what changed, `pr` to open the pull request) with tests
 - T: Record the scripts in the AI rules and in the flow document
 
+### PBI-63 [F1] E-mail sending for the QA environment
+- T: Send e-mail through a transport port with an SMTP adapter and an HTTP adapter for the owner's mail API
+- T: Fix the forgot and reset password pages and the API answer when the e-mail cannot be sent
+- T: Record the mail sender in the AI rules and in the docs
+
 ## E2. Store domain [must]
 
 ### PBI-06 [F1] Users, roles and authentication

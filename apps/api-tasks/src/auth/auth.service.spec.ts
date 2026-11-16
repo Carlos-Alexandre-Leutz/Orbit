@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -207,15 +208,15 @@ describe('AuthService', () => {
         .mockResolvedValue(undefined);
     });
 
-    it('answers the same text when the e-mail fails to send', async () => {
+    it('answers 503 (not 500) when the e-mail fails to send', async () => {
       users.set('ana@example.com', makeUser());
       const mail = {
         sendPasswordReset: jest.fn().mockRejectedValue(new Error('SMTP down')),
       };
       service = new AuthService(prisma as never, mail as never, jwt);
-      await expect(service.forgotPassword('ana@example.com')).resolves.toEqual({
-        message: generic,
-      });
+      await expect(
+        service.forgotPassword('ana@example.com'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
       expect(mail.sendPasswordReset).toHaveBeenCalledTimes(1);
     });
 
