@@ -7,6 +7,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { OrdersModule } from './orders/orders.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { StoresModule } from './stores/stores.module';
+import { AccountModule } from './account/account.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     CatalogModule,
     StoresModule,
+    AccountModule,
     CartModule,
     OrdersModule,
     PaymentsModule,

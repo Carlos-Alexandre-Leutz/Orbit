@@ -31,6 +31,9 @@ export function menuFor(
     });
     items.push({ href: `/${store.slug}/orders`, label: 'Orders' });
   }
+  if (role === 'CUSTOMER') {
+    items.push({ href: '/account', label: 'My account' });
+  }
   if (role === 'SELLER' && ownStore && ownStore.slug !== store?.slug) {
     items.push({ href: `/${ownStore.slug}`, label: 'My store' });
   }

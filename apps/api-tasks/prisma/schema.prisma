@@ -37,6 +37,7 @@ model User {
   carts                Cart[]
   orders               Order[]
   store                Store?
+  storeCustomers       StoreCustomer[]
 }
 
 // A store belongs to one seller (for now) and lives at the link /<slug>. Products, carts and orders
@@ -51,6 +52,7 @@ model Store {
   products    Product[]
   carts       Cart[]
   orders      Order[]
+  customers   StoreCustomer[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -176,4 +178,20 @@ model OrderItem {
 model ProcessedPaymentEvent {
   id          String   @id
   processedAt DateTime @default(now())
+}
+
+// The link between a customer and a store they joined or bought from. The account is global, but a seller
+// only ever sees the customers linked to their own store, and consent to marketing is given per store.
+model StoreCustomer {
+  id               String    @id @default(uuid())
+  storeId          String
+  store            Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketingConsent Boolean   @default(false)
+  consentAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@unique([storeId, userId])
+  @@index([userId])
 }

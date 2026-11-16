@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -38,4 +39,15 @@ export class RegisterDto {
   @IsString()
   @MaxLength(60)
   storeSlug?: string;
+
+  // A customer who signs up inside a store joins it (the link of that store).
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  joinStore?: string;
+
+  // Consent to marketing from that store only; never assumed.
+  @IsOptional()
+  @IsBoolean()
+  marketingConsent?: boolean;
 }

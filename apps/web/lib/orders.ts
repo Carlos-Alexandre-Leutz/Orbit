@@ -25,3 +25,11 @@ export async function getOrder(id: string): Promise<Order | null> {
   });
   return result.ok ? result.data : null;
 }
+
+/** The logged-in customer's orders in every store, newest first. */
+export async function getAllOrders(): Promise<Order[] | null> {
+  const token = await sessionToken();
+  if (!token) return null;
+  const result = await bffRequest<Order[]>('/orders', { token });
+  return result.ok ? result.data : null;
+}

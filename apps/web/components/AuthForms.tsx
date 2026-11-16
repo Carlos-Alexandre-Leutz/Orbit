@@ -179,6 +179,7 @@ export function CustomerSignUpForm({
 }) {
   const router = useRouter();
   const [values, setValues] = useState(EMPTY);
+  const [marketing, setMarketing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -195,6 +196,8 @@ export function CustomerSignUpForm({
       email: values.email,
       password: values.password,
       accountType: 'CUSTOMER',
+      joinStore: store.slug,
+      marketingConsent: marketing,
     });
     if (failure) {
       setError(failure);
@@ -220,6 +223,14 @@ export function CustomerSignUpForm({
             values={values}
             set={(k, v) => setValues((o) => ({ ...o, [k]: v }))}
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={marketing}
+              onChange={(e) => setMarketing(e.target.checked)}
+            />
+            Send me news and offers from {store.name} (optional)
+          </label>
           {error && (
             <p role="alert" className="text-sm text-red-400">
               {error}

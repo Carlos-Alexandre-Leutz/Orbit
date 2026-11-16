@@ -3,7 +3,13 @@ import { bffRequest } from '@/lib/bff';
 import { sessionToken } from '@/lib/auth';
 
 /** The parts of the BFF that the browser may reach through the web server, which adds the session token. */
-const ALLOWED = new Set(['products', 'categories', 'cart', 'orders']);
+const ALLOWED = new Set([
+  'products',
+  'categories',
+  'cart',
+  'orders',
+  'account',
+]);
 
 async function forward(
   request: Request,
