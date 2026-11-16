@@ -12,7 +12,7 @@
 |---|---|---|
 | Ler o repositório, editar arquivos, criar branch local, commitar, abrir PR **quando a mudança foi pedida** | Criar ou comentar issue, mover item no Project, apagar branch, mergear PR, mexer em configuração do repositório (Pages, proteção de branch), rodar a stack completa no Docker | Push direto em `main` ou `staging`, force-push, mexer na `main`, burlar a proteção de branch, colocar `Co-authored-by` ou qualquer atribuição de IA em commit ou PR |
 
-O **merge dos PRs é do dono**. A IA abre o PR, mostra o link e para.
+**Commit e push na branch do PR ao terminar cada tarefa são feitos sem perguntar** (é o caminho mais barato em token). O **merge dos PRs é do dono**. A IA abre o PR, mostra o link e para.
 
 ## Idioma
 
@@ -37,6 +37,8 @@ O **merge dos PRs é do dono**. A IA abre o PR, mostra o link e para.
    O script recusa mensagem fora do Conventional Commits, cria a branch a partir da `staging` quando você está nela, nunca faz push em `main` ou `staging`, nunca mergeia e nunca coloca atribuição de IA. O PR sai com: o que foi feito, como foi testado e se usou IA. Para editar um PR depois, use `gh api` (o `gh pr edit` falha neste repositório).
 6. **O CI decide.** Os checks obrigatórios são `commitlint` e `scripts-tests`. `typescript`, `python` e `docker` também rodam, mas ainda não bloqueiam.
 7. **O dono faz o merge.** Depois, a branch só é apagada se o dono pedir.
+
+**Fechar as issues:** o GitHub só fecha issue sozinho quando o PR vai para a `main`. Por isso o PR para a `staging` traz no corpo `Closes #361, #362` (e o PBI, `Closes #360`), e o workflow `.github/workflows/close-issues.yml` fecha essas issues quando o PR é mergeado. Mover o card para Done fica por conta da automação do próprio Project ("item closed"); isso ainda não foi verificado e o primeiro merge mostra se funciona.
 
 Nada vai para a `main` sem o dono: o release da `staging` para a `main` é dele.
 
