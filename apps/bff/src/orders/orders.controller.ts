@@ -109,6 +109,17 @@ export class OrdersController {
     });
   }
 
+  @Get('store')
+  @ApiOperation({
+    summary: 'The orders of my store, newest first (seller only)',
+  })
+  ofStore(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/orders/store', {
+      authorization,
+      fallback: 'Erro ao listar os pedidos da loja',
+    });
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Read one of my orders (an admin can read any)' })
   @ApiResponse({ status: 200, type: OrderDto })

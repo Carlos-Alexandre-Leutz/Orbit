@@ -1,6 +1,7 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiProperty,
   ApiResponse,
@@ -22,6 +23,14 @@ export class StoreDto {
   description: string;
 }
 
+export class UpdateStoreBody {
+  @ApiProperty({ required: false, example: 'Loja do João' })
+  name?: string;
+
+  @ApiProperty({ required: false })
+  description?: string;
+}
+
 /** The stores are public: a buyer finds a store and opens it without an account. */
 @ApiTags('stores')
 @Controller('stores')
@@ -34,6 +43,40 @@ export class StoresController {
   list() {
     return callStoreApi(this.http, 'get', '/stores', {
       fallback: 'Erro ao listar as lojas',
+    });
+  }
+
+  @Get('mine')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'My own store (seller only)' })
+  mine(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/stores/mine', {
+      authorization,
+      fallback: 'Could not load your store',
+    });
+  }
+
+  @Patch('mine')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Edit the name and description of my store' })
+  update(
+    @Body() body: UpdateStoreBody,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(this.http, 'patch', '/stores/mine', {
+      authorization,
+      body,
+      fallback: 'Could not save your store',
+    });
+  }
+
+  @Get('mine/summary')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Numbers for the start page of the panel' })
+  summary(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/stores/mine/summary', {
+      authorization,
+      fallback: 'Could not load the summary',
     });
   }
 

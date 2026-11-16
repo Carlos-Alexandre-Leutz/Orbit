@@ -213,6 +213,23 @@ export class OrdersService {
     return orders.map(presentOrder);
   }
 
+  /** The orders placed in one store, newest first, with who placed them: for the seller of that store. */
+  async listForStore(storeId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { storeId },
+      include: {
+        ...WITH_ITEMS,
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take: 100,
+    });
+    return orders.map((order) => ({
+      ...presentOrder(order),
+      customer: { name: order.user.name, email: order.user.email },
+    }));
+  }
+
   /**
    * An order is visible to its owner, to an admin and to the seller of its store. For anyone else,
    * including the seller of another store, it does not exist.

@@ -6,6 +6,6 @@ export const metadata = { title: 'Create your store | Orbit' };
 
 export default async function SellPage() {
   const user = await getCurrentUser();
-  if (user) redirect(user.role === 'SELLER' ? '/seller/products' : '/');
+  if (user) redirect(user.role === 'SELLER' ? '/panel' : '/');
   return <SellerSignUpForm />;
 }
