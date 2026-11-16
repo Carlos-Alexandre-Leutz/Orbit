@@ -8,6 +8,7 @@ import { OrdersModule } from './orders/orders.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { StoresModule } from './stores/stores.module';
 import { AccountModule } from './account/account.module';
+import { ImagesModule } from './images/images.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { UsersModule } from './users/users.module';
     CatalogModule,
     StoresModule,
     AccountModule,
+    ImagesModule,
     CartModule,
     OrdersModule,
     PaymentsModule,

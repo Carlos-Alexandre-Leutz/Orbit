@@ -8,6 +8,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { StoresModule } from './stores/stores.module';
+import { ImagesModule } from './images/images.module';
 import { CustomersModule } from './customers/customers.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { CustomersModule } from './customers/customers.module';
     OrdersModule,
     PrismaModule,
     StoresModule,
+    ImagesModule,
     CustomersModule,
   ],
   controllers: [AppController],

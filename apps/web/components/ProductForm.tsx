@@ -1,5 +1,6 @@
 'use client';
 
+import { GalleryField } from './ImageUpload';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -54,6 +55,7 @@ export function ProductForm({
   const [categorySlug, setCategorySlug] = useState(
     product?.category.slug ?? categories[0]?.slug ?? '',
   );
+  const [imageIds, setImageIds] = useState<string[]>(product?.imageIds ?? []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -73,7 +75,14 @@ export function ProductForm({
       return;
     }
     setBusy(true);
-    const body = { name, description, priceCents, stock: units, categorySlug };
+    const body = {
+      name,
+      description,
+      priceCents,
+      stock: units,
+      categorySlug,
+      imageIds,
+    };
     const failure = editing
       ? await call('PATCH', `/api/bff/products/${product!.id}`, body)
       : await call('POST', '/api/bff/products', { sku, ...body });
@@ -177,6 +186,7 @@ export function ProductForm({
           ))}
         </select>
       </label>
+      <GalleryField value={imageIds} onChange={setImageIds} />
       {error && (
         <p role="alert" className="text-sm text-red-400">
           {error}

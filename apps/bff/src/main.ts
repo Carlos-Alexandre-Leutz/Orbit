@@ -16,6 +16,15 @@ async function bootstrap() {
     // The payment webhook is forwarded with the exact bytes the provider signed.
     { rawBody: true },
   );
+  // An upload is the picture itself: Fastify keeps it as bytes, up to the same 2 MB the store API allows.
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addContentTypeParser(
+      /^image\/.*/,
+      { parseAs: 'buffer', bodyLimit: 2 * 1024 * 1024 },
+      (_request, body, done) => done(null, body),
+    );
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3000'];

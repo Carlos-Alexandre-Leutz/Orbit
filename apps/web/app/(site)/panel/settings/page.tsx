@@ -13,9 +13,7 @@ export default async function PanelSettingsPage() {
           <p className="text-sm text-gray-400">
             Your link, /{store.slug}, never changes.
           </p>
-          <StoreSettingsForm
-            initial={{ name: store.name, description: store.description }}
-          />
+          <StoreSettingsForm initial={store} />
         </>
       ) : (
         <p role="alert" className="text-red-400">

@@ -20,7 +20,7 @@ Restrições: o pagamento real fica para depois (entra o Stripe, [ADR-004](ADR-0
 - **Uma ligação cliente × loja** registra em quais lojas o cliente entrou ou comprou. O lojista só enxerga os clientes da própria loja e, deles, só o que vem dos pedidos daquela loja (nome, e-mail, endereço de entrega). Nunca vê onde mais o cliente comprou. Isso é garantido na API e coberto por testes de isolamento, como no PBI-59.
 - **O consentimento de marketing é por loja.** Um aviso da loja A só pode ir a quem aceitou na loja A. O cliente pode apagar a conta.
 - **A loja ganha aparência própria:** logo, capa, cor principal, slogan e contato, editados num painel de configurações. A vitrine e as telas de login da loja usam essa aparência. Temas prontos e editor de páginas ficam de fora.
-- **As imagens passam por uma porta `ImageStorage`**, com um adaptador de disco local primeiro. No QA do Render grátis o disco some a cada deploy, então as fotos de lá se perdem; é um limite conhecido, não um defeito.
+- **As imagens passam por uma porta `ImageStorage`**, e o adaptador em uso guarda a foto como linha do banco (PostgreSQL). Escolhido em 2026-11-16, na implementação, no lugar do disco local: no QA do Render grátis o disco some a cada deploy, e o banco não. Um adaptador de disco ou de armazenamento de objetos pode ser trocado depois, sem mexer nos controladores.
 - **O pagamento é simulado** por uma tela de aprovar ou recusar, sobre o provedor falso que já existe. O Stripe real entra no mesmo lugar depois.
 - Os links `sell` e `account` entram na lista de links reservados.
 
@@ -40,4 +40,4 @@ O que existe hoje: nada disto está construído. Os PBIs 65, 70, 61, 66, 67, 68 
 - O isolamento ganha um segundo eixo (o lojista não vê o que o cliente fez nas outras lojas), então os testes dele fazem parte do PBI-70, não são extras.
 - A LGPD passa a pesar: consentimento por loja, apagar a conta e não cruzar dados entre lojas. Um e-mail de loja nunca usa dados de outra.
 - O cliente vê "Orbit" no e-mail e na tela de login de uma loja que não conhece a plataforma; o rodapé e uma frase devem explicar isso.
-- As fotos do QA no Render grátis não persistem entre deploys.
+- As fotos ficam no banco, o que aumenta o tamanho dele; o limite de 2 MB por foto e de 6 por produto mantém isso pequeno. Servir muitas fotos pelo banco não escala bem: um armazenamento de objetos é o passo seguinte, quando o tráfego pedir.

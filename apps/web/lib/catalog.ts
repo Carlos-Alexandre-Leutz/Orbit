@@ -11,6 +11,8 @@ export interface Product {
   priceCents: number;
   stock: number;
   active: boolean;
+  /** Ids of its pictures, in gallery order; the first one is the cover. */
+  imageIds: string[];
   category: Category;
   store: { slug: string; name: string };
 }

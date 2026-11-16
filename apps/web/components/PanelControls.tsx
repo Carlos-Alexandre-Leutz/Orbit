@@ -2,6 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { safeColor } from '@/lib/images';
+import type { OwnStore } from '@/lib/panel';
+import { SingleImageField } from './ImageUpload';
 
 async function call(
   path: string,
@@ -75,26 +78,33 @@ export function ShipDeliverButton({
   );
 }
 
-export function StoreSettingsForm({
-  initial,
-}: {
-  initial: { name: string; description: string };
-}) {
+export function StoreSettingsForm({ initial }: { initial: OwnStore }) {
   const router = useRouter();
-  const [name, setName] = useState(initial.name);
-  const [description, setDescription] = useState(initial.description);
+  const [values, setValues] = useState({
+    name: initial.name,
+    description: initial.description,
+    tagline: initial.tagline,
+    primaryColor: safeColor(initial.primaryColor),
+    contactEmail: initial.contactEmail,
+    contactPhone: initial.contactPhone,
+  });
+  const [logo, setLogo] = useState<string | null>(initial.logoImageId);
+  const [cover, setCover] = useState<string | null>(initial.coverImageId);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+  const set = (key: keyof typeof values) => (value: string) =>
+    setValues((old) => ({ ...old, [key]: value }));
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setMessage(null);
     const failure = await call('/api/bff/stores/mine', 'PATCH', {
-      name,
-      description,
+      ...values,
+      logoImageId: logo,
+      coverImageId: cover,
     });
     setBusy(false);
     setMessage(
@@ -110,11 +120,21 @@ export function StoreSettingsForm({
         Store name
         <input
           className={field}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={values.name}
+          onChange={(e) => set('name')(e.target.value)}
           minLength={2}
           maxLength={80}
           required
+        />
+      </label>
+      <label className="block space-y-1 text-sm">
+        Tagline
+        <input
+          className={field}
+          value={values.tagline}
+          onChange={(e) => set('tagline')(e.target.value)}
+          maxLength={120}
+          placeholder="One line that says what you sell"
         />
       </label>
       <label className="block space-y-1 text-sm">
@@ -122,9 +142,40 @@ export function StoreSettingsForm({
         <textarea
           className={field}
           rows={4}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          value={values.description}
+          onChange={(e) => set('description')(e.target.value)}
           maxLength={500}
+        />
+      </label>
+      <label className="flex items-center gap-3 text-sm">
+        Main color
+        <input
+          type="color"
+          value={values.primaryColor}
+          onChange={(e) => set('primaryColor')(e.target.value)}
+          aria-label="Main color"
+        />
+        <span className="font-mono text-gray-400">{values.primaryColor}</span>
+      </label>
+      <SingleImageField label="Logo" value={logo} onChange={setLogo} />
+      <SingleImageField label="Cover" value={cover} onChange={setCover} />
+      <label className="block space-y-1 text-sm">
+        Contact e-mail
+        <input
+          type="email"
+          className={field}
+          value={values.contactEmail}
+          onChange={(e) => set('contactEmail')(e.target.value)}
+          maxLength={120}
+        />
+      </label>
+      <label className="block space-y-1 text-sm">
+        Contact phone
+        <input
+          className={field}
+          value={values.contactPhone}
+          onChange={(e) => set('contactPhone')(e.target.value)}
+          maxLength={30}
         />
       </label>
       {message && (

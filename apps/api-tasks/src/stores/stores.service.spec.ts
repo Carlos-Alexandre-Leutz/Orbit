@@ -48,7 +48,15 @@ describe('StoresService', () => {
     await service.list();
     expect(prisma.store.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        select: { slug: true, name: true, description: true },
+        select: {
+          slug: true,
+          name: true,
+          description: true,
+          tagline: true,
+          primaryColor: true,
+          logoImageId: true,
+          coverImageId: true,
+        },
         orderBy: [{ name: 'asc' }, { slug: 'asc' }],
       }),
     );
