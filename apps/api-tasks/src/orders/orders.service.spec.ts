@@ -22,6 +22,7 @@ describe('OrdersService', () => {
   const mail = { sendOrderConfirmation: jest.fn() };
   const prisma = {
     cart: { findUnique: jest.fn() },
+    storeCustomer: { upsert: jest.fn() },
     user: { findUnique: jest.fn() },
     order: {
       findUnique: jest.fn(),

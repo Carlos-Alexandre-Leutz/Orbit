@@ -3,6 +3,7 @@ import {
   Logger,
   ServiceUnavailableException,
   ConflictException,
+  NotFoundException,
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
@@ -51,6 +52,7 @@ export class AuthService {
       throw new ConflictException(EMAIL_TAKEN);
     }
     const store = await this.storeToCreate(data);
+    const joined = store ? null : await this.storeToJoin(data);
     try {
       const user = await this.prisma.user.create({
         data: {
@@ -59,6 +61,15 @@ export class AuthService {
           password: await bcrypt.hash(data.password, 10),
           role: store ? 'SELLER' : 'CUSTOMER',
           ...(store && { store: { create: store } }),
+          ...(joined && {
+            storeCustomers: {
+              create: {
+                storeId: joined.id,
+                marketingConsent: data.marketingConsent === true,
+                consentAt: data.marketingConsent === true ? new Date() : null,
+              },
+            },
+          }),
         },
         include: { store: true },
       });
@@ -86,6 +97,18 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  /** The store a new customer joins by signing up inside it; null when they signed up outside a store. */
+  private async storeToJoin(data: RegisterDto) {
+    if (!data.joinStore) return null;
+    const store = await this.prisma.store.findUnique({
+      where: { slug: data.joinStore },
+    });
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+    return store;
   }
 
   /** The store a new seller gets, validated; null for a customer. */

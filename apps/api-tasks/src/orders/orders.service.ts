@@ -76,6 +76,7 @@ export class OrdersService {
         idempotencyKey,
       );
       if (created) {
+        await this.linkCustomer(userId, storeId);
         this.notifyPlaced(userId, order);
       }
       return presentOrder(order);
@@ -92,6 +93,15 @@ export class OrdersService {
       }
       throw error;
     }
+  }
+
+  /** Buying makes the customer a customer of the store, so its seller can see them (and only them). */
+  private linkCustomer(userId: string, storeId: string) {
+    return this.prisma.storeCustomer.upsert({
+      where: { storeId_userId: { storeId, userId } },
+      update: {},
+      create: { storeId, userId },
+    });
   }
 
   /**

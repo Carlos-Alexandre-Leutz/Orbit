@@ -20,6 +20,7 @@ describe('menuFor', () => {
       '/loja-do-joao',
       '/loja-do-joao/cart',
       '/loja-do-joao/orders',
+      '/account',
     ]);
   });
 
@@ -33,7 +34,7 @@ describe('menuFor', () => {
   });
 
   it('gives a customer outside a store no cart, because a cart belongs to a store', () => {
-    expect(hrefs('CUSTOMER')).toEqual(['/']);
+    expect(hrefs('CUSTOMER')).toEqual(['/', '/account']);
   });
 
   it('gives sellers and admins no cart and no orders, even inside a store', () => {
