@@ -65,10 +65,10 @@ main        ← production (only receives releases from staging)
 - T: Add automatic deploy to staging (placeholder until E11)
 - T: Add caching and track pipeline time
 
-### PBI-62 [F1] Fluxo de trabalho e scripts do dia a dia
-- T: Escrever o documento do fluxo de trabalho em português e apontar o AGENTS.md para ele
-- T: Criar o `scripts/dev` (`test` só do que mudou, `pr` para abrir o pull request) com testes
-- T: Registrar os scripts nas regras de IA e no documento do fluxo
+### PBI-62 [F1] Work flow and daily scripts
+- T: Write the work flow document in Portuguese and point AGENTS.md at it
+- T: Add `scripts/dev` (`test` for what changed, `pr` to open the pull request) with tests
+- T: Record the scripts in the AI rules and in the flow document
 
 ## E2. Store domain [must]
 
