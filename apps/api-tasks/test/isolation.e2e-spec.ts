@@ -186,8 +186,9 @@ describe('store isolation (real database)', () => {
       await http().get('/cart').set(as('ana')).expect(400);
     });
 
-    it('gives sellers and admins no cart and no order', async () => {
-      for (const name of ['alpha', 'beta', 'root']) {
+    it('lets a seller shop in another store, but gives admins no cart and no order', async () => {
+      await http().get(`/cart?store=${alpha.slug}`).set(as('beta')).expect(200);
+      for (const name of ['root']) {
         await http().get(`/cart?store=${alpha.slug}`).set(as(name)).expect(403);
         await add(name, alpha, product.a).expect(403);
         await http()

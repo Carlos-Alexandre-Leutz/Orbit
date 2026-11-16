@@ -51,12 +51,14 @@ export class OrdersController {
     if (role !== 'SELLER') {
       return { id, role };
     }
-    return { id, role, storeId: (await this.stores.ofSeller(id)).id };
+    // A seller who has not named a store yet is only a buyer here.
+    const store = await this.stores.findOfSeller(id);
+    return store ? { id, role, storeId: store.id } : { id, role };
   }
 
-  /** Places an order from my cart in one store, named by its link in `?store=`. Only customers buy. */
+  /** Places an order from my cart in one store, named by its link in `?store=`. Any account buys, a seller included, except admins. */
   @Post()
-  @Auth('CUSTOMER')
+  @Auth('CUSTOMER', 'SELLER')
   async place(
     @Req() request: AuthenticatedRequest,
     @Query('store') store?: string,

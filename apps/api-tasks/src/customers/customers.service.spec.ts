@@ -12,7 +12,11 @@ describe('CustomersService', () => {
     user: { update: jest.fn() },
     $transaction: jest.fn(),
   };
-  const stores = { ofSeller: jest.fn(), bySlug: jest.fn() };
+  const stores = {
+    ofSeller: jest.fn(),
+    bySlug: jest.fn(),
+    findOfSeller: jest.fn(),
+  };
   const service = new CustomersService(prisma as never, stores as never);
 
   beforeEach(() => {
@@ -89,5 +93,13 @@ describe('CustomersService', () => {
         }),
       }),
     );
+  });
+
+  it('refuses to delete an account that owns a store', async () => {
+    stores.findOfSeller.mockResolvedValue({ id: 'store-a' });
+    await expect(service.deleteAccount('u1')).rejects.toThrow(
+      'cannot be deleted',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

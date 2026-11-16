@@ -1,11 +1,14 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { UpdateStoreDto } from './dto/update-store.dto';
+import { checkSlug, slugFromName, SLUG_MESSAGES } from './store-slug';
 
 export interface StoreLook {
   slug: string;
@@ -55,6 +58,11 @@ export class StoresService {
     return store;
   }
 
+  /** The store of a seller, or null when the seller has not named one yet. */
+  findOfSeller(userId: string) {
+    return this.prisma.store.findUnique({ where: { ownerId: userId } });
+  }
+
   /** The store at a link; a link that belongs to no store is a plain 404. */
   async bySlug(slug: string) {
     const store = await this.prisma.store.findUnique({ where: { slug } });
@@ -84,6 +92,43 @@ export class StoresService {
   /** What anyone may see of the store at a link. */
   async publicBySlug(slug: string) {
     return presentStore(await this.bySlug(slug));
+  }
+
+  /**
+   * The seller names their store, which gives it its link. A seller has one store, so a second call is refused.
+   * The link is suggested from the name when none is sent.
+   */
+  async createOwn(userId: string, data: { name: string; slug?: string }) {
+    const existing = await this.prisma.store.findUnique({
+      where: { ownerId: userId },
+    });
+    if (existing) {
+      throw new ConflictException('You already have a store');
+    }
+    const name = data.name.trim();
+    if (!name) {
+      throw new BadRequestException('A store needs a name');
+    }
+    const slug = data.slug?.trim() || slugFromName(name);
+    const problem = checkSlug(slug);
+    if (problem) {
+      throw new BadRequestException(SLUG_MESSAGES[problem]);
+    }
+    try {
+      return presentStore(
+        await this.prisma.store.create({
+          data: { name, slug, ownerId: userId },
+        }),
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('This store link is already taken');
+      }
+      throw error;
+    }
   }
 
   /** What a seller sees of their own store. */

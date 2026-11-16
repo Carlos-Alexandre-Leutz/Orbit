@@ -13,9 +13,9 @@ Restrições: o pagamento real fica para depois (entra o Stripe, [ADR-004](ADR-0
 
 ## Decision
 
-- **O lojista se cadastra em `/sell`**, uma página própria da plataforma. A caixinha "I want to sell" some. O `/register` global deixa de oferecer cadastro de cliente.
+- **O lojista cria a conta do Orbit em `/sell`** (nome, e-mail e senha) e, **já dentro do painel**, dá o nome à loja, o que gera o link (`orbit/lojadojoao`). Nada de escolher papel no cadastro. A caixinha "I want to sell" some. O `/register` global deixa de oferecer cadastro de cliente.
 - **O cliente se cadastra e entra dentro da loja** (por exemplo `/<slug>/login`), e volta para a loja onde estava. A tela diz que a conta vale em todas as lojas.
-- **Um e-mail tem um único papel.** Quem quer ser lojista e cliente usa dois e-mails. A decisão pode mudar depois; não há dado que impeça.
+- **Uma conta do Orbit vale para tudo.** O e-mail que abre a conta do lojista também pode comprar na loja do João, e quem criou a conta dentro de uma loja pode abrir uma loja própria com a mesma conta. A conta que ganha uma loja vira "seller" e continua comprando; uma conta só tem uma loja por enquanto. Decidido em 2026-11-16, depois de testar: a regra "um e-mail, um papel" (usada nos PBIs 65 e 70) confundia e foi trocada. Admins continuam sem carrinho.
 - **A conta de cliente é global**, como o [ADR-005](ADR-005-stores-and-storefronts.md) já adotou. Uma página `/account` lista os pedidos do cliente em todas as lojas, agrupados por loja.
 - **Uma ligação cliente × loja** registra em quais lojas o cliente entrou ou comprou. O lojista só enxerga os clientes da própria loja e, deles, só o que vem dos pedidos daquela loja (nome, e-mail, endereço de entrega). Nunca vê onde mais o cliente comprou. Isso é garantido na API e coberto por testes de isolamento, como no PBI-59.
 - **O consentimento de marketing é por loja.** Um aviso da loja A só pode ir a quem aceitou na loja A. O cliente pode apagar a conta.
@@ -29,7 +29,7 @@ O que existe hoje: nada disto está construído. Os PBIs 65, 70, 61, 66, 67, 68 
 ## Alternatives considered
 
 - **Contas de cliente separadas por loja.** Mais simples de isolar, mas a pessoa se cadastra de novo em cada loja e o assistente não a reconhece entre lojas. O dono quer a conta global como diferencial.
-- **Um e-mail com dois papéis (cliente e lojista).** Mais flexível, mas exige trocar de papel no menu e complica as guardas. Fica para depois, se alguém pedir.
+- **Um e-mail, um papel (cliente ou lojista).** Foi a primeira decisão. Mais simples de proteger, mas na prática obrigava o lojista a usar outro e-mail para comprar na loja de outra pessoa, o que confundiu quem testou. Trocada pela conta única.
 - **Cadastro de cliente também no `/register` global.** Volta a confundir quem é quem. O cliente sempre chega por uma loja.
 - **Guardar as imagens só como URL.** Zero infraestrutura, mas o lojista teria de hospedar as fotos em outro lugar, o que não parece uma loja pronta. A porta permite começar no disco e trocar por armazenamento de objetos.
 - **Temas prontos e editor de páginas.** Parecem com a Shopify, mas são um projeto à parte.
@@ -38,6 +38,7 @@ O que existe hoje: nada disto está construído. Os PBIs 65, 70, 61, 66, 67, 68 
 
 - O cliente reconhece a plataforma em todas as lojas, e o Orbit guarda uma base de clientes própria, útil para o chat e os agentes.
 - O isolamento ganha um segundo eixo (o lojista não vê o que o cliente fez nas outras lojas), então os testes dele fazem parte do PBI-70, não são extras.
+- Quem é lojista também compra, então o isolamento vale nos dois sentidos: o painel só mostra a própria loja, e o carrinho e os pedidos de compra são os do usuário. Uma conta com loja não pode ser apagada até existir o fechamento de loja.
 - A LGPD passa a pesar: consentimento por loja, apagar a conta e não cruzar dados entre lojas. Um e-mail de loja nunca usa dados de outra.
 - O cliente vê "Orbit" no e-mail e na tela de login de uma loja que não conhece a plataforma; o rodapé e uma frase devem explicar isso.
 - As fotos ficam no banco, o que aumenta o tamanho dele; o limite de 2 MB por foto e de 6 por produto mantém isso pequeno. Servir muitas fotos pelo banco não escala bem: um armazenamento de objetos é o passo seguinte, quando o tráfego pedir.

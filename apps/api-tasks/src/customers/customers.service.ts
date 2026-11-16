@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { StoresService } from '../stores/stores.service';
@@ -86,6 +86,11 @@ export class CustomersService {
    * carts and the links to the stores are removed. The account can no longer sign in.
    */
   async deleteAccount(userId: string) {
+    if (await this.stores.findOfSeller(userId)) {
+      throw new ConflictException(
+        'An account that owns a store cannot be deleted yet',
+      );
+    }
     await this.prisma.$transaction([
       this.prisma.cart.deleteMany({ where: { userId } }),
       this.prisma.storeCustomer.deleteMany({ where: { userId } }),

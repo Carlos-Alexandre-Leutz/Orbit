@@ -10,9 +10,9 @@ Deixar claro quem é lojista e quem é cliente: o lojista cria a conta na plataf
 
 | Tarefa | Resultado |
 |---|---|
-| #381 Página `/sell` | O lojista se cadastra em `/sell` (nome, e-mail, senha, nome e link da loja) e cai em `/seller/products`. A caixinha "I want to sell" saiu. `/register` redireciona para `/sell`. |
+| #381 Página `/sell` | A conta do Orbit é criada em `/sell` (nome, e-mail e senha); a loja é nomeada depois, dentro do painel (`/panel`), e ganha o link. Antes pedia o nome da loja no cadastro e caía em `/seller/products`. A caixinha "I want to sell" saiu. `/register` redireciona para `/sell`. |
 | #382 Cliente dentro da loja | `/<slug>/register` e `/<slug>/login`, com o nome da loja e a frase de que a conta vale em todas as lojas. O cliente volta para a página de onde veio. O proxy e `requireCustomer` mandam o visitante de uma loja para o login dela. |
-| #383 Um papel por e-mail | O e-mail já era único; a mensagem de conflito agora está em inglês e explica que um e-mail é de cliente ou de lojista. A página `/sell` avisa o mesmo. |
+| #383 Um papel por e-mail (**revogado em 2026-11-16**: a conta é única, ver o ADR-007) | O e-mail já era único; a mensagem de conflito agora está em inglês e explica que um e-mail é de cliente ou de lojista. A página `/sell` avisa o mesmo. |
 | #384 Links reservados e menu | `sell` e `account` (e `panel` no web) reservados na API e no web. O cabeçalho de uma loja mostra "Sign in" e "Sign up" da loja; fora de uma loja mostra "Create your store". |
 
 ## Validação

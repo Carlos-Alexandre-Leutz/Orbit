@@ -16,7 +16,8 @@ export interface MenuContext {
 
 /**
  * What the menu offers. Hiding a link is a courtesy: each page still checks the role on the server.
- * Only customers buy, so only they get a cart and orders, and those belong to the store they are in.
+ * Every account but an admin shops (a seller too, since one account can own a store and buy in others), so they get
+ * a cart and orders, which belong to the store they are in.
  */
 export function menuFor(
   role: Role | undefined,
@@ -24,14 +25,15 @@ export function menuFor(
 ): MenuItem[] {
   const items: MenuItem[] = [{ href: '/', label: 'Stores' }];
   if (store) items.push({ href: `/${store.slug}`, label: store.name });
-  if (role === 'CUSTOMER' && store) {
+  const shops = role === 'CUSTOMER' || role === 'SELLER';
+  if (shops && store) {
     items.push({
       href: `/${store.slug}/cart`,
       label: cartCount > 0 ? `Cart (${cartCount})` : 'Cart',
     });
     items.push({ href: `/${store.slug}/orders`, label: 'Orders' });
   }
-  if (role === 'CUSTOMER') {
+  if (shops) {
     items.push({ href: '/account', label: 'My account' });
   }
   if (role === 'SELLER' && ownStore && ownStore.slug !== store?.slug) {

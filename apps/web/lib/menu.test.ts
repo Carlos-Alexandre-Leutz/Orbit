@@ -37,17 +37,27 @@ describe('menuFor', () => {
     expect(hrefs('CUSTOMER')).toEqual(['/', '/account']);
   });
 
-  it('gives sellers and admins no cart and no orders, even inside a store', () => {
-    for (const role of ['SELLER', 'ADMIN'] as const) {
-      const all = hrefs(role, { store: joao });
-      expect(all.some((h) => h.endsWith('/cart'))).toBe(false);
-      expect(all.some((h) => h.endsWith('/orders'))).toBe(false);
-    }
+  it('gives admins no cart and no orders, even inside a store', () => {
+    const all = hrefs('ADMIN', { store: joao });
+    expect(all.some((h) => h.endsWith('/cart'))).toBe(false);
+    expect(all.some((h) => h.endsWith('/orders'))).toBe(false);
+  });
+
+  it('lets a seller shop like a customer: cart, orders and the account', () => {
+    expect(hrefs('SELLER', { store: joao })).toEqual([
+      '/',
+      '/loja-do-joao',
+      '/loja-do-joao/cart',
+      '/loja-do-joao/orders',
+      '/account',
+      '/panel',
+    ]);
   });
 
   it('adds the panel and a link to their own store for a seller', () => {
     expect(hrefs('SELLER', { ownStore: joao })).toEqual([
       '/',
+      '/account',
       '/loja-do-joao',
       '/panel',
     ]);
@@ -55,10 +65,7 @@ describe('menuFor', () => {
   });
 
   it('does not repeat the own store of a seller who is looking at it', () => {
-    expect(hrefs('SELLER', { store: joao, ownStore: joao })).toEqual([
-      '/',
-      '/loja-do-joao',
-      '/panel',
-    ]);
+    const all = hrefs('SELLER', { store: joao, ownStore: joao });
+    expect(all.filter((h) => h === '/loja-do-joao')).toHaveLength(1);
   });
 });

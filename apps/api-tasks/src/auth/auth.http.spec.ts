@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { StoresService } from '../stores/stores.service';
 
 describe('auth HTTP validation', () => {
   let app: INestApplication;
@@ -18,7 +19,10 @@ describe('auth HTTP validation', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [JwtModule.register({ secret: 'a-test-secret' })],
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: authService }],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        { provide: StoresService, useValue: {} },
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));

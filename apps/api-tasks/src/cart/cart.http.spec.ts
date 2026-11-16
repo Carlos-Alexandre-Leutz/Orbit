@@ -85,7 +85,14 @@ describe('cart HTTP', () => {
     expect(cart.add).not.toHaveBeenCalled();
   });
 
-  it.each(['SELLER', 'ADMIN'])('gives a %s no cart', async (role) => {
+  it('lets a seller shop like anyone else', async () => {
+    await server()
+      .get('/cart?store=loja-x')
+      .set(auth('user-1', 'SELLER'))
+      .expect(200);
+  });
+
+  it.each(['ADMIN'])('gives an %s no cart', async (role) => {
     await server()
       .get('/cart?store=loja-x')
       .set(auth('user-1', role))

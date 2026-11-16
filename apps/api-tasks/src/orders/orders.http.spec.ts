@@ -23,6 +23,7 @@ describe('orders HTTP', () => {
   const stores = {
     bySlug: jest.fn().mockResolvedValue({ id: 'store-1' }),
     ofSeller: jest.fn().mockResolvedValue({ id: 'store-7' }),
+    findOfSeller: jest.fn().mockResolvedValue({ id: 'store-7' }),
   };
   const payments = { pay: jest.fn().mockResolvedValue({ id: ID }) };
 
@@ -85,12 +86,12 @@ describe('orders HTTP', () => {
     });
   });
 
-  it('needs the store link, and only a customer buys', async () => {
+  it('needs the store link, and every account but an admin buys', async () => {
     await server().post('/orders').set(as('CUSTOMER')).expect(400);
-    for (const role of ['SELLER', 'ADMIN'] as const) {
-      await server().post('/orders?store=loja-x').set(as(role)).expect(403);
-    }
+    await server().post('/orders?store=loja-x').set(as('ADMIN')).expect(403);
     expect(orders.createFromCart).not.toHaveBeenCalled();
+    await server().post('/orders?store=loja-x').set(as('SELLER')).expect(201);
+    expect(orders.createFromCart).toHaveBeenCalledTimes(1);
   });
 
   it('lists my orders, all or only those of one store', async () => {

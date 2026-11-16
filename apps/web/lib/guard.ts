@@ -16,13 +16,14 @@ export async function requireProductManager(
 }
 
 /**
- * For pages only a customer may open (cart, checkout, the order list): only customers buy. A visitor goes to
- * the login page and comes back; a seller or admin gets "not found". The API refuses them again on every call.
+ * For the pages of shopping (cart, checkout, the order list): any account shops, a seller included, because one
+ * Orbit account can own a store and buy in others. A visitor goes to the login page and comes back; an admin
+ * gets "not found". The API refuses an admin again on every call.
  */
 export async function requireCustomer(path: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect(loginUrl(path));
-  if (user.role !== 'CUSTOMER') notFound();
+  if (user.role === 'ADMIN') notFound();
   return user;
 }
 
@@ -33,6 +34,8 @@ export async function requireCustomer(path: string): Promise<CurrentUser> {
 export async function requireSeller(path: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect(loginUrl(path));
+  // An account that only shops has no panel yet: /sell lets it name a store.
+  if (user.role === 'CUSTOMER') redirect('/sell');
   if (user.role !== 'SELLER') notFound();
   return user;
 }

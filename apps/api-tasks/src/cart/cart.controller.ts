@@ -20,10 +20,10 @@ import { AddToCartDto, SetQuantityDto } from './dto/cart.dto';
 
 /**
  * The cart of the logged-in customer in one store, named by its link in `?store=`. The user id always
- * comes from the token. Sellers and admins have no cart: they do not buy.
+ * comes from the token. Anyone with an Orbit account shops, a seller included; admins do not buy.
  */
 @Controller('cart')
-@Auth('CUSTOMER')
+@Auth('CUSTOMER', 'SELLER')
 export class CartController {
   constructor(
     private readonly cart: CartService,
