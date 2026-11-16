@@ -6,23 +6,34 @@ import Link from 'next/link';
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSent, setIsSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const handleResetRequest = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BFF_URL}/auth/forgot-password`,
-      {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/session/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email }),
         headers: { 'Content-Type': 'application/json' },
-      },
-    );
-
-    if (response.ok) {
-      setIsSent(true);
-    } else {
-      alert('Error: User not found or server error.');
+      });
+      if (response.ok) {
+        setIsSent(true);
+      } else {
+        const data = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        setError(
+          data?.message ?? 'Could not send the e-mail. Try again in a moment.',
+        );
+      }
+    } catch {
+      setError('The server is not reachable. Try again in a moment.');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -44,11 +55,17 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+            {error && (
+              <p role="alert" className="text-sm text-red-500">
+                {error}
+              </p>
+            )}
             <button
               type="submit"
+              disabled={busy}
               className="w-full p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              Send Reset Link
+              {busy ? 'Sending...' : 'Send Reset Link'}
             </button>
           </form>
         ) : (

@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Logger,
+  ServiceUnavailableException,
   ConflictException,
   UnauthorizedException,
   BadRequestException,
@@ -18,6 +20,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
@@ -194,7 +198,18 @@ export class AuthService {
       },
     });
 
-    await this.mailService.sendPasswordReset(user.email, token);
+    // A failure is logged and reported as 503, not 500: the request was fine, the mail service is down.
+    // The cost: this answer only happens for an existing account, so it reveals that the account exists.
+    try {
+      await this.mailService.sendPasswordReset(user.email, token);
+    } catch (error) {
+      this.logger.error(
+        `Could not send the password reset e-mail: ${String(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.',
+      );
+    }
 
     return { message };
   }
