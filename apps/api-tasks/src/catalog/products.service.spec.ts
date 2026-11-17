@@ -144,7 +144,7 @@ describe('ProductsService', () => {
     await service.remove('s1', 'p1');
     expect(prisma.product.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
-      data: { active: false },
+      data: { active: false, imageIds: [] },
     });
   });
 

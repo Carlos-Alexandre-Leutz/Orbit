@@ -131,6 +131,8 @@ describe('orders HTTP', () => {
       'user-9',
       'store-1',
       'checkout-1234abcd',
+      'SHIPPING',
+      undefined,
     );
     for (const bad of ['short', 'has space in it', 'x'.repeat(129)]) {
       await server()
@@ -152,6 +154,7 @@ describe('orders HTTP', () => {
       ID,
       'user-9',
       'pm_card_chargeDeclined',
+      { cardToken: undefined, cardBrand: undefined, payerEmail: undefined },
     );
   });
 
@@ -205,6 +208,8 @@ describe('orders HTTP', () => {
         role === 'SELLER'
           ? { id: 'user-1', role, storeId: 'store-7' }
           : { id: 'user-1', role },
+        // Shipping also carries the tracking code the seller may type.
+        ...(action === 'ship' ? [undefined, { trackingCode: undefined }] : []),
       );
     });
   });

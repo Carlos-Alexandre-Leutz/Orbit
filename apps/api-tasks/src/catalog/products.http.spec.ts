@@ -192,7 +192,7 @@ describe('catalog HTTP', () => {
     it('refuses a category slug with capitals', async () => {
       await server()
         .post('/categories')
-        .set('Authorization', as('ADMIN'))
+        .set('Authorization', as('SELLER'))
         .send({ slug: 'Bad Slug', name: 'x' })
         .expect(400);
     });
