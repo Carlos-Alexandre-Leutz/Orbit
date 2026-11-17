@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { supportEmail } from '@/lib/legal';
 
 export interface LegalSection {
   title: string;
@@ -18,7 +19,7 @@ export function LegalPage({
   intro: string;
   sections: LegalSection[];
 }) {
-  const contact = process.env.SUPPORT_EMAIL?.trim();
+  const contact = supportEmail();
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-10">
       <div className="space-y-2">
