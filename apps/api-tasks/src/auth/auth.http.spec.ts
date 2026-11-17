@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { StoresService } from '../stores/stores.service';
 
 describe('auth HTTP validation', () => {
@@ -22,6 +23,11 @@ describe('auth HTTP validation', () => {
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: StoresService, useValue: {} },
+        // The guard looks the user up; these tests never send a token, so nobody is found.
+        {
+          provide: PrismaService,
+          useValue: { user: { findUnique: () => Promise.resolve(null) } },
+        },
       ],
     }).compile();
     app = moduleRef.createNestApplication();

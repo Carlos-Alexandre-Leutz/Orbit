@@ -43,6 +43,8 @@ describe('StoresService', () => {
       slug: 'loja',
       name: 'Loja',
       description: 'Hi',
+      highlights: [],
+      suspended: false,
     });
   });
 });

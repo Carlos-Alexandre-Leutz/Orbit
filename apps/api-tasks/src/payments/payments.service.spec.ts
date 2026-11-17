@@ -110,6 +110,7 @@ describe('PaymentsService.pay', () => {
 
 describe('PaymentsService refunds', () => {
   const prisma = {
+    store: { findUnique: jest.fn() },
     order: {
       findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
@@ -136,6 +137,7 @@ describe('PaymentsService refunds', () => {
     jest.resetAllMocks();
     provider.refund.mockResolvedValue({ reference: 're1' });
     prisma.order.updateMany.mockResolvedValue({ count: 1 });
+    prisma.store.findUnique.mockResolvedValue({ suspendedAt: null });
   });
 
   it('refunds the whole payment of an order once and records the refund', async () => {

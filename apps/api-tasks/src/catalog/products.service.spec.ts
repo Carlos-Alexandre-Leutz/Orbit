@@ -21,7 +21,7 @@ describe('ProductsService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    category: { findUnique: jest.fn() },
+    category: { findFirst: jest.fn() },
   };
   const service = new ProductsService(
     prisma as never,
@@ -37,7 +37,7 @@ describe('ProductsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    prisma.category.findUnique.mockResolvedValue({ id: 'c1', slug: 'kitchen' });
+    prisma.category.findFirst.mockResolvedValue({ id: 'c1', slug: 'kitchen' });
     prisma.product.findFirst.mockResolvedValue({ id: 'p1' });
   });
 
@@ -118,7 +118,7 @@ describe('ProductsService', () => {
   });
 
   it('refuses an unknown category with 400, before touching products', async () => {
-    prisma.category.findUnique.mockResolvedValue(null);
+    prisma.category.findFirst.mockResolvedValue(null);
     await expect(service.create('s1', dto)).rejects.toBeInstanceOf(
       BadRequestException,
     );

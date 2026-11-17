@@ -4,6 +4,7 @@ describe('StoresService (seller panel)', () => {
   const prisma = {
     store: { findUnique: jest.fn(), update: jest.fn() },
     product: { count: jest.fn() },
+    category: { count: jest.fn() },
     order: { groupBy: jest.fn(), aggregate: jest.fn() },
     storeCustomer: { count: jest.fn() },
   };
@@ -19,6 +20,10 @@ describe('StoresService (seller panel)', () => {
       slug: 'a-shop',
       name: 'A',
       description: '',
+      logoImageId: null,
+      bannerImageIds: [],
+      deliveryDaysMin: 3,
+      deliveryDaysMax: 7,
     });
   });
 
@@ -43,6 +48,7 @@ describe('StoresService (seller panel)', () => {
 
   it('counts only the own store in the summary', async () => {
     prisma.product.count.mockResolvedValue(2);
+    prisma.category.count.mockResolvedValue(3);
     prisma.order.groupBy.mockResolvedValue([
       { status: 'PAID', _count: { _all: 1 } },
     ]);

@@ -32,7 +32,17 @@ describe('catalog HTTP', () => {
   const stores = {
     ofSeller: jest.fn().mockResolvedValue({ id: 'store-1' }),
   };
+  // The guard reads the role from the database; here it is the role the test signed the token with.
+  const roles = new Map<string, Role>();
   const prisma = {
+    user: {
+      findUnique: ({ where }: { where: { id: string } }) =>
+        Promise.resolve(
+          roles.has(where.id)
+            ? { id: where.id, role: roles.get(where.id) }
+            : null,
+        ),
+    },
     category: {
       findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn().mockResolvedValue({ slug: 'a', name: 'A' }),
@@ -60,7 +70,10 @@ describe('catalog HTTP', () => {
   afterAll(() => app.close());
   beforeEach(() => jest.clearAllMocks());
 
-  const as = (role: Role) => `Bearer ${jwt.sign({ sub: 'u1', role })}`;
+  const as = (role: Role) => {
+    roles.set('u1', role);
+    return `Bearer ${jwt.sign({ sub: 'u1', role })}`;
+  };
   const server = () => request(app.getHttpServer());
 
   describe('reading is public', () => {
