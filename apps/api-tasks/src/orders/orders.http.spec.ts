@@ -92,6 +92,8 @@ describe('orders HTTP', () => {
       'user-9',
       'store-1',
       undefined,
+      'SHIPPING',
+      undefined,
     );
     await server()
       .get(`/orders/${ID}`)
