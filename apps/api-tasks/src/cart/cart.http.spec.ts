@@ -3,6 +3,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { CartController } from './cart.controller';
+import { PrismaService } from '../prisma/prisma.service';
 import { StoresService } from '../stores/stores.service';
 import { CartService } from './cart.service';
 
@@ -11,6 +12,8 @@ const ID = '6f1c1f0e-8a39-4a27-a2c1-1d6d8c7b0001';
 describe('cart HTTP', () => {
   let app: INestApplication;
   let jwt: JwtService;
+  // The guard reads the role from the database; here it is the role the test signed the token with.
+  const roles = new Map<string, string>();
   const cart = {
     view: jest.fn().mockResolvedValue({ items: [] }),
     add: jest.fn().mockResolvedValue({ items: [] }),
@@ -30,6 +33,19 @@ describe('cart HTTP', () => {
       providers: [
         { provide: CartService, useValue: cart },
         { provide: StoresService, useValue: stores },
+        {
+          provide: PrismaService,
+          useValue: {
+            user: {
+              findUnique: ({ where }: { where: { id: string } }) =>
+                Promise.resolve(
+                  roles.has(where.id)
+                    ? { id: where.id, role: roles.get(where.id) }
+                    : null,
+                ),
+            },
+          },
+        },
       ],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -43,9 +59,10 @@ describe('cart HTTP', () => {
   afterAll(() => app.close());
   beforeEach(() => jest.clearAllMocks());
 
-  const auth = (sub = 'user-1', role = 'CUSTOMER') => ({
-    Authorization: `Bearer ${jwt.sign({ sub, role })}`,
-  });
+  const auth = (sub = 'user-1', role = 'CUSTOMER') => {
+    roles.set(sub, role);
+    return { Authorization: `Bearer ${jwt.sign({ sub, role })}` };
+  };
   const server = () => request(app.getHttpServer());
 
   it.each([

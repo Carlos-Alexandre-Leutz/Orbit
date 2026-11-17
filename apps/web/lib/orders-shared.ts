@@ -16,12 +16,62 @@ export interface OrderLine {
   lineTotalCents: number;
 }
 
+/** Where a shipped order goes, as the customer typed it at checkout. */
+export interface ShippingAddress {
+  recipientName: string;
+  recipientPhone: string;
+  postalCode: string;
+  street: string;
+  number: string;
+  complement: string | null;
+  district: string;
+  city: string;
+  state: string;
+}
+
+/** An address kept on the account, picked again at checkout. */
+export interface SavedAddress extends ShippingAddress {
+  id: string;
+}
+
+/** The address as the lines of a label. */
+export function addressLines(a: ShippingAddress): string[] {
+  const cep = a.postalCode.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+  return [
+    a.recipientName,
+    `${a.street}, ${a.number}${a.complement ? `, ${a.complement}` : ''}`,
+    `${a.district}, ${a.city} - ${a.state}`,
+    `CEP ${cep}`,
+    `Phone ${a.recipientPhone}`,
+  ];
+}
+
+/** "Mar 3" or "Mar 3 to Mar 7": the delivery window, or the single day when both ends are the same. */
+export function formatWindow(from: string | Date, to: string | Date): string {
+  const day = (d: string | Date) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const start = day(from);
+  const end = day(to);
+  return start === end ? start : `${start} to ${end}`;
+}
+
 export interface Order {
   id: string;
   status: OrderStatus;
   store: { slug: string; name: string };
   currency: string;
+  /** The total of the items plus the shipping. */
   totalCents: number;
+  shippingCents: number;
+  deliveryMethod: 'SHIPPING' | 'PICKUP';
+  /** Where it goes; null for a pickup. */
+  shippingAddress: ShippingAddress | null;
+  trackingCode: string | null;
+  /** The link to the tax invoice (nota fiscal), added by the seller. */
+  invoiceUrl: string | null;
+  /** The delivery window promised at checkout. */
+  estimatedFrom: string | null;
+  estimatedTo: string | null;
   items: OrderLine[];
   createdAt: string;
   paidAt: string | null;

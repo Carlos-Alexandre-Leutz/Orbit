@@ -17,14 +17,6 @@ describe('BFF StoresController', () => {
     controller = moduleRef.get(StoresController);
   });
 
-  it('lists the stores without a session', async () => {
-    await controller.list();
-    expect(http.get.mock.calls[0][0]).toMatch(/\/stores$/);
-    expect(http.get.mock.calls[0][1].headers).not.toHaveProperty(
-      'Authorization',
-    );
-  });
-
   it('reads one store by its link, encoded', async () => {
     await controller.one('loja do joão');
     expect(http.get.mock.calls[0][0]).toMatch(

@@ -20,6 +20,17 @@ interface OrderBody {
 }
 
 /** Orders on a real PostgreSQL. Everything it creates carries a random tag and is removed at the end. */
+const ADDRESS = {
+  recipientName: 'Ana Souza',
+  recipientPhone: '68 99999-0000',
+  postalCode: '69900-000',
+  street: 'Rua das Flores',
+  number: '10',
+  district: 'Centro',
+  city: 'Rio Branco',
+  state: 'AC',
+};
+
 describe('orders (real database)', () => {
   const tag = randomBytes(4).toString('hex');
   const prisma = new PrismaClient();
@@ -59,7 +70,10 @@ describe('orders (real database)', () => {
       .set(as(name))
       .send({ productId, quantity });
   const place = (name: string, key?: string) => {
-    const req = http().post(`/orders?${store()}`).set(as(name));
+    const req = http()
+      .post(`/orders?${store()}`)
+      .set(as(name))
+      .send({ shippingAddress: ADDRESS });
     return key ? req.set('Idempotency-Key', key) : req;
   };
   const stockOf = async (productId: string) =>

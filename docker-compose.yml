@@ -59,6 +59,9 @@ services:
     environment:
       # How the web server (not the browser) reaches the BFF.
       - BFF_URL=http://bff:3001
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - BFF_PUBLIC_URL=${BFF_PUBLIC_URL:-http://localhost:3001}
+      - ADMIN_PATH=${ADMIN_PATH:-}
       - APP_URL=${APP_URL:-http://localhost:3000}
     depends_on:
       bff:

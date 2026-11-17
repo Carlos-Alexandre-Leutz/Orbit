@@ -12,7 +12,7 @@ interface UpstreamError {
  */
 export async function callStoreApi(
   http: HttpService,
-  method: 'get' | 'post' | 'patch' | 'delete',
+  method: 'get' | 'post' | 'patch' | 'put' | 'delete',
   path: string,
   options: {
     body?: unknown;

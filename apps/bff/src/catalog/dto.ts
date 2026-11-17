@@ -87,12 +87,13 @@ export class UpdateProductBody {
 }
 
 export class CreateCategoryBody {
-  @ApiProperty({
-    description: 'Lowercase words joined by -',
-    example: 'garden',
-  })
-  slug: string;
-
-  @ApiProperty({ example: 'Garden' })
+  @ApiProperty({ example: 'Blouses' })
   name: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Lowercase words joined by -; made from the name when left out',
+    example: 'blouses',
+  })
+  slug?: string;
 }

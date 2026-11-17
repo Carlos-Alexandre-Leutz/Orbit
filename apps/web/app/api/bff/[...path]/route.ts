@@ -10,6 +10,7 @@ const ALLOWED = new Set([
   'orders',
   'account',
   'stores',
+  'billing',
 ]);
 
 async function forward(
@@ -17,7 +18,9 @@ async function forward(
   ctx: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await ctx.params;
-  if (!ALLOWED.has(path[0])) {
+  // The owner's area is reachable only under its secret address, from the environment.
+  const secret = process.env.ADMIN_PATH?.trim();
+  if (!ALLOWED.has(path[0]) && !(secret && path[0] === secret)) {
     return NextResponse.json({ message: 'Not found' }, { status: 404 });
   }
   const url = new URL(request.url);
@@ -43,4 +46,10 @@ async function forward(
   return NextResponse.json(result.data, { status: result.status });
 }
 
-export { forward as GET, forward as POST, forward as PATCH, forward as DELETE };
+export {
+  forward as GET,
+  forward as POST,
+  forward as PATCH,
+  forward as PUT,
+  forward as DELETE,
+};

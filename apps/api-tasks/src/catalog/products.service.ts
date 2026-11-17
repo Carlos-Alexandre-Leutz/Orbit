@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ImageStorage } from '../images/image-storage';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto, ProductSort } from './dto/list-products.dto';
@@ -28,7 +29,10 @@ const ORDER: Record<ProductSort, Prisma.ProductOrderByWithRelationInput[]> = {
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly images: ImageStorage,
+  ) {}
 
   async list(query: ListProductsDto) {
     const page = query.page ?? 1;
@@ -93,7 +97,7 @@ export class ProductsService {
   /** Writes always carry the seller's own store id (from the session), never one sent by the client. */
   async create(storeId: string, dto: CreateProductDto) {
     const { categorySlug, ...data } = dto;
-    const categoryId = await this.categoryId(categorySlug);
+    const categoryId = await this.categoryId(storeId, categorySlug);
     await this.ownImagesOrFail(storeId, dto.imageIds);
     try {
       return await this.prisma.product.create({
@@ -108,16 +112,25 @@ export class ProductsService {
   async update(storeId: string, id: string, dto: UpdateProductDto) {
     const { categorySlug, ...data } = dto;
     const categoryId = categorySlug
-      ? await this.categoryId(categorySlug)
+      ? await this.categoryId(storeId, categorySlug)
       : undefined;
-    await this.ownOrNotFound(storeId, id);
+    const before = await this.imageIdsOf(storeId, id);
     await this.ownImagesOrFail(storeId, dto.imageIds);
     try {
-      return await this.prisma.product.update({
+      const updated = await this.prisma.product.update({
         where: { id },
         data: { ...data, ...(categoryId ? { categoryId } : {}) },
         include: WITH_CATEGORY,
       });
+      // Pictures taken off the product are deleted unless the store still shows them somewhere else.
+      if (dto.imageIds) {
+        const kept = new Set(dto.imageIds);
+        await this.images.removeUnused(
+          storeId,
+          before.filter((imageId) => !kept.has(imageId)),
+        );
+      }
+      return updated;
     } catch (error) {
       throw this.translate(error);
     }
@@ -134,20 +147,36 @@ export class ProductsService {
     }
   }
 
-  /** Hides the product; the row stays so orders that point at it keep working. */
+  /**
+   * Hides the product; the row stays so orders that point at it keep working. Its pictures are deleted, because
+   * a hidden product is never shown again and its pictures would only fill the database.
+   */
   async remove(storeId: string, id: string) {
-    await this.ownOrNotFound(storeId, id);
+    const pictures = await this.imageIdsOf(storeId, id);
     try {
       await this.prisma.product.update({
         where: { id },
-        data: { active: false },
+        data: { active: false, imageIds: [] },
       });
     } catch (error) {
       throw this.translate(error);
     }
+    await this.images.removeUnused(storeId, pictures);
   }
 
   /** A product of another store is answered exactly like one that does not exist. */
+  /** The pictures a product of this store has now; a product of another store is "not found". */
+  private async imageIdsOf(storeId: string, id: string) {
+    const own = await this.prisma.product.findFirst({
+      where: { id, storeId },
+      select: { imageIds: true },
+    });
+    if (!own) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+    return own.imageIds ?? [];
+  }
+
   private async ownOrNotFound(storeId: string, id: string) {
     const own = await this.prisma.product.findFirst({
       where: { id, storeId },
@@ -158,10 +187,14 @@ export class ProductsService {
     }
   }
 
-  private async categoryId(slug: string) {
-    const category = await this.prisma.category.findUnique({ where: { slug } });
+  /** A product uses a category of its own store (an old shared one still works, but the store's own wins). */
+  private async categoryId(storeId: string, slug: string) {
+    const category = await this.prisma.category.findFirst({
+      where: { slug, OR: [{ storeId }, { storeId: null }] },
+      orderBy: { storeId: { sort: 'asc', nulls: 'last' } },
+    });
     if (!category) {
-      throw new BadRequestException(`Categoria desconhecida: ${slug}`);
+      throw new BadRequestException(`Unknown category: ${slug}`);
     }
     return category.id;
   }

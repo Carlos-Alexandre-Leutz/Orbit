@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e atualiza ao fim de cada PBI e de cada sessão (ver [`working-agreement.md`](working-agreement.md)). As perguntas para o dono estão em [`open-questions.md`](open-questions.md). **Última atualização: 2026-11-16.**
+Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e atualiza ao fim de cada PBI e de cada sessão (ver [`working-agreement.md`](working-agreement.md)). As perguntas para o dono estão em [`open-questions.md`](open-questions.md). **Última atualização: 2026-11-17.**
 
 ## Onde estamos
 
@@ -27,6 +27,7 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 67 | Imagens (no banco, atrás da porta `ImageStorage`), galeria do produto, avisos de estoque baixo e esgotado. |
 | 68 | Vitrine com capa, categorias e cartões com foto; página do produto e carrinho redesenhados; página inicial da plataforma. |
 | 69 | Tela de pagamento simulado com cartão aprovado e recusado ([`pagamento-simulado.md`](pagamento-simulado.md)). |
+| 72 | Plataforma de lojas pronta para o QA: conta única, onboarding, pagamento por loja (Stripe e Mercado Pago), área do dono, mensalidade do lojista, entrega (endereço, previsão, rastreio, nota fiscal), termos e privacidade ([`pbi/PBI-72.md`](pbi/PBI-72.md)). |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 
@@ -58,6 +59,18 @@ O PBI-09 está descrito em [`pbi/PBI-09.md`](pbi/PBI-09.md), com evidências e l
 - O painel do lojista (PBI-61) envia e entrega pedidos pela página `/panel/orders`.
 
 Limites do PBI-59 que uma próxima sessão deve lembrar: o dono da loja de demonstração (`demo-seller@orbit.invalid`) não consegue entrar; um admin não tem loja, então não cria nem edita produtos; uma nova página de primeiro nível do web precisa ser adicionada aos links reservados da API (`store-slug.ts`) e a `apps/web/lib/routes.ts`.
+
+## O que está fora da `staging` (2026-11-17)
+
+Todo o trabalho que estava só na pasta de trabalho depois do PR #414 foi reunido no **PBI-72** ([`pbi/PBI-72.md`](pbi/PBI-72.md)): conta única do Orbit, onboarding, frete, vitrine, categorias por loja, destaques, imagens, pagamento por loja, área do dono, mensalidade, entrega, nota fiscal, termos e privacidade. O PBI-72 foi escrito com a instrução "só código, sem testes": o documento dele lista o que não foi rodado e os testes que vão quebrar. O que ainda não existe está nos Limites dele.
+
+**Banco de desenvolvimento do dono:** as migrações `20261116140000` e `20261116150000` já foram aplicadas por `docker exec ... prisma migrate deploy`; as da `staging` e do #414 também. O QA do Render só as recebe quando isto for mergeado. Há contas e lojas de teste (`seller1@`, `joao@`, `maria@`, `dora@` e outras `@test.local`, senha `password123`) e as 4 categorias com 12 produtos que inseri por SQL na loja `manezinho-da-ilha`, que é a loja real do dono (`leutzeleutz@gmail.com`; nunca use a senha dele).
+
+**Testes que vão quebrar (não corrigidos, nada foi rodado nesta parte):** `test/stores.e2e-spec.ts` (corpo público da loja sem os campos novos), `src/stores/stores.service.spec.ts` (o `list` agora filtra por `published` e traz o template), os specs de pedidos (`tx.store.findUniqueOrThrow` e o argumento de entrega), `test/isolation.e2e-spec.ts` e `test/cart.e2e-spec.ts` (categorias criadas sem loja; já troquei `findUniqueOrThrow` por `findFirstOrThrow` no cart) e qualquer teste que use `GET /categories`. O `tsc` de API, BFF e web passou; o lint não rodou.
+
+**Ainda não existe:** carrossel de banners e banners de categoria; cupom e favoritos; teste de integração com duas lojas no PostgreSQL; a tela de produto, carrinho e checkout vistas no celular; rascunho escondido também na API (os produtos de uma loja em rascunho ainda saem por `GET /products?store=`); fechar loja; efeito real do "o que vender"; o `01-requirements.md` (inglês), o ADR-007, o backlog e as issues não falam das mudanças acima.
+
+**Combinados com o dono:** conversa em português; nenhuma tag ou texto que separe "cliente" de "lojista" na interface; só código quando ele pedir; issues, Project e PR só quando ele mandar (o PR vem depois de issues e cards); a permissão de mergear que ele deu valia só para os PBIs 65 a 69.
 
 ## Como uma tarefa e um PBI são feitos
 

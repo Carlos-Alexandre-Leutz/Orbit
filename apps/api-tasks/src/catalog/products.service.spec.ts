@@ -21,9 +21,12 @@ describe('ProductsService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    category: { findUnique: jest.fn() },
+    category: { findFirst: jest.fn() },
   };
-  const service = new ProductsService(prisma as never);
+  const service = new ProductsService(
+    prisma as never,
+    { removeUnused: jest.fn() } as never,
+  );
   const dto = {
     sku: 'KIT-1',
     name: 'Spoon',
@@ -34,7 +37,7 @@ describe('ProductsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    prisma.category.findUnique.mockResolvedValue({ id: 'c1', slug: 'kitchen' });
+    prisma.category.findFirst.mockResolvedValue({ id: 'c1', slug: 'kitchen' });
     prisma.product.findFirst.mockResolvedValue({ id: 'p1' });
   });
 
@@ -115,7 +118,7 @@ describe('ProductsService', () => {
   });
 
   it('refuses an unknown category with 400, before touching products', async () => {
-    prisma.category.findUnique.mockResolvedValue(null);
+    prisma.category.findFirst.mockResolvedValue(null);
     await expect(service.create('s1', dto)).rejects.toBeInstanceOf(
       BadRequestException,
     );
@@ -141,7 +144,7 @@ describe('ProductsService', () => {
     await service.remove('s1', 'p1');
     expect(prisma.product.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
-      data: { active: false },
+      data: { active: false, imageIds: [] },
     });
   });
 

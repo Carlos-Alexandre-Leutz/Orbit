@@ -39,3 +39,14 @@ export async function requireSeller(path: string): Promise<CurrentUser> {
   if (user.role !== 'SELLER') notFound();
   return user;
 }
+
+/**
+ * For the Orbit owner's area: only an admin opens it. Everyone else, a visitor included, gets "not found", as
+ * if the area did not exist. The API checks the role again on every call.
+ */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  // A visitor is not sent to the login page: that would show the area exists. Same answer for everyone.
+  if (!user || user.role !== 'ADMIN') notFound();
+  return user;
+}

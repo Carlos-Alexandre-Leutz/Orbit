@@ -14,6 +14,17 @@ interface OrderBody {
 }
 
 /** Paying on a real PostgreSQL, with the fake provider. Everything it creates carries a random tag. */
+const ADDRESS = {
+  recipientName: 'Ana Souza',
+  recipientPhone: '68 99999-0000',
+  postalCode: '69900-000',
+  street: 'Rua das Flores',
+  number: '10',
+  district: 'Centro',
+  city: 'Rio Branco',
+  state: 'AC',
+};
+
 describe('payments (real database)', () => {
   const tag = randomBytes(4).toString('hex');
   const prisma = new PrismaClient();
@@ -51,7 +62,11 @@ describe('payments (real database)', () => {
       .send({ productId, quantity: 1 })
       .expect(201);
     return (
-      await http().post(`/orders?store=${sam.slug}`).set(as(name)).expect(201)
+      await http()
+        .post(`/orders?store=${sam.slug}`)
+        .set(as(name))
+        .send({ shippingAddress: ADDRESS })
+        .expect(201)
     ).body as OrderBody;
   }
   const pay = (name: string, id: string, paymentMethod?: string) =>

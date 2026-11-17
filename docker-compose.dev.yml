@@ -58,4 +58,7 @@ services:
     environment:
       - NEXT_PUBLIC_BFF_URL=http://localhost:3001
       - BFF_URL=http://bff:3001
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - BFF_PUBLIC_URL=${BFF_PUBLIC_URL:-http://localhost:3001}
+      - ADMIN_PATH=${ADMIN_PATH:-}
       - APP_URL=${APP_URL:-http://localhost:3000}

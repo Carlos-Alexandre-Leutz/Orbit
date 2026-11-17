@@ -239,7 +239,7 @@ describe('cart (real database)', () => {
           priceCents: 100,
           stock: 3,
           categoryId: (
-            await prisma.category.findUniqueOrThrow({
+            await prisma.category.findFirstOrThrow({
               where: { slug: `c${tag}` },
             })
           ).id,
@@ -275,7 +275,7 @@ describe('cart (real database)', () => {
           stock: 5,
           active: false,
           categoryId: (
-            await prisma.category.findUniqueOrThrow({
+            await prisma.category.findFirstOrThrow({
               where: { slug: `c${tag}` },
             })
           ).id,
@@ -295,7 +295,7 @@ describe('cart (real database)', () => {
     });
 
     it('holds at most 20 different products', async () => {
-      const category = await prisma.category.findUniqueOrThrow({
+      const category = await prisma.category.findFirstOrThrow({
         where: { slug: `c${tag}` },
       });
       const ids: string[] = [];

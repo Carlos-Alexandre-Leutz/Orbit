@@ -43,5 +43,34 @@ body {
 }
 .store-theme .text-blue-400,
 .store-theme .text-blue-500 {
-  color: color-mix(in srgb, var(--store-color) 60%, white);
+  color: color-mix(in srgb, var(--store-color) 85%, black);
+}
+
+/*
+ * The storefront is light, like a real shop. The rest of the app is dark and its components use the gray
+ * scale for dark surfaces, so inside a store the scale is turned around: the same classes now paint light
+ * surfaces, soft borders and dark text. The store's own color still comes from --store-color above.
+ */
+.store-theme {
+  color-scheme: light;
+  --color-gray-100: #111827;
+  --color-gray-200: #1f2937;
+  --color-gray-300: #374151;
+  --color-gray-400: #6b7280;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #d1d5db;
+  --color-gray-700: #e5e7eb;
+  --color-gray-800: #f3f4f6;
+  --color-gray-900: #f9fafb;
+  --color-gray-950: #ffffff;
+  --color-red-400: #dc2626;
+  --color-red-500: #dc2626;
+  --color-green-400: #15803d;
+  --color-amber-200: #78350f;
+  --color-amber-400: #b45309;
+  --color-amber-900: #fde68a;
+  --color-red-950: #fee2e2;
+}
+.store-theme .bg-black {
+  background-color: #ffffff;
 }

@@ -8,7 +8,8 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { presentOrder, WITH_ITEMS } from '../orders/order-presenter';
-import { PaymentProvider } from './payment-provider';
+import { PaymentProvider, WebhookExtra } from './payment-provider';
+import { StorePaymentProviders } from './store-payment-provider.registry';
 
 /** Used when the customer picks nothing: Stripe's test card that always succeeds. */
 export const DEFAULT_PAYMENT_METHOD = 'pm_card_visa';
@@ -19,7 +20,8 @@ export class PaymentsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly provider: PaymentProvider,
+    private readonly providers: StorePaymentProviders,
+    private readonly platform: PaymentProvider,
   ) {}
 
   /**
@@ -30,6 +32,7 @@ export class PaymentsService {
     orderId: string,
     userId: string,
     paymentMethod = DEFAULT_PAYMENT_METHOD,
+    card: { cardToken?: string; cardBrand?: string; payerEmail?: string } = {},
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -50,12 +53,25 @@ export class PaymentsService {
     }
     // The key names the method: a retry with the same card never charges twice, and a new card after a
     // decline is a new attempt.
-    const result = await this.provider.charge({
+    const store = await this.prisma.store.findUnique({
+      where: { id: order.storeId },
+      select: { suspendedAt: true },
+    });
+    if (store?.suspendedAt) {
+      throw new ConflictException({
+        statusCode: 409,
+        code: 'STORE_SUSPENDED',
+        message: 'This store is not accepting payments right now',
+      });
+    }
+    const provider = await this.providers.forStoreId(order.storeId);
+    const result = await provider.charge({
       orderId: order.id,
       amountCents: order.totalCents,
       currency: order.currency,
       paymentMethod,
-      idempotencyKey: `order-${order.id}-${paymentMethod}`,
+      idempotencyKey: `order-${order.id}-${card.cardToken ?? paymentMethod}`,
+      ...card,
     });
     if (result.status === 'declined') {
       throw new HttpException(
@@ -86,8 +102,17 @@ export class PaymentsService {
    * Applies one provider event. The event id is recorded in the same transaction as its effect, so a repeated
    * event does nothing and a crash cannot leave the event recorded without its effect.
    */
-  async handleEvent(rawBody: Buffer, signature: string | undefined) {
-    const event = this.provider.readEvent(rawBody, signature);
+  async handleEvent(
+    rawBody: Buffer,
+    signature: string | undefined,
+    storeSlug?: string,
+    extra?: WebhookExtra,
+  ) {
+    // A store's own webhook is checked with that store's secret; the platform one with the environment's.
+    const provider = storeSlug
+      ? await this.providers.forSlug(storeSlug)
+      : this.platform;
+    const event = await provider.readEvent(rawBody, signature, extra);
     if (event.type === 'ignored') {
       return;
     }
@@ -128,7 +153,9 @@ export class PaymentsService {
     if (!order.paymentRef || order.refundRef) {
       return;
     }
-    const refund = await this.provider.refund({
+    const refund = await (
+      await this.providers.forStoreId(order.storeId)
+    ).refund({
       paymentReference: order.paymentRef,
       amountCents: order.totalCents,
       idempotencyKey: `refund-${order.paymentRef}`,
@@ -158,7 +185,10 @@ export class PaymentsService {
     this.logger.warn(
       `Payment ${reference} reached order ${orderId} in state ${order?.status}; refunding it`,
     );
-    const refund = await this.provider.refund({
+    const provider = order
+      ? await this.providers.forStoreId(order.storeId)
+      : this.platform;
+    const refund = await provider.refund({
       paymentReference: reference,
       amountCents,
       idempotencyKey: `refund-${reference}`,

@@ -24,6 +24,8 @@ export const RESERVED_SLUGS: readonly string[] = [
   'account',
   'reset-password',
   'seller',
+  'terms',
+  'privacy',
   'stores',
   'static',
   'health',

@@ -7,6 +7,10 @@ export interface ChargeRequest {
   paymentMethod: string;
   /** The same key must never charge twice, even if the call is repeated. */
   idempotencyKey: string;
+  /** Mercado Pago: the one-time card token made in the browser, and the card brand it was made for. */
+  cardToken?: string;
+  cardBrand?: string;
+  payerEmail?: string;
 }
 
 export interface ChargeResult {
@@ -32,6 +36,11 @@ export interface PaymentEvent {
   reference?: string;
 }
 
+export interface WebhookExtra {
+  headers: Record<string, string | undefined>;
+  query: Record<string, string | undefined>;
+}
+
 export class InvalidSignatureError extends Error {
   constructor() {
     super('Invalid webhook signature');
@@ -52,5 +61,7 @@ export abstract class PaymentProvider {
   abstract readEvent(
     rawBody: Buffer,
     signature: string | undefined,
-  ): PaymentEvent;
+    /** The other request details some providers sign or need (headers in lower case, query string). */
+    extra?: WebhookExtra,
+  ): PaymentEvent | Promise<PaymentEvent>;
 }

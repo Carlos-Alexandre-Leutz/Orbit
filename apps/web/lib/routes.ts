@@ -15,10 +15,12 @@ const SITE_PAGES = new Set([
   'login',
   'orders',
   'panel',
+  'privacy',
   'register',
   'reset-password',
   'sell',
   'seller',
+  'terms',
   '_next',
   'favicon.ico',
 ]);
@@ -29,7 +31,6 @@ const SITE_PRIVATE = new Set([
   'dashboard',
   'panel',
   'seller',
-  'admin',
 ]);
 
 /** Pages that only make sense with a session: the cart, checkout and orders of a store, and the staff pages. */

@@ -428,15 +428,22 @@ The basic online-store platform that the agent work sits on: sellers sign up and
 - T: Show the test payment mode in the panel and on the order pages
 - T: Document how the real payment provider replaces the simulation
 
+### PBI-72 [F1] Store platform ready for QA
+- T: Deliver the store platform work done since PR #414 (paid stores, delivery, legal pages and the owner area) in one change
+
 ---
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
-- First deploy (a basic store online, before the agent work): 01 to 09, 55, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, then 42 and 43 with the owner. What else must come first (backups, hardening, rate limits) is an open question in `open-questions.md`.
+- First deploy (a basic store online, before the agent work): 01 to 09, 55, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, then 42 and 43 with the owner. What else must come first (backups, hardening, rate limits) is an open question in `open-questions.md`.
 - Parked, refine later: 47 to 54 (cart recovery and WhatsApp), 56 to 58 (support tickets with AI triage)
+- To refine (no number yet): seller payouts, where each seller pastes the keys of their own Stripe or Mercado Pago account and pays the provider fees, so the owner pays nothing per sale (see ADR-008). The code is written but was never run against a real account; it still needs a PBI, a run with test accounts and a currency per store. It comes before fraud validation and before real card payments.
+- To refine (no number yet): fraud validation on purchase. The owner will check an order for signs of fraud before it is paid or shipped. What counts as a signal, whether it blocks or only flags, and who reviews a flagged order are still open. It sits on top of the real payment provider, so it comes after the Stripe test-mode integration.
+- To refine (no number yet): seller subscription. The code charges the monthly plan (R$ 15, with 30 free days) through Orbit's own Mercado Pago account and suspends a store whose card keeps failing (see ADR-009); it was never run against Mercado Pago. It still needs a PBI, a run with a test account, plan limits and a way for the seller to cancel inside Orbit.
+- To refine (no number yet): disputes and buyer complaints. A buyer who does not receive an order needs a way to report it; the platform notifies the seller and waits for an answer, and a store that does not answer can be suspended (the draft state `published=false`, as an admin action). Money is refunded by the seller from their own provider account, and a card chargeback is opened by the buyer at their bank, not by Orbit (see ADR-008). Needs terms of use that say Orbit is an intermediary and the seller answers for the product and the refund. Related to the parked E14 (support tickets).
 
 Cut order if needed: Redis, second connector, MCP, stockout-risk model.

@@ -4,6 +4,7 @@ import { PlaceOrderButton } from '@/components/PlaceOrderButton';
 import { requireCustomer } from '@/lib/guard';
 import { getStore } from '@/lib/stores';
 import { getCart } from '@/lib/cart';
+import { getSavedAddresses } from '@/lib/orders';
 import { formatPrice } from '@/lib/catalog';
 
 export const metadata = { title: 'Checkout | Orbit' };
@@ -18,6 +19,7 @@ export default async function CheckoutPage({
   const store = await getStore(slug);
   if (!store) notFound();
   const cart = await getCart(store.slug);
+  const savedAddresses = await getSavedAddresses();
 
   if (!cart) {
     return (
@@ -61,14 +63,28 @@ export default async function CheckoutPage({
               </li>
             ))}
           </ul>
-          <p className="text-xl">
-            Total: <strong>{formatPrice(cart.totalCents)}</strong>
+          <p className="flex justify-between text-sm text-gray-400">
+            <span>Items</span>
+            <span>{formatPrice(cart.totalCents)}</span>
           </p>
           <p className="text-sm text-gray-400">
             Payments run in test mode: no real money moves. You pay on the next
             page. Stock is reserved when you place the order.
           </p>
-          <PlaceOrderButton store={store.slug} />
+          <PlaceOrderButton
+            store={store.slug}
+            itemsCents={cart.totalCents}
+            savedAddresses={savedAddresses}
+            rules={{
+              shippingFlatCents: store.shippingFlatCents,
+              freeShippingOverCents: store.freeShippingOverCents,
+              pickupEnabled: store.pickupEnabled,
+              handlingDays: store.handlingDays,
+              deliveryDaysMin: store.deliveryDaysMin,
+              deliveryDaysMax: store.deliveryDaysMax,
+              deliveryByState: store.deliveryByState,
+            }}
+          />
         </>
       )}
     </main>

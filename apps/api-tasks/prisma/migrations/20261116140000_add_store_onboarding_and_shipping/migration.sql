@@ -1,0 +1,12 @@
+-- AlterTable
+ALTER TABLE "Store" ADD COLUMN "published" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "template" TEXT NOT NULL DEFAULT 'classic',
+ADD COLUMN "sellingModes" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN "shippingFlatCents" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "freeShippingOverCents" INTEGER,
+ADD COLUMN "pickupEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "paymentMethods" TEXT[] DEFAULT ARRAY['card']::TEXT[];
+
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN "shippingCents" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "deliveryMethod" TEXT NOT NULL DEFAULT 'SHIPPING';

@@ -12,6 +12,18 @@ import { SESSION_COOKIE } from '@/lib/session';
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // The owner's area lives under a secret address (ADMIN_PATH). That address is rewritten to the real folder,
+  // and a direct request to the real folder is "not found", so only the secret address reaches it.
+  const secret = process.env.ADMIN_PATH?.trim();
+  if (secret && (pathname === `/${secret}` || pathname.startsWith(`/${secret}/`))) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/studio${pathname.slice(secret.length + 1)}`;
+    return NextResponse.rewrite(url);
+  }
+  if (pathname === '/studio' || pathname.startsWith('/studio/')) {
+    return NextResponse.rewrite(new URL('/not-found-here', request.url));
+  }
+
   if (needsSession(pathname) && !request.cookies.has(SESSION_COOKIE)) {
     return NextResponse.redirect(
       new URL(loginUrl(`${pathname}${search}`), request.url),

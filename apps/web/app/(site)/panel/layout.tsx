@@ -1,12 +1,17 @@
 import Link from 'next/link';
-import { StoreSetupForm } from '@/components/StoreSetupForm';
+import { StoreOnboarding } from '@/components/StoreOnboarding';
 import { requireSeller } from '@/lib/guard';
 
 const LINKS = [
   { href: '/panel', label: 'Overview' },
   { href: '/panel/products', label: 'Products' },
+  { href: '/panel/categories', label: 'Categories' },
   { href: '/panel/orders', label: 'Orders' },
   { href: '/panel/customers', label: 'Customers' },
+  { href: '/panel/shipping', label: 'Shipping' },
+  { href: '/panel/highlights', label: 'Highlights' },
+  { href: '/panel/payments', label: 'Payments' },
+  { href: '/panel/billing', label: 'Billing' },
   { href: '/panel/settings', label: 'Store settings' },
 ];
 
@@ -22,17 +27,17 @@ export default async function PanelLayout({
       '',
     );
     return (
-      <main className="mx-auto w-full max-w-lg flex-1 space-y-6 px-4 py-12">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-12">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">
             Welcome{user.name ? `, ${user.name}` : ''}
           </h1>
           <p className="text-gray-400">
-            Let&apos;s set up your store. Give it a name and it gets a link you
-            can open and share right away.
+            Let&apos;s set up your store in three quick steps. It starts as a
+            draft that only you can see, until you publish it.
           </p>
         </div>
-        <StoreSetupForm origin={origin} />
+        <StoreOnboarding origin={origin} />
       </main>
     );
   }
