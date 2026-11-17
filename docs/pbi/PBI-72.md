@@ -56,11 +56,11 @@ Reunir num só PBI o trabalho feito depois do PR #414 e que ainda não estava co
 
 ## Validação
 
-Feita só no banco e na stack de desenvolvimento do dono: as migrações foram aplicadas no PostgreSQL do contêiner, a API e o web subiram, e o painel de pedidos foi aberto depois de reiniciar o web. O `tsc` do web passou em dois momentos do trabalho. **Não foram rodados testes unitários, de integração nem lint desta leva.**
+Feita em 2026-11-17. Na stack de desenvolvimento do dono: as migrações foram aplicadas no PostgreSQL do contêiner, a API e o web subiram e o painel de pedidos foi aberto. Localmente, depois de corrigir os testes que o código novo quebrou: 271 testes unitários da API, 25 do BFF, 74 do web, 100 de `scripts` e 87 de integração da API contra um PostgreSQL novo (com as 11 migrações), todos verdes, e o lint dos três apps sem erros. O CI do PR da tarefa terminou com os seis checks verdes.
 
 ## Limites
 
-- **Testes que vão quebrar e não foram corrigidos:** `test/stores.e2e-spec.ts` e `src/stores/stores.service.spec.ts` (campos novos e a lista removida), `src/stores/stores.panel.spec.ts`, os specs de pedidos (`orders.service.spec.ts`, `orders.http.spec.ts`: o envio agora exige endereço e a loja traz os dias de entrega), `test/isolation.e2e-spec.ts`, `test/cart.e2e-spec.ts`, os testes HTTP que usam `@Auth` (precisam de `user.findUnique` no mock do `PrismaService`; só o `role-guards.http.spec.ts` foi ajustado) e qualquer teste que use `GET /categories`. Há seis testes de menu e uma suíte nova que passaram só no começo; o CI diz o resto.
+- Os testes antigos foram ajustados aos campos novos, ao endereço obrigatório e à lista de lojas removida, mas **não há testes novos** para a entrega, os endereços salvos, a nota fiscal, os termos, a área do dono nem a mensalidade.
 - **Nenhum dinheiro real rodou:** os adaptadores do Stripe e do Mercado Pago, a assinatura da mensalidade e os webhooks nunca foram executados contra um provedor. Falta rodar um pagamento, uma recusa, um estorno e um webhook em cada, e uma assinatura de teste, uma falha e um cancelamento da mensalidade.
 - Um pedido não pago mantém o estoque até ser cancelado; nada expira os antigos. Só o cartão existe como forma de pagamento.
 - A previsão de entrega é a regra de dias que o vendedor digita; não há transportadora, preço de frete por CEP nem rastreio automático.
