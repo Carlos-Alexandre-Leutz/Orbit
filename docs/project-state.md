@@ -20,7 +20,7 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 62 | Fluxo de trabalho e scripts do dia a dia (`scripts/dev test` e `scripts/dev pr`), documentados em [`fluxo-de-trabalho.md`](fluxo-de-trabalho.md). |
 | 63 | E-mail do QA: porta `MailTransport` com adaptadores SMTP e HTTP (a API de e-mail do dono), falha de envio responde 503, páginas de senha pelas rotas `/api/session/*`. |
 | 64 | Deploy automático do QA: o job `redeploy` do `publish-images.yml` chama os deploy hooks do Render. |
-| 65 | Cadastros: o lojista se cadastra em `/sell`; o cliente se cadastra e entra dentro da loja (`/<slug>/register`, `/<slug>/login`); um e-mail tem um único papel. |
+| 65 | Cadastros: o lojista se cadastra em `/sell`; o cliente se cadastra e entra dentro da loja (`/<slug>/register`, `/<slug>/login`); uma conta do Orbit vale para tudo (quem tem loja também compra, e quem comprou pode abrir loja). |
 | 70 | Conta global do cliente: `/account` com os pedidos de todas as lojas, ligação cliente × loja, consentimento de marketing por loja, apagar a conta. |
 | 61 | Painel do lojista em `/panel`: início com resumo e checklist, produtos, pedidos (enviar e entregar), clientes, configurações da loja. |
 | 66 | Aparência da loja: logo, capa, cor, slogan e contato, aplicados à vitrine e ao login da loja. |

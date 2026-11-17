@@ -17,7 +17,9 @@ export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
   const user = await getCurrentUser();
   const store = storeSlug ? await getStore(storeSlug) : null;
   const cart =
-    user?.role === 'CUSTOMER' && store ? await getCart(store.slug) : null;
+    (user?.role === 'CUSTOMER' || user?.role === 'SELLER') && store
+      ? await getCart(store.slug)
+      : null;
   return (
     <header className="border-b border-gray-700">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -81,7 +83,7 @@ export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
                 href={store ? `/${store.slug}/register` : '/sell'}
                 className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
               >
-                {store ? 'Sign up' : 'Create your store'}
+                {store ? 'Sign up' : 'Create account'}
               </Link>
             </>
           )}

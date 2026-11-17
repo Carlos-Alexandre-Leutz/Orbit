@@ -20,7 +20,7 @@ import { SLUG_MESSAGES, checkSlug, slugFromName } from '../stores/store-slug';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const EMAIL_TAKEN =
-  'This e-mail already has an account. An e-mail is either a customer or a seller, so use another e-mail for the other role.';
+  'This e-mail already has an Orbit account. Sign in, or use another e-mail.';
 
 @Injectable()
 export class AuthService {
@@ -41,7 +41,7 @@ export class AuthService {
   }
 
   /**
-   * Self-registration creates a customer, or a seller together with the store, in one statement.
+   * Self-registration creates a customer, or a seller (with the store at once when it is named, or without one).
    * The role is decided here from `accountType`, never copied from the request.
    */
   async register(data: RegisterDto) {
@@ -52,14 +52,15 @@ export class AuthService {
       throw new ConflictException(EMAIL_TAKEN);
     }
     const store = await this.storeToCreate(data);
-    const joined = store ? null : await this.storeToJoin(data);
+    const isSeller = data.accountType === 'SELLER';
+    const joined = isSeller ? null : await this.storeToJoin(data);
     try {
       const user = await this.prisma.user.create({
         data: {
           email: data.email,
           name: data.name,
           password: await bcrypt.hash(data.password, 10),
-          role: store ? 'SELLER' : 'CUSTOMER',
+          role: isSeller ? 'SELLER' : 'CUSTOMER',
           ...(store && { store: { create: store } }),
           ...(joined && {
             storeCustomers: {
@@ -99,6 +100,18 @@ export class AuthService {
     }
   }
 
+  /**
+   * An account that names a store becomes a seller, and keeps shopping like before. The role lives in the
+   * token, so the caller gets a new session that carries it.
+   */
+  async becomeSeller(userId: string) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role: 'SELLER' },
+    });
+    return this.issueSession(user);
+  }
+
   /** The store a new customer joins by signing up inside it; null when they signed up outside a store. */
   private async storeToJoin(data: RegisterDto) {
     if (!data.joinStore) return null;
@@ -111,9 +124,14 @@ export class AuthService {
     return store;
   }
 
-  /** The store a new seller gets, validated; null for a customer. */
+  /**
+   * The store a new seller gets at sign-up, validated. A seller may sign up without one (the store is named
+   * later, in the panel); null for a customer or for that case.
+   */
   private async storeToCreate(data: RegisterDto) {
-    if (data.accountType !== 'SELLER') return null;
+    if (data.accountType !== 'SELLER' || data.storeName === undefined) {
+      return null;
+    }
     const name = data.storeName?.trim();
     if (!name) {
       throw new BadRequestException('A seller needs a store name');

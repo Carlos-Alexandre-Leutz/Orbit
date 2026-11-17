@@ -13,9 +13,9 @@ import { Auth } from '../auth/roles.decorator';
 import { ConsentDto } from './dto/consent.dto';
 import { CustomersService } from './customers.service';
 
-/** The account of the logged-in customer, valid in every store. */
+/** The shopping account of the logged-in user (a seller shops too), valid in every store. */
 @Controller('account')
-@Auth('CUSTOMER')
+@Auth('CUSTOMER', 'SELLER')
 export class AccountController {
   constructor(private readonly customers: CustomersService) {}
 

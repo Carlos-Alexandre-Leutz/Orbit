@@ -88,7 +88,16 @@ export default async function OrderPage({
         Payments are simulated (test mode): no real money moved.
       </p>
 
-      <OrderActions orderId={order.id} status={order.status} role={user.role} />
+      <OrderActions
+        orderId={order.id}
+        status={order.status}
+        role={
+          user.role === 'ADMIN' ||
+          (user.role === 'SELLER' && user.store?.slug === store.slug)
+            ? user.role
+            : 'CUSTOMER'
+        }
+      />
     </main>
   );
 }

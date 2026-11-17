@@ -18,6 +18,18 @@ export class AuthController {
     });
   }
 
+  @Post('store')
+  createStore(
+    @Body() body: Record<string, unknown>,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(this.http, 'post', '/auth/store', {
+      authorization,
+      body,
+      fallback: 'Could not create your store',
+    });
+  }
+
   @Post('login')
   login(@Body() dto: LoginDto) {
     return callStoreApi(this.http, 'post', '/auth/login', {

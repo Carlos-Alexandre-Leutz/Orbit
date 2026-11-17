@@ -107,7 +107,7 @@ export function LoginForm({
               Create an account to shop
             </Link>
           ) : (
-            <Link href="/sell">Create your store</Link>
+            <Link href="/sell">Create an Orbit account</Link>
           )}
           <Link href="/forgot-password">Forgot Password</Link>
         </div>
@@ -233,7 +233,15 @@ export function CustomerSignUpForm({
           </label>
           {error && (
             <p role="alert" className="text-sm text-red-400">
-              {error}
+              {error}{' '}
+              {error.includes('already has an Orbit account') && (
+                <Link
+                  href={`/${store.slug}/login?next=${encodeURIComponent(next)}`}
+                  className="underline"
+                >
+                  Sign in to {store.name}
+                </Link>
+              )}
             </p>
           )}
           <button
@@ -258,12 +266,10 @@ export function CustomerSignUpForm({
   );
 }
 
-/** Sign-up of a seller on the platform: creates the account and the store together. */
+/** Creating an Orbit account: the account is the store. The store is named afterwards, inside the panel. */
 export function SellerSignUpForm() {
   const router = useRouter();
   const [values, setValues] = useState(EMPTY);
-  const [storeName, setStoreName] = useState('');
-  const [storeSlug, setStoreSlug] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -280,8 +286,6 @@ export function SellerSignUpForm() {
       email: values.email,
       password: values.password,
       accountType: 'SELLER',
-      storeName,
-      ...(storeSlug && { storeSlug }),
     });
     if (failure) {
       setError(failure);
@@ -295,40 +299,18 @@ export function SellerSignUpForm() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center p-8">
       <div className="w-full max-w-md p-8 space-y-6 bg-black rounded shadow-md">
-        <h1 className="text-2xl font-bold text-center">Create your store</h1>
+        <h1 className="text-2xl font-bold text-center">
+          Create your Orbit account
+        </h1>
         <p className="text-center text-sm text-gray-400">
-          Sign up as a seller to set up your store, add products and get a link
-          to share with your customers.
+          Your Orbit account is your store. Sign up, then name your store and
+          get a link to share with your customers.
         </p>
         <form onSubmit={submit} className="space-y-4">
           <Fields
             values={values}
             set={(k, v) => setValues((o) => ({ ...o, [k]: v }))}
           />
-          <input
-            type="text"
-            placeholder="Store name"
-            aria-label="Store name"
-            className={field}
-            value={storeName}
-            onChange={(e) => setStoreName(e.target.value)}
-            minLength={2}
-            maxLength={80}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Store link (optional, e.g. loja-do-joao)"
-            aria-label="Store link"
-            className={field}
-            value={storeSlug}
-            onChange={(e) => setStoreSlug(e.target.value.toLowerCase())}
-            maxLength={40}
-          />
-          <p className="text-xs text-gray-500">
-            An e-mail is either a seller or a customer. To shop in other stores
-            too, use a different e-mail for that account.
-          </p>
           {error && (
             <p role="alert" className="text-sm text-red-400">
               {error}
@@ -339,11 +321,11 @@ export function SellerSignUpForm() {
             disabled={busy}
             className="w-full p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-60"
           >
-            {busy ? 'Creating...' : 'Create account and store'}
+            {busy ? 'Creating...' : 'Create account'}
           </button>
         </form>
         <p className="text-center text-sm mt-4">
-          Already a seller?{' '}
+          Already have an account?{' '}
           <Link href="/login" className="text-blue-500">
             Sign in
           </Link>
