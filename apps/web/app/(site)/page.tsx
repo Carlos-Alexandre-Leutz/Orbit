@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { imageSrc, safeColor } from '@/lib/images';
-import { listStores } from '@/lib/stores';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
 
 export const metadata = { title: 'Orbit | Create your online store' };
 
@@ -19,8 +19,13 @@ const STEPS = [
   },
 ];
 
+/**
+ * The home of Orbit: it sells the product to sellers and lists no store; a store is only reached by its link.
+ * Whoever already has a store has nothing to buy here, so they land in the panel of their store.
+ */
 export default async function HomePage() {
-  const stores = await listStores();
+  const user = await getCurrentUser();
+  if (user?.role === 'SELLER' && user.store) redirect('/panel');
   return (
     <main className="flex-1">
       <section className="border-b border-gray-800 px-4 py-16 text-center">
@@ -39,12 +44,6 @@ export default async function HomePage() {
               className="rounded bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
             >
               Create your store
-            </Link>
-            <Link
-              href="#stores"
-              className="rounded border border-gray-500 px-6 py-3 hover:bg-gray-800"
-            >
-              Browse the stores
             </Link>
           </div>
         </div>
@@ -66,59 +65,15 @@ export default async function HomePage() {
         ))}
       </section>
 
-      <section id="stores" className="mx-auto max-w-5xl space-y-4 px-4 pb-16">
-        <h2 className="text-2xl font-bold">Stores on Orbit</h2>
-        {stores === null ? (
-          <p role="alert" className="text-red-400">
-            The stores could not be loaded. Try again in a moment.
-          </p>
-        ) : stores.length === 0 ? (
-          <p>There are no stores yet. Yours can be the first.</p>
-        ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {stores.map((store) => (
-              <li
-                key={store.slug}
-                className="overflow-hidden rounded-lg border border-gray-700 hover:border-gray-500"
-              >
-                <Link href={`/${store.slug}`} className="block">
-                  <div
-                    className="relative h-24"
-                    style={{ backgroundColor: safeColor(store.primaryColor) }}
-                  >
-                    {store.coverImageId && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={imageSrc(store.coverImageId)}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-1 p-4">
-                    <p className="flex items-center gap-2 font-semibold">
-                      {store.logoImageId && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={imageSrc(store.logoImageId)}
-                          alt=""
-                          className="h-6 w-6 rounded object-cover"
-                        />
-                      )}
-                      {store.name}
-                    </p>
-                    <p className="line-clamp-2 text-sm text-gray-400">
-                      {store.tagline || store.description}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <footer className="border-t border-gray-800 px-4 py-6 text-center text-sm text-gray-500">
+        <Link href="/terms" className="underline">
+          Terms of Use
+        </Link>
+        {' · '}
+        <Link href="/privacy" className="underline">
+          Privacy Policy
+        </Link>
+        <br />
         Orbit is a portfolio project: the stores and people are invented and
         payments are in test mode.
       </footer>

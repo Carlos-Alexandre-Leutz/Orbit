@@ -24,14 +24,20 @@ describe('PaymentsService.pay', () => {
       findUniqueOrThrow: jest.fn(),
       updateMany: jest.fn(),
     },
+    store: { findUnique: jest.fn() },
   };
   const provider = {
     charge: jest.fn(),
     refund: jest.fn(),
     readEvent: jest.fn(),
   };
+  const registry = {
+    forStoreId: () => Promise.resolve(provider),
+    forSlug: () => Promise.resolve(provider),
+  };
   const service = new PaymentsService(
     prisma as never,
+    registry as never,
     provider as unknown as PaymentProvider,
   );
   const charge = (result: ChargeResult) =>
@@ -42,6 +48,7 @@ describe('PaymentsService.pay', () => {
     prisma.order.findUnique.mockResolvedValue(order());
     prisma.order.findUniqueOrThrow.mockResolvedValue(order({ status: 'PAID' }));
     prisma.order.updateMany.mockResolvedValue({ count: 1 });
+    prisma.store.findUnique.mockResolvedValue({ suspendedAt: null });
   });
 
   it('charges the stored total and marks the order paid', async () => {
@@ -103,6 +110,7 @@ describe('PaymentsService.pay', () => {
 
 describe('PaymentsService refunds', () => {
   const prisma = {
+    store: { findUnique: jest.fn() },
     order: {
       findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
@@ -115,8 +123,13 @@ describe('PaymentsService refunds', () => {
     refund: jest.fn(),
     readEvent: jest.fn(),
   };
+  const registry = {
+    forStoreId: () => Promise.resolve(provider),
+    forSlug: () => Promise.resolve(provider),
+  };
   const service = new PaymentsService(
     prisma as never,
+    registry as never,
     provider as unknown as PaymentProvider,
   );
 
@@ -124,6 +137,7 @@ describe('PaymentsService refunds', () => {
     jest.resetAllMocks();
     provider.refund.mockResolvedValue({ reference: 're1' });
     prisma.order.updateMany.mockResolvedValue({ count: 1 });
+    prisma.store.findUnique.mockResolvedValue({ suspendedAt: null });
   });
 
   it('refunds the whole payment of an order once and records the refund', async () => {

@@ -10,6 +10,17 @@ import { TestSeller, removeTestData, sellerWithStore } from './support';
  * A seller never reads or changes anything of another store. Two sellers, two stores and two customers
  * on a real PostgreSQL; everything carries a random tag and is removed at the end.
  */
+const ADDRESS = {
+  recipientName: 'Ana Souza',
+  recipientPhone: '68 99999-0000',
+  postalCode: '69900-000',
+  street: 'Rua das Flores',
+  number: '10',
+  district: 'Centro',
+  city: 'Rio Branco',
+  state: 'AC',
+};
+
 describe('store isolation (real database)', () => {
   const tag = randomBytes(4).toString('hex');
   const password = 'a-good-password';
@@ -206,6 +217,7 @@ describe('store isolation (real database)', () => {
       const res = await http()
         .post(`/orders?store=${alpha.slug}`)
         .set(as('ana'))
+        .send({ shippingAddress: ADDRESS })
         .expect(201);
       orderId = res.body.id as string;
       await prisma.order.update({

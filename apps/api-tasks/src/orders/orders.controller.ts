@@ -13,7 +13,13 @@ import {
 import type { AuthenticatedRequest } from '../auth/authenticated-user';
 import { Auth } from '../auth/roles.decorator';
 import { StoresService } from '../stores/stores.service';
+import { DELIVERY_METHODS, type DeliveryMethod } from '../stores/store-config';
 import { PayOrderDto } from './dto/pay-order.dto';
+import {
+  InvoiceOrderDto,
+  PlaceOrderDto,
+  ShipOrderDto,
+} from './dto/place-order.dto';
 import { OrdersService, Viewer } from './orders.service';
 import { PaymentsService } from '../payments/payments.service';
 
@@ -30,6 +36,15 @@ function parseIdempotencyKey(value?: string): string | undefined {
     );
   }
   return value;
+}
+
+/** How the order is delivered: shipping (the default) or pickup. */
+function parseDelivery(value?: string): DeliveryMethod {
+  if (value === undefined) return 'SHIPPING';
+  if (!(DELIVERY_METHODS as readonly string[]).includes(value)) {
+    throw new BadRequestException('delivery must be SHIPPING or PICKUP');
+  }
+  return value as DeliveryMethod;
 }
 
 /**
@@ -63,6 +78,8 @@ export class OrdersController {
     @Req() request: AuthenticatedRequest,
     @Query('store') store?: string,
     @Headers('idempotency-key') idempotencyKey?: string,
+    @Query('delivery') delivery?: string,
+    @Body() body?: PlaceOrderDto,
   ) {
     if (!store) {
       throw new BadRequestException('The store link is required (?store=)');
@@ -71,6 +88,8 @@ export class OrdersController {
       request.user.id,
       (await this.stores.bySlug(store)).id,
       parseIdempotencyKey(idempotencyKey),
+      parseDelivery(delivery),
+      body?.shippingAddress,
     );
   }
 
@@ -93,6 +112,13 @@ export class OrdersController {
     );
   }
 
+  /** The delivery addresses of my account, the latest used first. Declared before `:id` so it is never read as one. */
+  @Get('addresses')
+  @Auth('CUSTOMER', 'SELLER')
+  addresses(@Req() request: AuthenticatedRequest) {
+    return this.orders.listAddresses(request.user.id);
+  }
+
   @Get(':id')
   async one(
     @Req() request: AuthenticatedRequest,
@@ -108,7 +134,11 @@ export class OrdersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: PayOrderDto,
   ) {
-    return this.payments.pay(id, request.user.id, body.paymentMethod);
+    return this.payments.pay(id, request.user.id, body.paymentMethod, {
+      cardToken: body.cardToken,
+      cardBrand: body.cardBrand,
+      payerEmail: body.payerEmail,
+    });
   }
 
   /** Cancels an order: the owner while it waits for payment, a seller or admin also after it was paid. */
@@ -125,8 +155,30 @@ export class OrdersController {
   async ship(
     @Req() request: AuthenticatedRequest,
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: ShipOrderDto,
   ) {
-    return this.orders.transition(id, 'SHIPPED', await this.viewer(request));
+    return this.orders.transition(
+      id,
+      'SHIPPED',
+      await this.viewer(request),
+      undefined,
+      { trackingCode: body?.trackingCode?.trim() },
+    );
+  }
+
+  /** Adds the link to the tax invoice of a paid order; the customer sees it on the order page. */
+  @Post(':id/invoice')
+  @Auth('SELLER', 'ADMIN')
+  async invoice(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: InvoiceOrderDto,
+  ) {
+    return this.orders.setInvoice(
+      id,
+      await this.viewer(request),
+      body.invoiceUrl.trim(),
+    );
   }
 
   @Post(':id/deliver')

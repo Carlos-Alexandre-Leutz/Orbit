@@ -1,6 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Put,
+  Req,
+} from '@nestjs/common';
 import type { AuthenticatedRequest } from '../auth/authenticated-user';
 import { Auth } from '../auth/roles.decorator';
+import { ConnectPaymentDto } from './dto/connect-payment.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { StoresService } from './stores.service';
 
@@ -12,11 +22,6 @@ import { StoresService } from './stores.service';
 @Controller('stores')
 export class StoresController {
   constructor(private readonly stores: StoresService) {}
-
-  @Get()
-  list() {
-    return this.stores.list();
-  }
 
   @Get('mine')
   @Auth('SELLER')
@@ -30,10 +35,30 @@ export class StoresController {
     return this.stores.updateOwn(request.user.id, body);
   }
 
+  @Put('mine/payments')
+  @Auth('SELLER')
+  connectPayments(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: ConnectPaymentDto,
+  ) {
+    return this.stores.connectPayments(request.user.id, body);
+  }
+
+  @Delete('mine/payments')
+  @Auth('SELLER')
+  disconnectPayments(@Req() request: AuthenticatedRequest) {
+    return this.stores.disconnectPayments(request.user.id);
+  }
+
   @Get('mine/summary')
   @Auth('SELLER')
   summary(@Req() request: AuthenticatedRequest) {
     return this.stores.summaryOf(request.user.id);
+  }
+
+  @Get(':slug/categories')
+  categories(@Param('slug') slug: string) {
+    return this.stores.categoriesOf(slug);
   }
 
   @Get(':slug')

@@ -39,6 +39,8 @@ export class ImagesController {
     }
     const store = await this.stores.ofSeller(request.user.id);
     const id = await this.storage.save(store.id, result, data);
+    // Pictures that were uploaded but never saved are cleared here, so abandoned uploads do not pile up.
+    await this.storage.removeUnused(store.id);
     return { id };
   }
 

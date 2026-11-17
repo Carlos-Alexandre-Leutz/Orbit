@@ -5,7 +5,10 @@ describe('StoresService', () => {
   const prisma = {
     store: { findUnique: jest.fn(), findMany: jest.fn() },
   };
-  const service = new StoresService(prisma as never);
+  const service = new StoresService(
+    prisma as never,
+    { removeUnused: jest.fn() } as never,
+  );
 
   beforeEach(() => jest.resetAllMocks());
 
@@ -40,25 +43,8 @@ describe('StoresService', () => {
       slug: 'loja',
       name: 'Loja',
       description: 'Hi',
+      highlights: [],
+      suspended: false,
     });
-  });
-
-  it('lists the stores with only public fields, by name', async () => {
-    prisma.store.findMany.mockResolvedValue([]);
-    await service.list();
-    expect(prisma.store.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: {
-          slug: true,
-          name: true,
-          description: true,
-          tagline: true,
-          primaryColor: true,
-          logoImageId: true,
-          coverImageId: true,
-        },
-        orderBy: [{ name: 'asc' }, { slug: 'asc' }],
-      }),
-    );
   });
 });

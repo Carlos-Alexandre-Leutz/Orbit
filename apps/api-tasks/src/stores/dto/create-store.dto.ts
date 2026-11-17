@@ -1,4 +1,13 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { SELLING_MODES, TEMPLATES } from '../store-config';
 
 export class CreateStoreDto {
   @IsString()
@@ -11,4 +20,15 @@ export class CreateStoreDto {
   @IsString()
   @MaxLength(60)
   slug?: string;
+
+  @IsOptional()
+  @IsIn(TEMPLATES)
+  template?: string;
+
+  // What the seller wants to do, asked once at the start.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SELLING_MODES.length)
+  @IsIn(SELLING_MODES, { each: true })
+  sellingModes?: string[];
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PublishButton } from '@/components/PanelControls';
 import { formatPrice } from '@/lib/catalog';
 import { getOwnStore, getSummary } from '@/lib/panel';
 
@@ -34,6 +35,10 @@ export default async function PanelPage() {
   const base = process.env.APP_URL?.replace(/\/$/, '') ?? '';
   const link = `${base}/${store.slug}`;
   const open = summary.orders.PAID ?? 0;
+  const shippingSet =
+    store.shippingFlatCents > 0 ||
+    store.pickupEnabled ||
+    store.freeShippingOverCents !== null;
   const steps = [
     {
       done: store.description.trim().length > 0,
@@ -41,14 +46,39 @@ export default async function PanelPage() {
       href: '/panel/settings',
     },
     {
+      done: store.published,
+      text: 'Start your free days in Billing and open your store',
+      href: '/panel/billing',
+    },
+    {
+      done: store.paymentConnected,
+      text: 'Connect your payment provider to receive your sales',
+      href: '/panel/payments',
+    },
+    {
+      done: (store.bannerImageIds ?? []).length > 0,
+      text: 'Add a banner (up to 5) to the top of your store',
+      href: '/panel/settings',
+    },
+    {
+      done: summary.categories > 0,
+      text: 'Create your categories (pants, shoes, blouses...)',
+      href: '/panel/categories',
+    },
+    {
       done: summary.products > 0,
-      text: 'Add your first product',
+      text: 'Add your first product, with price and stock',
       href: '/panel/products/new',
     },
     {
-      done: true,
-      text: `Share your store link: ${link}`,
-      href: `/${store.slug}`,
+      done: shippingSet,
+      text: 'Set how you ship (or offer pickup)',
+      href: '/panel/shipping',
+    },
+    {
+      done: store.published,
+      text: 'Publish your store',
+      href: '/panel',
     },
   ];
 
@@ -61,13 +91,40 @@ export default async function PanelPage() {
         no real money moves. A real payment provider will replace this later.
       </p>
 
-      <section aria-label="Publish your store" className="space-y-2">
-        <h2 className="text-lg font-semibold">Publish your store</h2>
+      <section
+        aria-label="Store status"
+        className={`space-y-3 rounded-lg border p-4 ${store.published ? 'border-green-700' : 'border-amber-600'}`}
+      >
+        <h2 className="text-lg font-semibold">
+          {store.published ? 'Your store is live' : 'Your store is a draft'}
+        </h2>
         <p className="text-sm text-gray-400">
-          Your store is live at its link as soon as it has products. A few steps
-          make it ready for customers.
+          {store.published ? (
+            <>
+              Customers can open it at{' '}
+              <Link
+                href={`/${store.slug}`}
+                className="font-mono text-blue-400 hover:underline"
+              >
+                {link}
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              Only you can see it, at{' '}
+              <Link
+                href={`/${store.slug}`}
+                className="font-mono text-blue-400 hover:underline"
+              >
+                {link}
+              </Link>
+              . Publish it when you are ready for customers.
+            </>
+          )}
         </p>
-        <ul className="space-y-1 text-sm">
+        <PublishButton published={store.published} />
+        <ul className="space-y-1 pt-2 text-sm">
           {steps.map((step) => (
             <li key={step.text}>
               <span aria-hidden="true">{step.done ? '✓' : '○'}</span>{' '}

@@ -10,6 +10,9 @@ import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { PaymentsService } from '../payments/payments.service';
+import { shippingCents, type DeliveryMethod } from '../stores/store-config';
+import { estimateDelivery } from './delivery-estimate';
+import type { ShippingAddressDto } from './dto/place-order.dto';
 import { OrderWithItems, presentOrder, WITH_ITEMS } from './order-presenter';
 import { canTransition, TIMESTAMP_OF } from './order-state';
 
@@ -31,6 +34,9 @@ function isStaffOf(viewer: Viewer, order: { storeId: string }) {
 function refuse(code: string, message: string, extra: object = {}) {
   return new ConflictException({ statusCode: 409, message, code, ...extra });
 }
+
+/** How many delivery addresses an account keeps; a new one pushes the oldest out. */
+const MAX_SAVED_ADDRESSES = 5;
 
 @Injectable()
 export class OrdersService {
@@ -55,6 +61,8 @@ export class OrdersService {
     userId: string,
     storeId: string,
     idempotencyKey?: string,
+    delivery: DeliveryMethod = 'SHIPPING',
+    address?: ShippingAddressDto,
   ) {
     if (idempotencyKey) {
       const existing = await this.findByKey(userId, idempotencyKey);
@@ -74,9 +82,12 @@ export class OrdersService {
         storeId,
         cart.id,
         idempotencyKey,
+        delivery,
+        address,
       );
       if (created) {
         await this.linkCustomer(userId, storeId);
+        await this.rememberAddress(userId, order.shippingAddress);
         this.notifyPlaced(userId, order);
       }
       return presentOrder(order);
@@ -92,6 +103,81 @@ export class OrdersService {
         }
       }
       throw error;
+    }
+  }
+
+  /** The addresses a customer used before, the latest first, to pick one at checkout. */
+  listAddresses(userId: string) {
+    return this.prisma.address.findMany({
+      where: { userId },
+      orderBy: { lastUsedAt: 'desc' },
+      take: MAX_SAVED_ADDRESSES,
+      select: {
+        id: true,
+        recipientName: true,
+        recipientPhone: true,
+        postalCode: true,
+        street: true,
+        number: true,
+        complement: true,
+        district: true,
+        city: true,
+        state: true,
+      },
+    });
+  }
+
+  /**
+   * Saves the address of a new order on the account, or just refreshes it when the same one is already saved,
+   * and keeps only the latest few. A failure here never fails the order, which is already placed.
+   */
+  private async rememberAddress(userId: string, saved: unknown) {
+    if (!saved || typeof saved !== 'object') return;
+    const a = saved as Record<string, string | null>;
+    try {
+      const where = {
+        userId,
+        recipientName: a.recipientName,
+        postalCode: a.postalCode,
+        street: a.street,
+        number: a.number,
+        complement: a.complement,
+      } as Prisma.AddressWhereInput;
+      const same = await this.prisma.address.findFirst({ where });
+      if (same) {
+        await this.prisma.address.update({
+          where: { id: same.id },
+          data: { lastUsedAt: new Date(), recipientPhone: a.recipientPhone! },
+        });
+        return;
+      }
+      await this.prisma.address.create({
+        data: {
+          userId,
+          recipientName: a.recipientName!,
+          recipientPhone: a.recipientPhone!,
+          postalCode: a.postalCode!,
+          street: a.street!,
+          number: a.number!,
+          complement: a.complement,
+          district: a.district!,
+          city: a.city!,
+          state: a.state!,
+        },
+      });
+      const old = await this.prisma.address.findMany({
+        where: { userId },
+        orderBy: { lastUsedAt: 'desc' },
+        skip: MAX_SAVED_ADDRESSES,
+        select: { id: true },
+      });
+      if (old.length > 0) {
+        await this.prisma.address.deleteMany({
+          where: { id: { in: old.map((o) => o.id) } },
+        });
+      }
+    } catch (error) {
+      this.logger.warn(`Could not save the address: ${String(error)}`);
     }
   }
 
@@ -137,6 +223,8 @@ export class OrdersService {
     storeId: string,
     cartId: string,
     idempotencyKey?: string,
+    delivery: DeliveryMethod = 'SHIPPING',
+    address?: ShippingAddressDto,
   ) {
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Cart" WHERE id = ${cartId} FOR UPDATE`;
@@ -176,15 +264,67 @@ export class OrdersService {
           );
         }
       }
+      const itemsCents = lines.reduce(
+        (sum, l) => sum + l.product.priceCents * l.quantity,
+        0,
+      );
+      // Delivery is priced by the rules of the store, read here, never sent by the client.
+      const store = await tx.store.findUniqueOrThrow({
+        where: { id: storeId },
+        select: {
+          shippingFlatCents: true,
+          freeShippingOverCents: true,
+          pickupEnabled: true,
+          handlingDays: true,
+          deliveryDaysMin: true,
+          deliveryDaysMax: true,
+          deliveryByState: true,
+        },
+      });
+      const shipping = shippingCents(store, itemsCents, delivery);
+      if (shipping === null) {
+        throw refuse(
+          'DELIVERY_UNAVAILABLE',
+          'This store does not offer pickup',
+        );
+      }
+      if (delivery === 'SHIPPING' && !address) {
+        throw refuse(
+          'ADDRESS_REQUIRED',
+          'A delivery address is required for shipping',
+        );
+      }
+      // The window is promised now and saved, so a later change of the store's days never moves this order.
+      const window = estimateDelivery(
+        store,
+        delivery,
+        new Date(),
+        address?.state,
+      );
       const created = await tx.order.create({
         data: {
           userId,
           storeId,
           idempotencyKey,
-          totalCents: lines.reduce(
-            (sum, l) => sum + l.product.priceCents * l.quantity,
-            0,
-          ),
+          totalCents: itemsCents + shipping,
+          shippingCents: shipping,
+          deliveryMethod: delivery,
+          shippingAddress:
+            delivery === 'SHIPPING' && address
+              ? {
+                  recipientName: address.recipientName.trim(),
+                  recipientPhone: address.recipientPhone.trim(),
+                  postalCode: address.postalCode.replace(/\D/g, ''),
+                  street: address.street.trim(),
+                  number: address.number.trim(),
+                  complement: address.complement?.trim() || null,
+                  district: address.district.trim(),
+                  city: address.city.trim(),
+                  state: address.state.toUpperCase(),
+                }
+              : undefined,
+          estimatedFrom: window.from,
+          estimatedTo: window.to,
           items: {
             create: lines.map(({ product, quantity }) => ({
               productId: product.id,
@@ -254,6 +394,7 @@ export class OrdersService {
     to: OrderStatus,
     viewer: Viewer,
     from?: OrderStatus,
+    extra: { trackingCode?: string | null } = {},
   ) {
     const order = await this.prisma.order.findUnique({ where: { id } });
     if (!order || !isStaffOf(viewer, order)) {
@@ -273,6 +414,7 @@ export class OrdersService {
       data: {
         status: to,
         ...(column ? { [column]: new Date() } : {}),
+        ...(extra.trackingCode ? { trackingCode: extra.trackingCode } : {}),
       },
     });
     if (count === 0) {
@@ -280,6 +422,26 @@ export class OrdersService {
     }
     const updated = await this.prisma.order.findUniqueOrThrow({
       where: { id },
+      include: WITH_ITEMS,
+    });
+    return presentOrder(updated);
+  }
+
+  /** The seller (or an admin) adds the link to the tax invoice of a paid order; an empty text takes it off. */
+  async setInvoice(id: string, viewer: Viewer, invoiceUrl: string) {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order || !isStaffOf(viewer, order)) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+    if (order.status === 'PENDING_PAYMENT' || order.status === 'CANCELLED') {
+      throw refuse(
+        'INVALID_STATE',
+        'An invoice can only be added to a paid order',
+      );
+    }
+    const updated = await this.prisma.order.update({
+      where: { id },
+      data: { invoiceUrl: invoiceUrl || null },
       include: WITH_ITEMS,
     });
     return presentOrder(updated);

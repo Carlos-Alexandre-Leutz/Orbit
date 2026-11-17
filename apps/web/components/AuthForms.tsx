@@ -244,6 +244,17 @@ export function CustomerSignUpForm({
               )}
             </p>
           )}
+          <p className="text-xs text-gray-400">
+            By creating an account you agree to the{' '}
+            <Link href="/terms" className="underline">
+              Terms of Use
+            </Link>{' '}
+            and the{' '}
+            <Link href="/privacy" className="underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
           <button
             type="submit"
             disabled={busy}
@@ -316,6 +327,17 @@ export function SellerSignUpForm() {
               {error}
             </p>
           )}
+          <p className="text-xs text-gray-400">
+            By creating an account you agree to the{' '}
+            <Link href="/terms" className="underline">
+              Terms of Use
+            </Link>{' '}
+            and the{' '}
+            <Link href="/privacy" className="underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
           <button
             type="submit"
             disabled={busy}

@@ -1,6 +1,7 @@
 import { FakePaymentProvider } from './fake-payment.provider';
 import { createPaymentProvider } from './payment-provider.factory';
 import { StripePaymentProvider } from './stripe-payment.provider';
+import { UnavailablePaymentProvider } from './unavailable-payment.provider';
 
 describe('createPaymentProvider', () => {
   it('uses the fake without keys, outside production', () => {
@@ -22,9 +23,9 @@ describe('createPaymentProvider', () => {
     ).toBeInstanceOf(FakePaymentProvider);
   });
 
-  it('refuses to start in production without Stripe keys', () => {
-    expect(() => createPaymentProvider({ NODE_ENV: 'production' })).toThrow(
-      /required in production/,
-    );
+  it('never uses the fake in production without Stripe keys', () => {
+    const provider = createPaymentProvider({ NODE_ENV: 'production' });
+    expect(provider).toBeInstanceOf(UnavailablePaymentProvider);
+    expect(provider).not.toBeInstanceOf(FakePaymentProvider);
   });
 });

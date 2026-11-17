@@ -3,6 +3,7 @@ import {
   Controller,
   Headers,
   HttpCode,
+  Param,
   Post,
   Req,
 } from '@nestjs/common';
@@ -39,5 +40,42 @@ export class PaymentsController {
       },
       fallback: 'Erro ao receber o evento de pagamento',
     });
+  }
+
+  @Post('webhook/:slug')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "A store's own payment provider webhook (called by the provider, not by the site)",
+  })
+  storeWebhook(
+    @Param('slug') slug: string,
+    @Req() request: RawBodyRequest<FastifyRequest>,
+    @Headers('stripe-signature') stripeSignature?: string,
+    @Headers('x-signature') mercadoPagoSignature?: string,
+    @Headers('x-request-id') requestId?: string,
+  ) {
+    if (!request.rawBody) {
+      throw new BadRequestException('Missing request body');
+    }
+    return callStoreApi(
+      this.http,
+      'post',
+      `/payments/webhook/${encodeURIComponent(slug)}`,
+      {
+        body: request.rawBody,
+        // The query holds the payment id that Mercado Pago signs, so it goes along unchanged.
+        query: request.query as Record<string, unknown>,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(stripeSignature ? { 'stripe-signature': stripeSignature } : {}),
+          ...(mercadoPagoSignature
+            ? { 'x-signature': mercadoPagoSignature }
+            : {}),
+          ...(requestId ? { 'x-request-id': requestId } : {}),
+        },
+        fallback: 'Erro ao receber o evento de pagamento',
+      },
+    );
   }
 }

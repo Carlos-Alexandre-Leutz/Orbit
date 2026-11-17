@@ -6,12 +6,6 @@ import { menuFor } from '@/lib/menu';
 import { getStore } from '@/lib/stores';
 import { LogoutButton } from './LogoutButton';
 
-const ROLE_LABEL = {
-  CUSTOMER: 'Customer',
-  SELLER: 'Seller',
-  ADMIN: 'Admin',
-} as const;
-
 /** `storeSlug` is the store whose page this is, when it is a store page; the menu follows it. */
 export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
   const user = await getCurrentUser();
@@ -64,10 +58,8 @@ export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
           {user ? (
             <>
               <span>
-                {user.name || user.email}{' '}
-                <span className="rounded bg-gray-700 px-2 py-0.5 text-xs">
-                  {ROLE_LABEL[user.role]}
-                </span>
+                {user.name || user.email}
+                {/* One Orbit account shops and sells, so only the staff account is marked. */}
               </span>
               <LogoutButton />
             </>

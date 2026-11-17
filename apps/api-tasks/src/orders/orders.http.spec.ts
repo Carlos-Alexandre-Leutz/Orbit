@@ -6,6 +6,7 @@ import request from 'supertest';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { PaymentsService } from '../payments/payments.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { StoresService } from '../stores/stores.service';
 
 const ID = '6f1c1f0e-8a39-4a27-a2c1-1d6d8c7b0001';
@@ -13,6 +14,8 @@ const ID = '6f1c1f0e-8a39-4a27-a2c1-1d6d8c7b0001';
 describe('orders HTTP', () => {
   let app: INestApplication;
   let jwt: JwtService;
+  // The guard reads the role from the database; here it is the role the test signed the token with.
+  const roles = new Map<string, Role>();
   const orders = {
     createFromCart: jest.fn().mockResolvedValue({ id: ID }),
     listMine: jest.fn().mockResolvedValue([]),
@@ -35,6 +38,19 @@ describe('orders HTTP', () => {
         { provide: OrdersService, useValue: orders },
         { provide: PaymentsService, useValue: payments },
         { provide: StoresService, useValue: stores },
+        {
+          provide: PrismaService,
+          useValue: {
+            user: {
+              findUnique: ({ where }: { where: { id: string } }) =>
+                Promise.resolve(
+                  roles.has(where.id)
+                    ? { id: where.id, role: roles.get(where.id) }
+                    : null,
+                ),
+            },
+          },
+        },
       ],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -48,9 +64,10 @@ describe('orders HTTP', () => {
   afterAll(() => app.close());
   beforeEach(() => jest.clearAllMocks());
 
-  const as = (role: Role, sub = 'user-1') => ({
-    Authorization: `Bearer ${jwt.sign({ sub, role })}`,
-  });
+  const as = (role: Role, sub = 'user-1') => {
+    roles.set(sub, role);
+    return { Authorization: `Bearer ${jwt.sign({ sub, role })}` };
+  };
   const server = () => request(app.getHttpServer());
 
   it.each([
@@ -74,6 +91,8 @@ describe('orders HTTP', () => {
     expect(orders.createFromCart).toHaveBeenCalledWith(
       'user-9',
       'store-1',
+      undefined,
+      'SHIPPING',
       undefined,
     );
     await server()
@@ -114,6 +133,8 @@ describe('orders HTTP', () => {
       'user-9',
       'store-1',
       'checkout-1234abcd',
+      'SHIPPING',
+      undefined,
     );
     for (const bad of ['short', 'has space in it', 'x'.repeat(129)]) {
       await server()
@@ -135,6 +156,7 @@ describe('orders HTTP', () => {
       ID,
       'user-9',
       'pm_card_chargeDeclined',
+      { cardToken: undefined, cardBrand: undefined, payerEmail: undefined },
     );
   });
 
@@ -188,6 +210,8 @@ describe('orders HTTP', () => {
         role === 'SELLER'
           ? { id: 'user-1', role, storeId: 'store-7' }
           : { id: 'user-1', role },
+        // Shipping also carries the tracking code the seller may type.
+        ...(action === 'ship' ? [undefined, { trackingCode: undefined }] : []),
       );
     });
   });
