@@ -11,12 +11,24 @@ const product = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const ADDRESS = {
+  recipientName: 'Ana Souza',
+  recipientPhone: '68 99999-0000',
+  postalCode: '69900-000',
+  street: 'Rua das Flores',
+  number: '10',
+  district: 'Centro',
+  city: 'Rio Branco',
+  state: 'AC',
+};
+
 describe('OrdersService', () => {
   const tx = {
     $queryRaw: jest.fn(),
     cartItem: { findMany: jest.fn(), deleteMany: jest.fn() },
     product: { updateMany: jest.fn(), update: jest.fn() },
     order: { create: jest.fn(), updateMany: jest.fn() },
+    store: { findUniqueOrThrow: jest.fn() },
   };
   const payments = { refundOrder: jest.fn() };
   const mail = { sendOrderConfirmation: jest.fn() };
@@ -53,6 +65,15 @@ describe('OrdersService', () => {
       isAnonymous: false,
     });
     mail.sendOrderConfirmation.mockResolvedValue(undefined);
+    tx.store.findUniqueOrThrow.mockResolvedValue({
+      shippingFlatCents: 0,
+      freeShippingOverCents: null,
+      pickupEnabled: false,
+      handlingDays: 1,
+      deliveryDaysMin: 3,
+      deliveryDaysMax: 7,
+      deliveryByState: {},
+    });
     tx.product.updateMany.mockResolvedValue({ count: 1 });
     tx.order.create.mockImplementation(({ data }) =>
       Promise.resolve({
@@ -68,12 +89,20 @@ describe('OrdersService', () => {
   describe('createFromCart', () => {
     it('refuses an empty cart, with or without a cart row', async () => {
       prisma.cart.findUnique.mockResolvedValue(null);
-      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
+      expect(
+        await code(
+          service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS),
+        ),
+      ).toMatchObject({
         code: 'EMPTY_CART',
       });
       prisma.cart.findUnique.mockResolvedValue({ id: 'c1' });
       tx.cartItem.findMany.mockResolvedValue([]);
-      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
+      expect(
+        await code(
+          service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS),
+        ),
+      ).toMatchObject({
         code: 'EMPTY_CART',
       });
     });
@@ -91,7 +120,13 @@ describe('OrdersService', () => {
           }),
         },
       ]);
-      const order = await service.createFromCart('u1', 's1');
+      const order = await service.createFromCart(
+        'u1',
+        's1',
+        undefined,
+        'SHIPPING',
+        ADDRESS,
+      );
       expect(order.totalCents).toBe(2 * 3490 + 500);
       expect(
         order.items.map((i) => [
@@ -117,7 +152,7 @@ describe('OrdersService', () => {
       tx.cartItem.findMany.mockResolvedValue([
         { quantity: 1, product: product() },
       ]);
-      await service.createFromCart('u1', 's1');
+      await service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS);
       expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
       expect(tx.cartItem.findMany.mock.calls[0][0].orderBy).toEqual({
         productId: 'asc',
@@ -128,7 +163,11 @@ describe('OrdersService', () => {
       tx.cartItem.findMany.mockResolvedValue([
         { quantity: 1, product: product({ active: false }) },
       ]);
-      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
+      expect(
+        await code(
+          service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS),
+        ),
+      ).toMatchObject({
         code: 'UNAVAILABLE',
       });
       expect(tx.product.updateMany).not.toHaveBeenCalled();
@@ -141,7 +180,11 @@ describe('OrdersService', () => {
         { quantity: 3, product: product() },
       ]);
       tx.product.updateMany.mockResolvedValue({ count: 0 });
-      expect(await code(service.createFromCart('u1', 's1'))).toMatchObject({
+      expect(
+        await code(
+          service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS),
+        ),
+      ).toMatchObject({
         code: 'NOT_ENOUGH_STOCK',
         productId: 'p1',
       });
@@ -291,7 +334,13 @@ describe('OrdersService', () => {
 
     it('is sent to the owner once the order is saved', async () => {
       lines();
-      const order = await service.createFromCart('u1', 's1');
+      const order = await service.createFromCart(
+        'u1',
+        's1',
+        undefined,
+        'SHIPPING',
+        ADDRESS,
+      );
       await flush();
       expect(mail.sendOrderConfirmation).toHaveBeenCalledWith(
         'ana@example.com',
@@ -302,7 +351,13 @@ describe('OrdersService', () => {
     it('never fails the order when the mail server is down', async () => {
       lines();
       mail.sendOrderConfirmation.mockRejectedValue(new Error('ECONNREFUSED'));
-      const order = await service.createFromCart('u1', 's1');
+      const order = await service.createFromCart(
+        'u1',
+        's1',
+        undefined,
+        'SHIPPING',
+        ADDRESS,
+      );
       await flush();
       expect(order.id).toBe('o1');
     });
@@ -310,7 +365,9 @@ describe('OrdersService', () => {
     it('never waits for a slow mail server', async () => {
       lines();
       mail.sendOrderConfirmation.mockReturnValue(new Promise(() => undefined));
-      await expect(service.createFromCart('u1', 's1')).resolves.toMatchObject({
+      await expect(
+        service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS),
+      ).resolves.toMatchObject({
         id: 'o1',
       });
     });
@@ -321,7 +378,7 @@ describe('OrdersService', () => {
         email: 'anon-1@anonymous.orbit.invalid',
         isAnonymous: true,
       });
-      await service.createFromCart('u1', 's1');
+      await service.createFromCart('u1', 's1', undefined, 'SHIPPING', ADDRESS);
       await flush();
       expect(mail.sendOrderConfirmation).not.toHaveBeenCalled();
     });
@@ -333,7 +390,13 @@ describe('OrdersService', () => {
         items: [],
         totalCents: 1,
       });
-      await service.createFromCart('u1', 's1', 'checkout-1234abcd');
+      await service.createFromCart(
+        'u1',
+        's1',
+        'checkout-1234abcd',
+        'SHIPPING',
+        ADDRESS,
+      );
       await flush();
       expect(mail.sendOrderConfirmation).not.toHaveBeenCalled();
     });

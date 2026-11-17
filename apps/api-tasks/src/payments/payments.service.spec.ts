@@ -24,6 +24,7 @@ describe('PaymentsService.pay', () => {
       findUniqueOrThrow: jest.fn(),
       updateMany: jest.fn(),
     },
+    store: { findUnique: jest.fn() },
   };
   const provider = {
     charge: jest.fn(),
@@ -47,6 +48,7 @@ describe('PaymentsService.pay', () => {
     prisma.order.findUnique.mockResolvedValue(order());
     prisma.order.findUniqueOrThrow.mockResolvedValue(order({ status: 'PAID' }));
     prisma.order.updateMany.mockResolvedValue({ count: 1 });
+    prisma.store.findUnique.mockResolvedValue({ suspendedAt: null });
   });
 
   it('charges the stored total and marks the order paid', async () => {

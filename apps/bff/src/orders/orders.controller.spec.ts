@@ -27,7 +27,7 @@ describe('BFF OrdersController', () => {
     await controller.one('o1', 'Bearer t');
     await controller.pay('o1', {}, 'Bearer t');
     await controller.cancel('o1', 'Bearer t');
-    await controller.ship('o1', 'Bearer t');
+    await controller.ship('o1', undefined, 'Bearer t');
     await controller.deliver('o1', 'Bearer t');
     const calls = [...http.post.mock.calls, ...http.get.mock.calls];
     expect(calls).toHaveLength(7);
