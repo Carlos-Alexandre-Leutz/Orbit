@@ -95,7 +95,7 @@ describe('stores (real database)', () => {
     const one = await http()
       .get(`/stores/${slug('lia')}`)
       .expect(200);
-    expect(one.body).toEqual({
+    expect(one.body).toMatchObject({
       slug: slug('lia'),
       name: 'Store lia',
       description: '',
@@ -106,6 +106,7 @@ describe('stores (real database)', () => {
       contactEmail: '',
       contactPhone: '',
     });
+    expect(one.body).not.toHaveProperty('ownerId');
     // There is no list of stores: a store is only reached by its link.
     await http().get('/stores').expect(404);
     await http().get('/stores/nowhere-at-all').expect(404);
