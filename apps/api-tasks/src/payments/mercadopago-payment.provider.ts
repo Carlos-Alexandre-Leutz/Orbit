@@ -159,10 +159,20 @@ export class MercadoPagoPaymentProvider extends PaymentProvider {
     const { status, external_reference: orderId } = payment.data;
     const id = `mp-${payment.data.id}-${status}`;
     if (status === 'approved') {
-      return { id, type: 'succeeded', orderId, reference: String(payment.data.id) };
+      return {
+        id,
+        type: 'succeeded',
+        orderId,
+        reference: String(payment.data.id),
+      };
     }
     if (status === 'rejected' || status === 'cancelled') {
-      return { id, type: 'failed', orderId, reference: String(payment.data.id) };
+      return {
+        id,
+        type: 'failed',
+        orderId,
+        reference: String(payment.data.id),
+      };
     }
     return { id, type: 'ignored' };
   }

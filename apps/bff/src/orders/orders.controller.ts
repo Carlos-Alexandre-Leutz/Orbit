@@ -158,7 +158,9 @@ export class OrdersController {
   }
 
   @Get('addresses')
-  @ApiOperation({ summary: 'My saved delivery addresses, the latest used first' })
+  @ApiOperation({
+    summary: 'My saved delivery addresses, the latest used first',
+  })
   addresses(@Headers('authorization') authorization?: string) {
     return callStoreApi(this.http, 'get', '/orders/addresses', {
       authorization,
@@ -260,7 +262,8 @@ export class OrdersController {
 
   @Post(':id/invoice')
   @ApiOperation({
-    summary: 'Add the link to the tax invoice of a paid order (seller or admin)',
+    summary:
+      'Add the link to the tax invoice of a paid order (seller or admin)',
   })
   @ApiResponse({ status: 201, type: OrderDto })
   invoice(

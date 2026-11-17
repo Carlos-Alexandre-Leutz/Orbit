@@ -31,20 +31,20 @@ export class AdminService {
   private present(
     plans: Record<string, PlanInfo>,
     store: {
-    slug: string;
-    name: string;
-    published: boolean;
-    planId: string;
-    paidUntil: Date | null;
-    subscriptionStatus: string | null;
-    trialEndsAt: Date | null;
-    suspendedAt: Date | null;
-    suspendedReason: string | null;
-    paymentProvider: string | null;
-    paymentCredentials: string | null;
-    createdAt: Date;
-    owner: { id: string; email: string; name: string | null };
-    _count?: { orders: number };
+      slug: string;
+      name: string;
+      published: boolean;
+      planId: string;
+      paidUntil: Date | null;
+      subscriptionStatus: string | null;
+      trialEndsAt: Date | null;
+      suspendedAt: Date | null;
+      suspendedReason: string | null;
+      paymentProvider: string | null;
+      paymentCredentials: string | null;
+      createdAt: Date;
+      owner: { id: string; email: string; name: string | null };
+      _count?: { orders: number };
     },
   ) {
     const paid = hasBilling(store);
