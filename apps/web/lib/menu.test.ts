@@ -6,21 +6,22 @@ const hrefs = (...args: Parameters<typeof menuFor>) =>
   menuFor(...args).map((i) => i.href);
 
 describe('menuFor', () => {
-  it('shows only the stores to a visitor outside a store', () => {
-    expect(hrefs(undefined)).toEqual(['/']);
+  it('shows nothing to a visitor outside a store, and never a list of stores', () => {
+    expect(hrefs(undefined)).toEqual([]);
+    expect(hrefs('SELLER')).not.toContain('/');
   });
 
   it('shows the store the visitor is in, and no cart', () => {
-    expect(hrefs(undefined, { store: joao })).toEqual(['/', '/loja-do-joao']);
+    expect(hrefs(undefined, { store: joao })).toEqual(['/loja-do-joao']);
   });
 
   it('gives a customer in a store the cart and the orders of that store', () => {
     expect(hrefs('CUSTOMER', { store: joao })).toEqual([
-      '/',
       '/loja-do-joao',
       '/loja-do-joao/cart',
       '/loja-do-joao/orders',
       '/account',
+      '/sell',
     ]);
   });
 
@@ -34,7 +35,7 @@ describe('menuFor', () => {
   });
 
   it('gives a customer outside a store no cart, because a cart belongs to a store', () => {
-    expect(hrefs('CUSTOMER')).toEqual(['/', '/account']);
+    expect(hrefs('CUSTOMER')).toEqual(['/account', '/sell']);
   });
 
   it('gives admins no cart and no orders, even inside a store', () => {
@@ -45,7 +46,6 @@ describe('menuFor', () => {
 
   it('lets a seller shop like a customer: cart, orders and the account', () => {
     expect(hrefs('SELLER', { store: joao })).toEqual([
-      '/',
       '/loja-do-joao',
       '/loja-do-joao/cart',
       '/loja-do-joao/orders',
@@ -56,12 +56,15 @@ describe('menuFor', () => {
 
   it('adds the panel and a link to their own store for a seller', () => {
     expect(hrefs('SELLER', { ownStore: joao })).toEqual([
-      '/',
       '/account',
       '/loja-do-joao',
       '/panel',
     ]);
     expect(hrefs('ADMIN')).not.toContain('/panel');
+  });
+
+  it('gives an admin who owns a store the link to it', () => {
+    expect(hrefs('ADMIN', { ownStore: joao })).toContain('/loja-do-joao');
   });
 
   it('does not repeat the own store of a seller who is looking at it', () => {

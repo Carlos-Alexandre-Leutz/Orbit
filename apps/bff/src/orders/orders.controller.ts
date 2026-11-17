@@ -37,7 +37,23 @@ export class OrderDto {
   })
   status: string;
   @ApiProperty({ example: 'USD' }) currency: string;
-  @ApiProperty({ description: 'Total in cents' }) totalCents: number;
+  @ApiProperty({ description: 'Total in cents, shipping included' })
+  totalCents: number;
+  @ApiProperty({ description: 'The shipping part of the total, in cents' })
+  shippingCents: number;
+  @ApiProperty({ enum: ['SHIPPING', 'PICKUP'] }) deliveryMethod: string;
+  @ApiProperty({
+    nullable: true,
+    description: 'Where a shipped order goes; null for a pickup',
+  })
+  shippingAddress: Record<string, string | null> | null;
+  @ApiProperty({ nullable: true }) trackingCode: string | null;
+  @ApiProperty({ nullable: true, description: 'Link to the tax invoice' })
+  invoiceUrl: string | null;
+  @ApiProperty({ nullable: true, description: 'Earliest delivery date' })
+  estimatedFrom: string | null;
+  @ApiProperty({ nullable: true, description: 'Latest delivery date' })
+  estimatedTo: string | null;
   @ApiProperty({ type: [OrderLineDto] }) items: OrderLineDto[];
   @ApiProperty() createdAt: string;
   @ApiProperty({ nullable: true }) paidAt: string | null;
@@ -56,6 +72,18 @@ export class PayOrderDto {
       'A test payment method. pm_card_chargeDeclined is declined; the default succeeds.',
   })
   paymentMethod?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Mercado Pago: the one-time card token made in the browser',
+  })
+  cardToken?: string;
+
+  @ApiProperty({ required: false, example: 'visa' })
+  cardBrand?: string;
+
+  @ApiProperty({ required: false })
+  payerEmail?: string;
 }
 
 /** Orders of the logged-in user; the store API reads the user from the session and checks the rules. */
@@ -72,6 +100,12 @@ export class OrdersController {
       'Send an Idempotency-Key header (8 to 128 letters, digits, - or _): a retry with the same key returns the same order instead of a second one.',
   })
   @ApiQuery({ name: 'store', description: 'The link of the store' })
+  @ApiQuery({
+    name: 'delivery',
+    required: false,
+    enum: ['SHIPPING', 'PICKUP'],
+    description: 'How the order is delivered; shipping by default',
+  })
   @ApiResponse({ status: 201, type: OrderDto })
   @ApiResponse({
     status: 409,
@@ -81,10 +115,13 @@ export class OrdersController {
     @Query('store') store?: string,
     @Headers('authorization') authorization?: string,
     @Headers('idempotency-key') idempotencyKey?: string,
+    @Query('delivery') delivery?: string,
+    @Body() body?: { shippingAddress?: Record<string, string> },
   ) {
     return callStoreApi(this.http, 'post', '/orders', {
       authorization,
-      query: { store },
+      body,
+      query: { store, delivery },
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
       fallback: 'Erro ao fazer o pedido',
     });
@@ -117,6 +154,15 @@ export class OrdersController {
     return callStoreApi(this.http, 'get', '/orders/store', {
       authorization,
       fallback: 'Erro ao listar os pedidos da loja',
+    });
+  }
+
+  @Get('addresses')
+  @ApiOperation({ summary: 'My saved delivery addresses, the latest used first' })
+  addresses(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/orders/addresses', {
+      authorization,
+      fallback: 'Could not load your addresses',
     });
   }
 
@@ -155,7 +201,12 @@ export class OrdersController {
       `/orders/${encodeURIComponent(id)}/pay`,
       {
         authorization,
-        body: { paymentMethod: body?.paymentMethod },
+        body: {
+          paymentMethod: body?.paymentMethod,
+          cardToken: body?.cardToken,
+          cardBrand: body?.cardBrand,
+          payerEmail: body?.payerEmail,
+        },
         fallback: 'Erro ao pagar o pedido',
       },
     );
@@ -192,6 +243,7 @@ export class OrdersController {
   @ApiResponse({ status: 201, type: OrderDto })
   ship(
     @Param('id') id: string,
+    @Body() body?: { trackingCode?: string },
     @Headers('authorization') authorization?: string,
   ) {
     return callStoreApi(
@@ -200,8 +252,27 @@ export class OrdersController {
       `/orders/${encodeURIComponent(id)}/ship`,
       {
         authorization,
+        body,
         fallback: 'Erro ao enviar o pedido',
       },
+    );
+  }
+
+  @Post(':id/invoice')
+  @ApiOperation({
+    summary: 'Add the link to the tax invoice of a paid order (seller or admin)',
+  })
+  @ApiResponse({ status: 201, type: OrderDto })
+  invoice(
+    @Param('id') id: string,
+    @Body() body: { invoiceUrl: string },
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(
+      this.http,
+      'post',
+      `/orders/${encodeURIComponent(id)}/invoice`,
+      { authorization, body, fallback: 'Could not save the invoice' },
     );
   }
 

@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { SimulatedPaymentForm } from '@/components/SimulatedPaymentForm';
+import { MercadoPagoPaymentForm } from '@/components/MercadoPagoPaymentForm';
+import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { formatPrice } from '@/lib/catalog';
+import { getCurrentUser } from '@/lib/auth';
 import { requireCustomer } from '@/lib/guard';
 import { getOrder } from '@/lib/orders';
 import { getStore } from '@/lib/stores';
@@ -27,6 +30,20 @@ export default async function PayPage({
     redirect(`/${store.slug}/orders/${order.id}`);
   }
 
+  // The seller's own provider (ADR-008). Without one, a store outside production falls back to the platform's
+  // Stripe test key (read at run time, not baked into the build) or to the simulated test cards.
+  const user = await getCurrentUser();
+  const total = formatPrice(order.totalCents);
+  const ownProvider = store.paymentProvider && store.paymentPublicKey;
+  const envKey = process.env.STRIPE_PUBLISHABLE_KEY?.trim() ?? '';
+  const stripeKey =
+    store.paymentProvider === 'stripe' && store.paymentPublicKey
+      ? store.paymentPublicKey
+      : !ownProvider && /^pk_(test|live)_[A-Za-z0-9]+$/.test(envKey)
+        ? envKey
+        : '';
+  const closed = !ownProvider && process.env.NODE_ENV === 'production';
+
   return (
     <main className="mx-auto w-full max-w-xl flex-1 space-y-6 px-4 py-8">
       <Link
@@ -46,16 +63,52 @@ export default async function PayPage({
             <span>{formatPrice(line.lineTotalCents)}</span>
           </li>
         ))}
+        <li className="flex justify-between gap-4 p-3 text-sm text-gray-400">
+          <span>
+            {order.deliveryMethod === 'PICKUP'
+              ? 'Pickup at the store'
+              : 'Shipping'}
+          </span>
+          <span>
+            {order.shippingCents === 0
+              ? 'Free'
+              : formatPrice(order.shippingCents)}
+          </span>
+        </li>
         <li className="flex justify-between gap-4 p-3 text-lg font-bold">
           <span>Total</span>
           <span>{formatPrice(order.totalCents)}</span>
         </li>
       </ul>
-      <SimulatedPaymentForm
-        orderId={order.id}
-        storeSlug={store.slug}
-        totalLabel={formatPrice(order.totalCents)}
-      />
+      {closed ? (
+        <p
+          role="alert"
+          className="rounded border border-gray-700 p-4 text-sm text-gray-400"
+        >
+          This store is not accepting payments yet. Please come back later.
+        </p>
+      ) : store.paymentProvider === 'mercadopago' && store.paymentPublicKey ? (
+        <MercadoPagoPaymentForm
+          publicKey={store.paymentPublicKey}
+          orderId={order.id}
+          storeSlug={store.slug}
+          totalLabel={total}
+          defaultEmail={user?.email ?? ''}
+        />
+      ) : stripeKey ? (
+        <StripePaymentForm
+          publishableKey={stripeKey}
+          orderId={order.id}
+          storeSlug={store.slug}
+          totalLabel={total}
+        />
+      ) : (
+        <SimulatedPaymentForm
+          orderId={order.id}
+          storeSlug={store.slug}
+          totalLabel={total}
+        />
+      )}
     </main>
   );
 }

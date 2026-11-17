@@ -32,9 +32,9 @@ async function main() {
     const ids = new Map<string, string>();
     for (const category of seed.categories) {
       const row = await prisma.category.upsert({
-        where: { slug: category.slug },
+        where: { storeId_slug: { storeId: store.id, slug: category.slug } },
         update: { name: category.name },
-        create: category,
+        create: { ...category, storeId: store.id },
       });
       ids.set(row.slug, row.id);
     }

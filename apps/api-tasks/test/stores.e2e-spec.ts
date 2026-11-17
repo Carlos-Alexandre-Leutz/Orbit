@@ -102,15 +102,12 @@ describe('stores (real database)', () => {
       tagline: '',
       primaryColor: '#2563eb',
       logoImageId: null,
-      coverImageId: null,
+      bannerImageIds: [],
       contactEmail: '',
       contactPhone: '',
     });
-    const list = await http().get('/stores').expect(200);
-    expect(
-      (list.body as { slug: string }[]).some((s) => s.slug === slug('lia')),
-    ).toBe(true);
-    expect(JSON.stringify(list.body)).not.toContain('ownerId');
+    // There is no list of stores: a store is only reached by its link.
+    await http().get('/stores').expect(404);
     await http().get('/stores/nowhere-at-all').expect(404);
   });
 });

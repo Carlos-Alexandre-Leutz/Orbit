@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { formatPrice } from '@/lib/catalog';
 import { getOrder } from '@/lib/orders';
 import { getStore } from '@/lib/stores';
-import { statusLabel } from '@/lib/orders-shared';
+import { addressLines, formatWindow, statusLabel } from '@/lib/orders-shared';
 
 export const metadata = { title: 'Order | Orbit' };
 
@@ -69,9 +69,61 @@ export default async function OrderPage({
           </li>
         ))}
       </ul>
+      <p className="flex justify-between text-sm text-gray-400">
+        <span>
+          {order.deliveryMethod === 'PICKUP'
+            ? 'Pickup at the store'
+            : 'Shipping'}
+        </span>
+        <span>
+          {order.shippingCents === 0
+            ? 'Free'
+            : formatPrice(order.shippingCents)}
+        </span>
+      </p>
       <p className="text-xl">
         Total: <strong>{formatPrice(order.totalCents)}</strong>
       </p>
+
+      {order.status !== 'CANCELLED' && (
+        <section className="space-y-1 rounded border border-gray-700 p-4 text-sm">
+          <h2 className="font-semibold">
+            {order.deliveryMethod === 'PICKUP' ? 'Pickup' : 'Delivery'}
+          </h2>
+          {order.estimatedFrom && order.estimatedTo && order.status !== 'DELIVERED' && (
+            <p>
+              {order.deliveryMethod === 'PICKUP'
+                ? 'Ready for pickup: '
+                : 'Expected between: '}
+              <strong>
+                {formatWindow(order.estimatedFrom, order.estimatedTo)}
+              </strong>
+            </p>
+          )}
+          {order.trackingCode && <p>Tracking code: {order.trackingCode}</p>}
+          {order.invoiceUrl && (
+            <p>
+              <a
+                href={order.invoiceUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-blue-400 hover:underline"
+              >
+                View the invoice (nota fiscal)
+              </a>
+            </p>
+          )}
+          {order.shippingAddress && (
+            <p className="text-gray-400">
+              {addressLines(order.shippingAddress).map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+            </p>
+          )}
+        </section>
+      )}
 
       <ul className="space-y-1 text-sm text-gray-400">
         {events.map(([label, at]) => (

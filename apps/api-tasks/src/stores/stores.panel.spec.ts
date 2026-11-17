@@ -7,7 +7,10 @@ describe('StoresService (seller panel)', () => {
     order: { groupBy: jest.fn(), aggregate: jest.fn() },
     storeCustomer: { count: jest.fn() },
   };
-  const service = new StoresService(prisma as never);
+  const service = new StoresService(
+    prisma as never,
+    { removeUnused: jest.fn() } as never,
+  );
 
   beforeEach(() => {
     jest.resetAllMocks();

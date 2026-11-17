@@ -2,13 +2,31 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ImageStorage } from '../images/image-storage';
+import { hasBilling } from '../billing/billing-rules';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  canStoreCredentials,
+  encryptCredentials,
+} from '../payments/credential-cipher';
+import type { ConnectPaymentDto } from './dto/connect-payment.dto';
 import type { UpdateStoreDto } from './dto/update-store.dto';
 import { checkSlug, slugFromName, SLUG_MESSAGES } from './store-slug';
+import {
+  parseDeliveryByState,
+  PAYMENT_KEY_FORMATS,
+  TEMPLATE_COLORS,
+  TEMPLATES,
+  type DeliveryByState,
+  type Template,
+} from './store-config';
 
 export interface StoreLook {
   slug: string;
@@ -17,9 +35,25 @@ export interface StoreLook {
   tagline: string;
   primaryColor: string;
   logoImageId: string | null;
-  coverImageId: string | null;
+  bannerImageIds: string[];
   contactEmail: string;
   contactPhone: string;
+  published: boolean;
+  template: string;
+  shippingFlatCents: number;
+  freeShippingOverCents: number | null;
+  pickupEnabled: boolean;
+  handlingDays: number;
+  deliveryDaysMin: number;
+  deliveryDaysMax: number;
+  deliveryByState: unknown;
+  paymentMethods: string[];
+  highlights: unknown;
+  paymentProvider: string | null;
+  paymentPublicKey: string | null;
+  /** On the database row; `suspended` is what the API shows instead. */
+  suspendedAt?: Date | null;
+  suspended?: boolean;
 }
 
 /** What the API shows of a store: its name and look, never the owner. */
@@ -31,10 +65,37 @@ export function presentStore(store: StoreLook): StoreLook {
     tagline: store.tagline,
     primaryColor: store.primaryColor,
     logoImageId: store.logoImageId,
-    coverImageId: store.coverImageId,
+    bannerImageIds: store.bannerImageIds,
     contactEmail: store.contactEmail,
     contactPhone: store.contactPhone,
+    published: store.published,
+    template: store.template,
+    shippingFlatCents: store.shippingFlatCents,
+    freeShippingOverCents: store.freeShippingOverCents,
+    pickupEnabled: store.pickupEnabled,
+    handlingDays: store.handlingDays,
+    deliveryDaysMin: store.deliveryDaysMin,
+    deliveryDaysMax: store.deliveryDaysMax,
+    deliveryByState: store.deliveryByState,
+    paymentMethods: store.paymentMethods,
+    highlights: Array.isArray(store.highlights) ? store.highlights : [],
+    // Only the public key: the secrets stay encrypted in the database and are never read back.
+    paymentProvider: store.paymentProvider,
+    paymentPublicKey: store.paymentPublicKey,
+    // Suspended by an Orbit admin: the storefront is closed (the reason is only for the admin).
+    suspended: Boolean(store.suspendedAt),
   };
+}
+
+/** The chosen highlights without repeats, each with a trimmed text (or none). */
+function uniqueHighlights(items: { id: string; text?: string }[]) {
+  const seen = new Set<string>();
+  return items
+    .filter((item) => !seen.has(item.id) && seen.add(item.id))
+    .map((item) => {
+      const text = item.text?.trim();
+      return text ? { id: item.id, text } : { id: item.id };
+    });
 }
 
 /** A product with this many units or fewer is shown as running low. */
@@ -42,7 +103,10 @@ export const LOW_STOCK = 5;
 
 @Injectable()
 export class StoresService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly images: ImageStorage,
+  ) {}
 
   /**
    * The store of the logged-in seller. Seller endpoints take the store from here, never from the request,
@@ -72,20 +136,16 @@ export class StoresService {
     return store;
   }
 
-  /** Every store, for the page where a buyer picks one. Only what is public: no owner. */
-  list() {
-    return this.prisma.store.findMany({
-      select: {
-        slug: true,
-        name: true,
-        description: true,
-        tagline: true,
-        primaryColor: true,
-        logoImageId: true,
-        coverImageId: true,
+  /** The categories that have at least one product on sale in this store, for its menu and filters. */
+  async categoriesOf(slug: string) {
+    const store = await this.bySlug(slug);
+    return this.prisma.category.findMany({
+      where: {
+        storeId: store.id,
+        products: { some: { active: true } },
       },
-      orderBy: [{ name: 'asc' }, { slug: 'asc' }],
-      take: 100,
+      select: { slug: true, name: true },
+      orderBy: { name: 'asc' },
     });
   }
 
@@ -98,7 +158,15 @@ export class StoresService {
    * The seller names their store, which gives it its link. A seller has one store, so a second call is refused.
    * The link is suggested from the name when none is sent.
    */
-  async createOwn(userId: string, data: { name: string; slug?: string }) {
+  async createOwn(
+    userId: string,
+    data: {
+      name: string;
+      slug?: string;
+      template?: string;
+      sellingModes?: string[];
+    },
+  ) {
     const existing = await this.prisma.store.findUnique({
       where: { ownerId: userId },
     });
@@ -114,10 +182,22 @@ export class StoresService {
     if (problem) {
       throw new BadRequestException(SLUG_MESSAGES[problem]);
     }
+    const template: Template = TEMPLATES.includes(data.template as Template)
+      ? (data.template as Template)
+      : 'classic';
     try {
       return presentStore(
         await this.prisma.store.create({
-          data: { name, slug, ownerId: userId },
+          data: {
+            name,
+            slug,
+            ownerId: userId,
+            // A new store is a draft: the owner chooses when to publish it.
+            published: false,
+            template,
+            primaryColor: TEMPLATE_COLORS[template],
+            sellingModes: [...new Set(data.sellingModes ?? [])],
+          },
         }),
       );
     } catch (error) {
@@ -133,13 +213,73 @@ export class StoresService {
 
   /** What a seller sees of their own store. */
   async mineOf(userId: string) {
-    return presentStore(await this.ofSeller(userId));
+    const store = await this.ofSeller(userId);
+    return {
+      ...presentStore(store),
+      sellingModes: store.sellingModes,
+      paymentConnected: Boolean(
+        store.paymentProvider && store.paymentCredentials,
+      ),
+    };
+  }
+
+  /** The seller connects their own payment provider (ADR-008). The secrets are encrypted before they are saved. */
+  async connectPayments(userId: string, data: ConnectPaymentDto) {
+    const store = await this.ofSeller(userId);
+    const formats = PAYMENT_KEY_FORMATS[data.provider];
+    const secretKey = data.secretKey.trim();
+    const publicKey = data.publicKey.trim();
+    const webhookSecret = data.webhookSecret.trim();
+    if (!formats.secret.test(secretKey)) {
+      throw new BadRequestException('The secret key does not look right');
+    }
+    if (!formats.publicKey.test(publicKey)) {
+      throw new BadRequestException('The public key does not look right');
+    }
+    if (!formats.webhook.test(webhookSecret)) {
+      throw new BadRequestException('The webhook secret does not look right');
+    }
+    const mode = (key: string) => (key.includes('_test_') ? 'test' : 'live');
+    if (data.provider === 'stripe' && mode(secretKey) !== mode(publicKey)) {
+      throw new BadRequestException(
+        'The secret key and the public key are from different Stripe modes (test and live)',
+      );
+    }
+    if (!canStoreCredentials()) {
+      throw new ServiceUnavailableException(
+        'Payment credentials cannot be stored on this server yet',
+      );
+    }
+    await this.prisma.store.update({
+      where: { id: store.id },
+      data: {
+        paymentProvider: data.provider,
+        paymentPublicKey: publicKey,
+        paymentCredentials: encryptCredentials(
+          JSON.stringify({ secretKey, webhookSecret }),
+        ),
+      },
+    });
+    return this.mineOf(userId);
+  }
+
+  async disconnectPayments(userId: string) {
+    const store = await this.ofSeller(userId);
+    await this.prisma.store.update({
+      where: { id: store.id },
+      data: {
+        paymentProvider: null,
+        paymentPublicKey: null,
+        paymentCredentials: null,
+      },
+    });
+    return this.mineOf(userId);
   }
 
   /** The seller edits the name and the description. The link never changes, so shared links keep working. */
   async updateOwn(userId: string, data: UpdateStoreDto) {
     const store = await this.ofSeller(userId);
-    const pictures = [data.logoImageId, data.coverImageId].filter(
+    const pictures = [data.logoImageId, ...(data.bannerImageIds ?? [])].filter(
       (id): id is string => typeof id === 'string',
     );
     if (pictures.length > 0) {
@@ -151,6 +291,26 @@ export class StoresService {
           'A picture does not belong to this store',
         );
       }
+    }
+    // A store opens to the public only with a subscription on (its free days included) or a recorded payment.
+    if (data.published === true && !hasBilling(store)) {
+      throw new HttpException(
+        'Start your free trial in Billing to open your store to the public',
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+    const shortest = data.deliveryDaysMin ?? store.deliveryDaysMin;
+    const longest = data.deliveryDaysMax ?? store.deliveryDaysMax;
+    if (shortest > longest) {
+      throw new BadRequestException(
+        'The shortest delivery time cannot be longer than the longest',
+      );
+    }
+    let byState: DeliveryByState | undefined;
+    if (data.deliveryByState !== undefined) {
+      const parsed = parseDeliveryByState(data.deliveryByState);
+      if ('error' in parsed) throw new BadRequestException(parsed.error);
+      byState = parsed.value;
     }
     const text = (value: string | undefined) => value?.trim();
     const updated = await this.prisma.store.update({
@@ -164,20 +324,44 @@ export class StoresService {
         contactPhone: text(data.contactPhone),
         // `undefined` leaves a picture alone; `null` takes it off.
         logoImageId: data.logoImageId,
-        coverImageId: data.coverImageId,
+        bannerImageIds: data.bannerImageIds,
+        template: data.template,
+        published: data.published,
+        shippingFlatCents: data.shippingFlatCents,
+        freeShippingOverCents: data.freeShippingOverCents,
+        pickupEnabled: data.pickupEnabled,
+        handlingDays: data.handlingDays,
+        deliveryDaysMin: data.deliveryDaysMin,
+        deliveryDaysMax: data.deliveryDaysMax,
+        deliveryByState: byState,
+        paymentMethods: data.paymentMethods,
+        highlights: data.highlights
+          ? uniqueHighlights(data.highlights)
+          : undefined,
       },
     });
+    // A picture that was replaced or taken off is deleted unless something else still shows it.
+    const replaced = [
+      data.logoImageId !== undefined && data.logoImageId !== store.logoImageId
+        ? store.logoImageId
+        : null,
+      ...store.bannerImageIds.filter(
+        (id) => data.bannerImageIds && !data.bannerImageIds.includes(id),
+      ),
+    ].filter((id): id is string => id !== null);
+    await this.images.removeUnused(store.id, replaced);
     return presentStore(updated);
   }
 
   /** The numbers for the start page of the panel, all about the seller's own store. */
   async summaryOf(userId: string) {
     const store = await this.ofSeller(userId);
-    const [products, lowStock, byStatus, revenue, customers] =
+    const [products, categories, lowStock, byStatus, revenue, customers] =
       await Promise.all([
         this.prisma.product.count({
           where: { storeId: store.id, active: true },
         }),
+        this.prisma.category.count({ where: { storeId: store.id } }),
         this.prisma.product.count({
           where: { storeId: store.id, active: true, stock: { lte: LOW_STOCK } },
         }),
@@ -197,6 +381,7 @@ export class StoresService {
       ]);
     return {
       products,
+      categories,
       lowStock,
       lowStockLimit: LOW_STOCK,
       customers,

@@ -16,6 +16,14 @@ export function presentOrder(order: OrderWithItems) {
     store: order.store,
     currency: order.currency,
     totalCents: order.totalCents,
+    shippingCents: order.shippingCents,
+    deliveryMethod: order.deliveryMethod,
+    // Only the customer, the store's seller and admins reach an order, so the address is shown with it.
+    shippingAddress: order.shippingAddress,
+    trackingCode: order.trackingCode,
+    invoiceUrl: order.invoiceUrl,
+    estimatedFrom: order.estimatedFrom,
+    estimatedTo: order.estimatedTo,
     items: order.items.map((item) => ({
       productId: item.productId,
       sku: item.sku,

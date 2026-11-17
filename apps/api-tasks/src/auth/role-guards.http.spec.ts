@@ -3,6 +3,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { Role } from '@prisma/client';
 import request from 'supertest';
+import { PrismaService } from '../prisma/prisma.service';
 import { Auth } from './roles.decorator';
 
 const SECRET = 'a-test-secret-that-is-long-enough-1234';
@@ -36,6 +37,18 @@ describe('role guards', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [JwtModule.register({ global: true, secret: SECRET })],
       controllers: [ProbeController],
+      providers: [
+        {
+          // The guard reads the role from the database; here the user id says which role the account has.
+          provide: PrismaService,
+          useValue: {
+            user: {
+              findUnique: ({ where }: { where: { id: string } }) =>
+                Promise.resolve({ id: where.id, role: where.id.slice(2) }),
+            },
+          },
+        },
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     await app.init();
@@ -45,7 +58,7 @@ describe('role guards', () => {
   afterAll(() => app.close());
 
   const tokenFor = (role: Role) =>
-    jwt.sign({ sub: 'u1', role }, { expiresIn: 60 });
+    jwt.sign({ sub: `u-${role}`, role }, { expiresIn: 60 });
   const get = (path: string, token?: string) => {
     const call = request(app.getHttpServer()).get(path);
     return token ? call.set('Authorization', `Bearer ${token}`) : call;

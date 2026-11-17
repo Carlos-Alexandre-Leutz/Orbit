@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/ProductForm';
 import { bffRequest } from '@/lib/bff';
-import type { Category, Product } from '@/lib/catalog';
+import type { Product } from '@/lib/catalog';
+import { getOwnCategories } from '@/lib/panel';
 import { requireSeller } from '@/lib/guard';
 
 export const metadata = { title: 'Edit product | Orbit Supply Co.' };
@@ -16,7 +17,7 @@ export default async function EditProductPage({
   await requireSeller(`/panel/products/${id}/edit`);
   const [product, categories] = await Promise.all([
     bffRequest<Product>(`/products/${encodeURIComponent(id)}`),
-    bffRequest<Category[]>('/categories'),
+    getOwnCategories(),
   ]);
   if (product.status === 404 || product.status === 400) notFound();
   return (
@@ -28,8 +29,16 @@ export default async function EditProductPage({
         Back to the products
       </Link>
       <h1 className="text-2xl font-bold">Edit product</h1>
-      {product.ok && categories.ok ? (
-        <ProductForm categories={categories.data} product={product.data} />
+      {product.ok && categories ? (
+        <ProductForm
+          // A product that still uses an old shared category keeps it in the list.
+          categories={
+            categories.some((c) => c.slug === product.data.category.slug)
+              ? categories
+              : [...categories, product.data.category]
+          }
+          product={product.data}
+        />
       ) : (
         <p role="alert" className="text-red-400">
           The product could not be loaded.

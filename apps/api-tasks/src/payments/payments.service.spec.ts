@@ -30,8 +30,13 @@ describe('PaymentsService.pay', () => {
     refund: jest.fn(),
     readEvent: jest.fn(),
   };
+  const registry = {
+    forStoreId: () => Promise.resolve(provider),
+    forSlug: () => Promise.resolve(provider),
+  };
   const service = new PaymentsService(
     prisma as never,
+    registry as never,
     provider as unknown as PaymentProvider,
   );
   const charge = (result: ChargeResult) =>
@@ -115,8 +120,13 @@ describe('PaymentsService refunds', () => {
     refund: jest.fn(),
     readEvent: jest.fn(),
   };
+  const registry = {
+    forStoreId: () => Promise.resolve(provider),
+    forSlug: () => Promise.resolve(provider),
+  };
   const service = new PaymentsService(
     prisma as never,
+    registry as never,
     provider as unknown as PaymentProvider,
   );
 

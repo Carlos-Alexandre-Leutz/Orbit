@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import { StoresModule } from '../stores/stores.module';
-import { DatabaseImageStorage, ImageStorage } from './image-storage';
+import { ImageStorageModule } from './image-storage.module';
 import { ImagesController } from './images.controller';
 
 @Module({
-  imports: [StoresModule],
+  imports: [StoresModule, ImageStorageModule],
   controllers: [ImagesController],
-  providers: [{ provide: ImageStorage, useClass: DatabaseImageStorage }],
-  exports: [ImageStorage],
 })
 export class ImagesModule {}

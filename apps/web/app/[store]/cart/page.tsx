@@ -119,6 +119,9 @@ export default async function CartPage({
               </span>
               <strong>{formatPrice(cart.totalCents)}</strong>
             </p>
+            <p className="text-xs text-gray-400">
+              Shipping is added at checkout.
+            </p>
             <Link
               href={`/${store.slug}/checkout`}
               className="block rounded bg-blue-600 px-5 py-2 text-center font-semibold text-white hover:bg-blue-500"

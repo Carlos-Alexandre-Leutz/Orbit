@@ -150,9 +150,21 @@ export class CatalogController {
     });
   }
 
+  @Get('categories/mine')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'The categories of my store, with product counts (seller)',
+  })
+  myCategories(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/categories/mine', {
+      authorization,
+      fallback: 'Could not load your categories',
+    });
+  }
+
   @Post('categories')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a category (seller or admin)' })
+  @ApiOperation({ summary: 'Create a category in my store (seller)' })
   @ApiResponse({ status: 201, type: CategoryDto })
   createCategory(
     @Body() body: CreateCategoryBody,
@@ -161,7 +173,41 @@ export class CatalogController {
     return callStoreApi(this.http, 'post', '/categories', {
       body,
       authorization,
-      fallback: 'Erro ao criar a categoria',
+      fallback: 'Could not create the category',
     });
+  }
+
+  @Patch('categories/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rename one of my categories (seller)' })
+  renameCategory(
+    @Param('id') id: string,
+    @Body() body: { name: string },
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(
+      this.http,
+      'patch',
+      `/categories/${encodeURIComponent(id)}`,
+      { body, authorization, fallback: 'Could not rename the category' },
+    );
+  }
+
+  @Delete('categories/:id')
+  @HttpCode(204)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete one of my categories when it has no products (seller)',
+  })
+  async deleteCategory(
+    @Param('id') id: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    await callStoreApi(
+      this.http,
+      'delete',
+      `/categories/${encodeURIComponent(id)}`,
+      { authorization, fallback: 'Could not delete the category' },
+    );
   }
 }

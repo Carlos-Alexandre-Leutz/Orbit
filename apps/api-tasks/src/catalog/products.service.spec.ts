@@ -23,7 +23,10 @@ describe('ProductsService', () => {
     },
     category: { findUnique: jest.fn() },
   };
-  const service = new ProductsService(prisma as never);
+  const service = new ProductsService(
+    prisma as never,
+    { removeUnused: jest.fn() } as never,
+  );
   const dto = {
     sku: 'KIT-1',
     name: 'Spoon',

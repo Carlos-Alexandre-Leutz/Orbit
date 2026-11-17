@@ -23,7 +23,8 @@ export function menuFor(
   role: Role | undefined,
   { store, cartCount = 0, ownStore }: MenuContext = {},
 ): MenuItem[] {
-  const items: MenuItem[] = [{ href: '/', label: 'Stores' }];
+  // No "Stores" entry: a store is reached by its own link, so nobody browses the stores of other sellers.
+  const items: MenuItem[] = [];
   if (store) items.push({ href: `/${store.slug}`, label: store.name });
   const shops = role === 'CUSTOMER' || role === 'SELLER';
   if (shops && store) {
@@ -36,11 +37,15 @@ export function menuFor(
   if (shops) {
     items.push({ href: '/account', label: 'My account' });
   }
-  if (role === 'SELLER' && ownStore && ownStore.slug !== store?.slug) {
+  // Whoever owns a store gets the link, whatever the role: an admin can own one too.
+  if (ownStore && ownStore.slug !== store?.slug) {
     items.push({ href: `/${ownStore.slug}`, label: 'My store' });
   }
   if (role === 'SELLER') {
     items.push({ href: '/panel', label: 'Panel' });
+  } else if (role === 'CUSTOMER') {
+    // The same account can open a store of its own.
+    items.push({ href: '/sell', label: 'Open a store' });
   }
   return items;
 }
