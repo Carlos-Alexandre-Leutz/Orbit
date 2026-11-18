@@ -7,6 +7,8 @@ export interface BillingStatus {
   /** pending, authorized, paused or cancelled; null before the seller started. */
   status: string | null;
   trialEndsAt: string | null;
+  ownerEmail: string;
+  publicKey: string | null;
   /** The store may be opened to the public. */
   canPublish: boolean;
   plan: { id: string; name: string; priceCents: number; currency: string };

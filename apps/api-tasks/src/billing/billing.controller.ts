@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Headers,
@@ -14,6 +15,7 @@ import type { AuthenticatedRequest } from '../auth/authenticated-user';
 import { Auth } from '../auth/roles.decorator';
 import { InvalidSignatureError } from '../payments/payment-provider';
 import { BillingService } from './billing.service';
+import { StartBillingDto } from './start-billing.dto';
 
 /** What a seller pays Orbit for the platform. Not to be mixed with `payments`, which is what customers pay a store. */
 @Controller('billing')
@@ -28,8 +30,8 @@ export class BillingController {
 
   @Post('start')
   @Auth('SELLER')
-  start(@Req() request: AuthenticatedRequest) {
-    return this.billing.start(request.user.id);
+  start(@Req() request: AuthenticatedRequest, @Body() body: StartBillingDto) {
+    return this.billing.start(request.user.id, body.cardToken, body.payerEmail);
   }
 
   /** Mercado Pago calls this, not a person: no session, the signature on the notification is the proof. */

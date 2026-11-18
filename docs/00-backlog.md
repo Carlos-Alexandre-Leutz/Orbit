@@ -431,11 +431,17 @@ The basic online-store platform that the agent work sits on: sellers sign up and
 ### PBI-72 [F1] Store platform ready for QA
 - T: Deliver the store platform work done since PR #414 (paid stores, delivery, legal pages and the owner area) in one change
 
+### PBI-73 [F1] Seller billing with a card form inside Orbit
+- T: Replace the Mercado Pago redirect with a card form on the billing page, so no Mercado Pago account is needed
+- T: Let the seller choose the e-mail that Mercado Pago bills, prefilled with the account e-mail
+- T: Offer the free trial when a seller publishes a store that has no plan yet
+- T: Hide the "My store" link from the admin
+
 ---
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, 73, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46

@@ -37,8 +37,7 @@ export function menuFor(
   if (shops) {
     items.push({ href: '/account', label: 'My account' });
   }
-  // Whoever owns a store gets the link, whatever the role: an admin can own one too.
-  if (ownStore && ownStore.slug !== store?.slug) {
+  if (role !== 'ADMIN' && ownStore && ownStore.slug !== store?.slug) {
     items.push({ href: `/${ownStore.slug}`, label: 'My store' });
   }
   if (role === 'SELLER') {

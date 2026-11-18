@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Headers,
@@ -31,12 +32,15 @@ export class BillingController {
   @Post('start')
   @ApiOperation({
     summary:
-      'Start the subscription; gives the page where the card is registered (seller only)',
+      'Start the subscription with a card token from Mercado Pago (seller only)',
   })
-  start(@Headers('authorization') authorization?: string) {
+  start(
+    @Body() body: { cardToken?: string; payerEmail?: string },
+    @Headers('authorization') authorization?: string,
+  ) {
     return callStoreApi(this.http, 'post', '/billing/start', {
       authorization,
-      body: {},
+      body: { cardToken: body?.cardToken, payerEmail: body?.payerEmail },
       fallback: 'Could not start the subscription',
     });
   }

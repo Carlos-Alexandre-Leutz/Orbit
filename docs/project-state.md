@@ -1,10 +1,10 @@
 # Estado do projeto
 
-Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e atualiza ao fim de cada PBI e de cada sessão (ver [`working-agreement.md`](working-agreement.md)). As perguntas para o dono estão em [`open-questions.md`](open-questions.md). **Última atualização: 2026-11-17.**
+Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e atualiza ao fim de cada PBI e de cada sessão (ver [`working-agreement.md`](working-agreement.md)). As perguntas para o dono estão em [`open-questions.md`](open-questions.md). **Última atualização: 2026-11-18.**
 
 ## Onde estamos
 
-A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-63, PBI-64 e PBI-65 a PBI-70, todos com os checks verdes. Cada PBI tem um documento com as evidências e os limites: [`pbi/`](pbi).
+A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-63, PBI-64 e PBI-65 a PBI-70, PBI-72 e PBI-73, todos com os checks verdes. Cada PBI tem um documento com as evidências e os limites: [`pbi/`](pbi).
 
 | PBI | O que entregou |
 |---|---|
@@ -28,6 +28,7 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 68 | Vitrine com capa, categorias e cartões com foto; página do produto e carrinho redesenhados; página inicial da plataforma. |
 | 69 | Tela de pagamento simulado com cartão aprovado e recusado ([`pagamento-simulado.md`](pagamento-simulado.md)). |
 | 72 | Plataforma de lojas pronta para o QA: conta única, onboarding, pagamento por loja (Stripe e Mercado Pago), área do dono, mensalidade do lojista, entrega (endereço, previsão, rastreio, nota fiscal), termos e privacidade ([`pbi/PBI-72.md`](pbi/PBI-72.md)). |
+| 73 | Mensalidade do lojista com formulário de cartão dentro do Orbit (sem conta no Mercado Pago), e-mail cobrado escolhido pelo lojista, alerta de teste grátis ao publicar sem plano ([`pbi/PBI-73.md`](pbi/PBI-73.md)). Falta `ORBIT_BILLING_MP_PUBLIC_KEY` na API do QA. |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 
