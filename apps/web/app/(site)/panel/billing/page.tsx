@@ -1,4 +1,4 @@
-import { StartTrialButton } from '@/components/StartTrialButton';
+import { MercadoPagoPaymentForm } from '@/components/MercadoPagoPaymentForm';
 import { getBillingStatus } from '@/lib/billing';
 
 export const metadata = { title: 'Billing | Seller panel | Orbit' };
@@ -26,9 +26,10 @@ export default async function PanelBillingPage() {
       <h1 className="text-2xl font-bold">Billing</h1>
       <p className="text-gray-400">
         {billing.plan.name}: {cost} per month, with {billing.trialDays} days
-        free. You register a card on Mercado Pago&apos;s own page; Orbit never
-        sees it. Nothing is charged during the free days, and you can cancel
-        before they end.
+        free. Pay with any credit card; no Mercado Pago account is needed. The
+        card is typed into fields drawn by Mercado Pago, so Orbit never sees
+        it. Nothing is charged during the free days, and you can cancel before
+        they end.
       </p>
       {active ? (
         <div className="space-y-1 rounded-lg border border-green-800 p-4">
@@ -60,9 +61,19 @@ export default async function PanelBillingPage() {
               You can try again.
             </p>
           )}
-          <StartTrialButton
-            label={`Start ${billing.trialDays} free days`}
-          />
+          {billing.publicKey ? (
+            <MercadoPagoPaymentForm
+              subscription
+              publicKey={billing.publicKey}
+              totalLabel={`Start ${billing.trialDays} free days`}
+              defaultEmail={billing.ownerEmail}
+            />
+          ) : (
+            <p className="rounded bg-amber-900/40 p-3 text-sm text-amber-200">
+              The card form is not set up on this server yet. Ask the Orbit
+              team.
+            </p>
+          )}
         </div>
       )}
     </div>

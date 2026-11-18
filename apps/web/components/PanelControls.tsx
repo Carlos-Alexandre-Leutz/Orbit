@@ -290,20 +290,73 @@ export function PublishButton({ published }: { published: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsPlan, setNeedsPlan] = useState(false);
 
   async function toggle() {
     setBusy(true);
     setError(null);
-    const failure = await call('/api/bff/stores/mine', 'PATCH', {
-      published: !published,
-    });
+    try {
+      const response = await fetch('/api/bff/stores/mine', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: !published }),
+      });
+      if (response.status === 402) {
+        setNeedsPlan(true);
+      } else if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
+        const message = data?.message;
+        setError(
+          (Array.isArray(message) ? message.join(', ') : message) ??
+            'Something went wrong. Try again.',
+        );
+      }
+    } catch {
+      setError('The server is not reachable. Try again.');
+    }
     setBusy(false);
-    if (failure) setError(failure);
     router.refresh();
   }
 
   return (
     <div className="space-y-1">
+      {needsPlan && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="start-trial-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        >
+          <div className="w-full max-w-md space-y-4 rounded-lg border border-gray-600 bg-gray-900 p-6">
+            <h2 id="start-trial-title" className="text-lg font-semibold">
+              Start your free trial to open your store
+            </h2>
+            <p className="text-sm text-gray-300">
+              To open your store to the public you need an active plan. Start
+              your free trial in Billing: nothing is charged during the free
+              days, and you can cancel before they end.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setNeedsPlan(false)}
+                className="rounded border border-gray-500 px-4 py-2 text-sm hover:bg-gray-800"
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/panel/billing')}
+                className="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+              >
+                Start free trial
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <button
         type="button"
         onClick={() => void toggle()}

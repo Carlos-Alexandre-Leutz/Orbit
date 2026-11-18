@@ -83,14 +83,15 @@ export class BillingService {
       configured: this.config() !== null,
       status: store.subscriptionStatus,
       trialEndsAt: store.trialEndsAt,
+      ownerEmail: store.owner.email,
+      publicKey: process.env.ORBIT_BILLING_MP_PUBLIC_KEY?.trim() || null,
       canPublish: hasBilling(store),
       plan: await this.plans.get(),
       trialDays: TRIAL_DAYS,
     };
   }
 
-  /** Creates the subscription and gives back the Mercado Pago page where the seller registers the card. */
-  async start(userId: string) {
+  async start(userId: string, cardToken: string, payerEmail?: string) {
     const config = this.config();
     if (!config) {
       throw new ServiceUnavailableException(
@@ -113,9 +114,10 @@ export class BillingService {
       {
         reason: plan.name,
         external_reference: store.id,
-        payer_email: store.owner.email,
+        payer_email: payerEmail?.trim() || store.owner.email,
+        card_token_id: cardToken,
         back_url: `${appUrl}/panel/billing`,
-        status: 'pending',
+        status: 'authorized',
         auto_recurring: {
           frequency: 1,
           frequency_type: 'months',
@@ -125,19 +127,21 @@ export class BillingService {
         },
       },
     );
-    if (!subscription.init_point) {
-      throw new ServiceUnavailableException(
-        'The billing provider gave no page to register the card',
-      );
-    }
     await this.prisma.store.update({
       where: { id: store.id },
       data: {
         subscriptionId: subscription.id,
-        subscriptionStatus: 'pending',
+        subscriptionStatus: subscription.status,
+        ...(subscription.status === 'authorized'
+          ? {
+              trialEndsAt:
+                store.trialEndsAt ??
+                new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000),
+            }
+          : {}),
       },
     });
-    return { url: subscription.init_point };
+    return { status: subscription.status };
   }
 
   /**

@@ -60,12 +60,14 @@ export function MercadoPagoPaymentForm({
   storeSlug,
   totalLabel,
   defaultEmail,
+  subscription = false,
 }: {
   publicKey: string;
-  orderId: string;
-  storeSlug: string;
-  totalLabel: string;
+  orderId?: string;
+  storeSlug?: string;
+  totalLabel?: string;
   defaultEmail: string;
+  subscription?: boolean;
 }) {
   const router = useRouter();
   const testMode = publicKey.startsWith('TEST-');
@@ -119,7 +121,7 @@ export function MercadoPagoPaymentForm({
   async function pay(event: React.FormEvent) {
     event.preventDefault();
     if (!mp.current) return;
-    if (!brand) {
+    if (!subscription && !brand) {
       setError('Check the card number.');
       return;
     }
@@ -140,17 +142,24 @@ export function MercadoPagoPaymentForm({
       return;
     }
     try {
-      const response = await fetch(`/api/bff/orders/${orderId}/pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardToken: token,
-          cardBrand: brand,
-          payerEmail: email.trim(),
-        }),
-      });
+      const response = await fetch(
+        subscription
+          ? '/api/bff/billing/start'
+          : `/api/bff/orders/${orderId}/pay`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cardToken: token,
+            ...(subscription ? {} : { cardBrand: brand }),
+            payerEmail: email.trim(),
+          }),
+        },
+      );
       if (response.ok) {
-        router.replace(`/${storeSlug}/orders/${orderId}`);
+        router.replace(
+          subscription ? '/panel/billing' : `/${storeSlug}/orders/${orderId}`,
+        );
         router.refresh();
         return;
       }
@@ -235,7 +244,13 @@ export function MercadoPagoPaymentForm({
         disabled={busy || !ready}
         className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
       >
-        {busy ? 'Paying...' : `Pay ${totalLabel}${testMode ? ' (test)' : ''}`}
+        {busy
+          ? subscription
+            ? 'Starting...'
+            : 'Paying...'
+          : subscription
+            ? (totalLabel ?? 'Start free trial')
+            : `Pay ${totalLabel}${testMode ? ' (test)' : ''}`}
       </button>
     </form>
   );

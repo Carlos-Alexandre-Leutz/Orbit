@@ -63,8 +63,8 @@ describe('menuFor', () => {
     expect(hrefs('ADMIN')).not.toContain('/panel');
   });
 
-  it('gives an admin who owns a store the link to it', () => {
-    expect(hrefs('ADMIN', { ownStore: joao })).toContain('/loja-do-joao');
+  it('does not give an admin the link to a store', () => {
+    expect(hrefs('ADMIN', { ownStore: joao })).not.toContain('/loja-do-joao');
   });
 
   it('does not repeat the own store of a seller who is looking at it', () => {
