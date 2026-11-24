@@ -18,6 +18,7 @@ import { CorrelationModule } from './correlation/correlation.module';
 import { LlmModule } from './llm/llm.module';
 import { ToolsModule } from './tools/tools.module';
 import { ApprovalsModule } from './approvals/approvals.module';
+import { RouterModule } from './agents/router/router.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ApprovalsModule } from './approvals/approvals.module';
     LlmModule,
     ToolsModule,
     ApprovalsModule,
+    RouterModule,
   ],
   controllers: [AppController],
   providers: [AppService],
