@@ -57,6 +57,7 @@ export class ApprovalsService {
     input: unknown;
     idempotencyKey: string;
     summary: { description: string; amountCents?: number };
+    highValueCents?: number;
   }): Promise<ApprovalDecision> {
     const where = {
       actorId_tool_idempotencyKey: {
@@ -79,7 +80,8 @@ export class ApprovalsService {
             summary: request.summary.description.slice(0, 300),
             amountCents: amount ?? null,
             needsAmountConfirmation:
-              amount !== undefined && amount > this.config.highValueCents,
+              amount !== undefined &&
+              amount > (request.highValueCents ?? this.config.highValueCents),
             expiresAt: new Date(Date.now() + this.config.ttlHours * 3_600_000),
             correlationId: currentCorrelationId() ?? null,
           },

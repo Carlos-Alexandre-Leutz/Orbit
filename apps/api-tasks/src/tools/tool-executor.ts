@@ -2,6 +2,7 @@ import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { AuditOutcome, Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { recordStep } from '../correlation/correlation';
+import { GovernancePolicy } from '../policy/governance-policy';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ApprovalGate,
@@ -12,6 +13,13 @@ import {
   ToolResult,
 } from './tool';
 import { ToolRegistry } from './tool-registry';
+
+const DENIED_CODES = new Set<ToolErrorCode>([
+  'UNKNOWN_TOOL',
+  'FORBIDDEN',
+  'LIMIT_EXCEEDED',
+  'APPROVAL_REJECTED',
+]);
 
 const fail = (
   code: ToolErrorCode,
@@ -37,6 +45,7 @@ export class ToolExecutor {
     private readonly approvals: ApprovalGate,
     private readonly audit: AuditService,
     private readonly prisma: PrismaService,
+    private readonly policy: GovernancePolicy,
   ) {}
 
   async execute(
@@ -63,6 +72,15 @@ export class ToolExecutor {
         `The role ${context.actor.role} cannot use ${name}`,
       );
     }
+    if (!this.policy.allows(context.actor.role, name)) {
+      return this.refuse(
+        name,
+        tool,
+        context,
+        'FORBIDDEN',
+        `The policy does not allow ${context.actor.role} to use ${name}`,
+      );
+    }
     let input: unknown;
     try {
       input = tool.parse(rawInput);
@@ -71,6 +89,20 @@ export class ToolExecutor {
       return this.refuse(name, tool, context, 'INVALID_INPUT', error.message);
     }
     if (!tool.sideEffect) {
+      const verdict = await this.policy.check({
+        actor: context.actor,
+        tool: name,
+      });
+      if (!verdict.allowed) {
+        return this.refuse(
+          name,
+          tool,
+          context,
+          verdict.code,
+          verdict.message,
+          input,
+        );
+      }
       return this.run(tool, input, context);
     }
 
@@ -85,18 +117,33 @@ export class ToolExecutor {
         input,
       );
     }
+    const described = await tool.approvalSummary?.(input, context);
+    const verdict = await this.policy.check({
+      actor: context.actor,
+      tool: name,
+      amountCents: described?.amountCents,
+    });
+    if (!verdict.allowed) {
+      return this.refuse(
+        name,
+        tool,
+        context,
+        verdict.code,
+        verdict.message,
+        input,
+      );
+    }
     let approverId: string | undefined;
     let approvalId: string | undefined;
-    if (tool.requiresApproval) {
-      const summary = (await tool.approvalSummary?.(input, context)) ?? {
-        description: `Run ${name}`,
-      };
+    if (tool.requiresApproval || verdict.requiresApproval) {
+      const summary = described ?? { description: `Run ${name}` };
       const decision = await this.approvals.check({
         actor: context.actor,
         tool: name,
         input,
         idempotencyKey: key,
         summary,
+        highValueCents: verdict.highValueCents,
       });
       if (decision.status === 'pending') {
         await this.write(tool, context, input, 'PENDING_APPROVAL', {
@@ -242,11 +289,7 @@ export class ToolExecutor {
       tool ?? name,
       context,
       input,
-      code === 'APPROVAL_REJECTED'
-        ? 'DENIED'
-        : code === 'FORBIDDEN' || code === 'UNKNOWN_TOOL'
-          ? 'DENIED'
-          : 'FAILURE',
+      DENIED_CODES.has(code) ? 'DENIED' : 'FAILURE',
       { error: code, message },
     );
     return fail(code, message);
@@ -272,7 +315,10 @@ export class ToolExecutor {
         actorRole: context.actor.role,
         tool: name,
         parameters: parameters as Prisma.InputJsonValue,
-        result: result as Prisma.InputJsonValue,
+        result: {
+          ...result,
+          policyVersion: this.policy.version,
+        } as Prisma.InputJsonValue,
         outcome,
         approverId,
       });

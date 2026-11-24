@@ -3,6 +3,11 @@ import { Prisma, Role } from '@prisma/client';
 import { Tool, ToolContext, ToolInputError, ApprovalDecision } from './tool';
 import { ToolExecutor } from './tool-executor';
 import { ToolRegistry } from './tool-registry';
+import {
+  GovernancePolicy,
+  PolicyDocument,
+  ToolRule,
+} from '../policy/governance-policy';
 
 const customer: ToolContext = { actor: { id: 'u1', role: Role.CUSTOMER } };
 
@@ -32,9 +37,18 @@ function makeTool(
   return { tool, run };
 }
 
+function policyFor(tool: string, rule: ToolRule = {}, counted = 0) {
+  const document: PolicyDocument = {
+    version: 7,
+    roles: { CUSTOMER: { tools: { [tool]: rule } } },
+  };
+  return new GovernancePolicy(document, () => Promise.resolve(counted));
+}
+
 function setup(
   tool: Tool,
   decision: ApprovalDecision = { status: 'approved', approverId: 'boss' },
+  policy: GovernancePolicy = policyFor(tool.name),
 ) {
   const audit = { record: jest.fn().mockResolvedValue({}) };
   const runs = new Map<string, Record<string, unknown>>();
@@ -122,6 +136,7 @@ function setup(
     gate,
     audit as never,
     prisma as never,
+    policy,
   );
   return { executor, audit, prisma, gate, runs };
 }
@@ -146,7 +161,7 @@ describe('ToolExecutor: reading tools', () => {
         actorRole: Role.CUSTOMER,
         tool: 'math.double',
         parameters: { n: 4 },
-        result: { doubled: 8 },
+        result: { doubled: 8, policyVersion: 7 },
         outcome: 'SUCCESS',
       }),
     ]);
@@ -383,6 +398,86 @@ describe('ToolExecutor: approval', () => {
       outcome: 'SUCCESS',
       approverId: 'boss',
     });
+  });
+});
+
+describe('ToolExecutor: governance policy', () => {
+  const ctx = { ...customer, idempotencyKey: 'k' };
+  const big = (extra: Partial<Tool<{ n: number }, { doubled: number }>> = {}) =>
+    makeTool({
+      name: 'math.big',
+      sideEffect: true,
+      approvalSummary: (input) =>
+        Promise.resolve({ description: 'double', amountCents: input.n * 100 }),
+      ...extra,
+    });
+
+  it('refuses a role the policy does not list, even when the tool allows it', async () => {
+    const { tool, run } = makeTool();
+    const empty = new GovernancePolicy(
+      { version: 7, roles: { CUSTOMER: { tools: {} } } },
+      () => Promise.resolve(0),
+    );
+    const { executor, audit } = setup(tool, undefined, empty);
+    const result = await executor.execute('math.double', { n: 1 }, customer);
+    expect(result).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+    expect(run).not.toHaveBeenCalled();
+    expect(audited(audit)[0]).toMatchObject({ outcome: 'DENIED' });
+  });
+
+  it('refuses a call above the amount cap, without asking for approval', async () => {
+    const { tool, run } = big();
+    const { executor, gate, audit } = setup(
+      tool,
+      undefined,
+      policyFor('math.big', { maxAmountCents: 500 }),
+    );
+    const result = await executor.execute('math.big', { n: 6 }, ctx);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: 'LIMIT_EXCEEDED' },
+    });
+    expect(gate.check).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(audited(audit)[0]).toMatchObject({ outcome: 'DENIED' });
+  });
+
+  it('refuses when the call count reached the limit, for a reading tool too', async () => {
+    const { tool, run } = makeTool();
+    const { executor } = setup(
+      tool,
+      undefined,
+      policyFor('math.double', { maxCallsPerHour: 3 }, 3),
+    );
+    expect(
+      await executor.execute('math.double', { n: 1 }, customer),
+    ).toMatchObject({ ok: false, error: { code: 'LIMIT_EXCEEDED' } });
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('forces approval on a tool that did not ask for it, and passes its high-value limit', async () => {
+    const { tool, run } = big();
+    const { executor, gate } = setup(
+      tool,
+      { status: 'pending' },
+      policyFor('math.big', { requiresApproval: true, highValueCents: 900 }),
+    );
+    const result = await executor.execute('math.big', { n: 2 }, ctx);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: 'APPROVAL_REQUIRED' },
+    });
+    expect(gate.check).toHaveBeenCalledWith(
+      expect.objectContaining({ highValueCents: 900 }),
+    );
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('writes the policy version on every audit entry', async () => {
+    const { tool } = makeTool();
+    const { executor, audit } = setup(tool);
+    await executor.execute('math.double', { n: 1 }, customer);
+    expect(audited(audit)[0].result).toMatchObject({ policyVersion: 7 });
   });
 });
 
