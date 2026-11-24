@@ -18,6 +18,18 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SLUG_MESSAGES, checkSlug, slugFromName } from '../stores/store-slug';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RateLimiter } from './rate-limiter';
+
+const MINUTE = 60 * 1000;
+const TOO_MANY = 'Too many attempts. Wait a few minutes and try again.';
+const MAX_LOGIN_FAILURES = 5;
+
+/** The reset token is e-mailed as it is, but only its hash is stored, so a database read gives no working link. */
+export function hashResetToken(token: string) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+const emailKey = (email: string) => email.trim().toLowerCase();
 
 const EMAIL_TAKEN =
   'This e-mail already has an Orbit account. Sign in, or use another e-mail.';
@@ -25,6 +37,7 @@ const EMAIL_TAKEN =
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly limiter = new RateLimiter();
 
   constructor(
     private prisma: PrismaService,
@@ -45,6 +58,12 @@ export class AuthService {
    * The role is decided here from `accountType`, never copied from the request.
    */
   async register(data: RegisterDto) {
+    this.limiter.consume(
+      `register:${emailKey(data.email)}`,
+      5,
+      60 * MINUTE,
+      TOO_MANY,
+    );
     const exists = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -206,6 +225,10 @@ export class AuthService {
   }
 
   async login(data: LoginDto) {
+    // Only failures count, and a right password clears them, so the owner of the account is not locked out by
+    // their own successful logins. A wrong guess past the limit is refused before the password is even compared.
+    const key = `login:${emailKey(data.email)}`;
+    this.limiter.refuseIfBlocked(key, MAX_LOGIN_FAILURES, TOO_MANY);
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -214,12 +237,16 @@ export class AuthService {
       !user.isAnonymous &&
       (await bcrypt.compare(data.password, user.password));
     if (!user || !valid) {
+      this.limiter.hit(key, 15 * MINUTE);
       throw new UnauthorizedException('Credenciais inválidas');
     }
+    this.limiter.reset(key);
     return this.issueSession(user);
   }
 
   async forgotPassword(email: string) {
+    // Every call counts, for an unknown e-mail too, so the limit cannot tell whether the account exists.
+    this.limiter.consume(`forgot:${emailKey(email)}`, 3, 60 * MINUTE, TOO_MANY);
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -237,7 +264,7 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        passwordResetToken: token,
+        passwordResetToken: hashResetToken(token),
         passwordResetExpires: expires,
       },
     });
@@ -262,7 +289,7 @@ export class AuthService {
     const { token, newPassword } = data;
 
     const user = await this.prisma.user.findFirst({
-      where: { passwordResetToken: token },
+      where: { passwordResetToken: hashResetToken(token) },
     });
 
     if (!user) {

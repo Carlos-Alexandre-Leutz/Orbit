@@ -1,12 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AuthService } from './auth.service';
+import { AuthService, hashResetToken } from './auth.service';
 
 const SECRET = 'a-test-secret-that-is-long-enough-1234';
 
@@ -227,6 +228,103 @@ describe('AuthService', () => {
         message: generic,
       });
       expect(mail.sendPasswordReset).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('abuse limits', () => {
+    const wrong = { email: 'ana@example.com', password: 'nope' };
+    const right = { email: 'ana@example.com', password: 'correct-password' };
+
+    it('refuses with 429 after 5 wrong passwords, even for the right one', async () => {
+      users.set('ana@example.com', makeUser());
+      for (let i = 0; i < 5; i += 1) {
+        await expect(service.login(wrong)).rejects.toBeInstanceOf(
+          UnauthorizedException,
+        );
+      }
+      const refused = await service.login(right).catch((e: unknown) => e);
+      expect(refused).toBeInstanceOf(HttpException);
+      expect((refused as HttpException).getStatus()).toBe(429);
+    });
+
+    it('counts the e-mail without regard to case or spaces', async () => {
+      for (let i = 0; i < 5; i += 1) {
+        await service
+          .login({
+            email: i % 2 ? 'ANA@example.com' : ' ana@example.com',
+            password: 'x',
+          })
+          .catch(() => undefined);
+      }
+      await expect(service.login(wrong)).rejects.toMatchObject({ status: 429 });
+    });
+
+    it('clears the failures after a right password', async () => {
+      users.set('ana@example.com', makeUser());
+      for (let i = 0; i < 4; i += 1) await service.login(wrong).catch(() => 0);
+      await service.login(right);
+      for (let i = 0; i < 4; i += 1) {
+        await expect(service.login(wrong)).rejects.toBeInstanceOf(
+          UnauthorizedException,
+        );
+      }
+    });
+
+    it('limits forgot-password per e-mail, known or not', async () => {
+      for (let i = 0; i < 3; i += 1)
+        await service.forgotPassword('no@example.com');
+      await expect(
+        service.forgotPassword('no@example.com'),
+      ).rejects.toMatchObject({
+        status: 429,
+      });
+    });
+
+    it('limits sign-ups per e-mail', async () => {
+      const body = {
+        email: 'ana@example.com',
+        name: 'Ana',
+        password: 'a-long-password',
+      };
+      for (let i = 0; i < 5; i += 1) {
+        await service.register(body as never).catch(() => undefined);
+      }
+      await expect(service.register(body as never)).rejects.toMatchObject({
+        status: 429,
+      });
+    });
+  });
+
+  describe('reset token storage', () => {
+    it('stores only the hash and accepts the e-mailed token', async () => {
+      const update = jest.fn().mockResolvedValue(undefined);
+      const findFirst = jest.fn();
+      Object.assign(prisma.user, { update, findFirst });
+      users.set('ana@example.com', makeUser());
+      const mail = {
+        sendPasswordReset: jest.fn().mockResolvedValue(undefined),
+      };
+      service = new AuthService(prisma as never, mail as never, jwt);
+
+      await service.forgotPassword('ana@example.com');
+      const emailed = mail.sendPasswordReset.mock.calls[0][1] as string;
+      const stored = update.mock.calls[0][0].data.passwordResetToken as string;
+      expect(stored).not.toBe(emailed);
+      expect(stored).toBe(hashResetToken(emailed));
+
+      findFirst.mockResolvedValue(
+        makeUser({
+          passwordResetToken: stored,
+          passwordResetExpires: new Date(Date.now() + 60000),
+        }),
+      );
+      await service.resetPassword({
+        token: emailed,
+        newPassword: 'new-password-1',
+      });
+      expect(findFirst).toHaveBeenCalledWith({
+        where: { passwordResetToken: stored },
+      });
     });
   });
 
