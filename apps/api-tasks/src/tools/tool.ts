@@ -5,6 +5,10 @@ export interface ToolContext {
   actor: { id: string; role: Role };
   /** Required by a tool that changes data: the same key never runs the tool twice. */
   idempotencyKey?: string;
+  /** The agent making the call, and the model and prompt behind it: they go to the audit log. */
+  agent?: string;
+  model?: string;
+  promptVersion?: string;
 }
 
 /**

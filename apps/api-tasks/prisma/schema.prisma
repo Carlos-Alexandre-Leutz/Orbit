@@ -351,6 +351,8 @@ model AuditEntry {
   promptVersion String?
   // The request this step belongs to (PBI-12); null outside a request.
   correlationId String?
+  // The agent that took the step, such as `router` or `customer_agent` (PBI-20); null for a plain call.
+  agent         String?
 
   @@index([actorId, occurredAt])
   @@index([correlationId])

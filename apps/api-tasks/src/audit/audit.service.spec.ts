@@ -25,6 +25,7 @@ describe('AuditService', () => {
       approverId: 'u2',
       model: 'gemini-test',
       promptVersion: 'v1',
+      agent: 'customer_agent',
     });
     expect(create).toHaveBeenCalledWith({
       data: {
@@ -37,6 +38,7 @@ describe('AuditService', () => {
         approverId: 'u2',
         model: 'gemini-test',
         promptVersion: 'v1',
+        agent: 'customer_agent',
         correlationId: null,
       },
     });
@@ -49,6 +51,7 @@ describe('AuditService', () => {
       data: {
         actorId: null,
         actorRole: null,
+        agent: null,
         tool: 'webhook.payment',
         parameters: {},
         result: {},

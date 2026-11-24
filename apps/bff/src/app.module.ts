@@ -6,6 +6,7 @@ import { adminPath } from './admin/admin-path';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { ApprovalsModule } from './approvals/approvals.module';
+import { ChatModule } from './chat/chat.module';
 import { CartModule } from './cart/cart.module';
 import { PaymentsModule } from './payments/payments.module';
 import { OrdersModule } from './orders/orders.module';
@@ -27,6 +28,7 @@ import { UsersModule } from './users/users.module';
     ImagesModule,
     CartModule,
     ApprovalsModule,
+    ChatModule,
     OrdersModule,
     PaymentsModule,
   ],
