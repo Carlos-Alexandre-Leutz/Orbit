@@ -1,3 +1,4 @@
+import { correlationMetadata } from '../correlation/correlation';
 import Stripe from 'stripe';
 import {
   ChargeRequest,
@@ -36,7 +37,7 @@ export class StripePaymentProvider extends PaymentProvider {
             enabled: true,
             allow_redirects: 'never',
           },
-          metadata: { orderId: request.orderId },
+          metadata: { orderId: request.orderId, ...correlationMetadata() },
         },
         { idempotencyKey: request.idempotencyKey },
       );

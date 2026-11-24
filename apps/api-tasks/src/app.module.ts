@@ -14,6 +14,7 @@ import { StoresModule } from './stores/stores.module';
 import { ImagesModule } from './images/images.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuditModule } from './audit/audit.module';
+import { CorrelationModule } from './correlation/correlation.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AuditModule } from './audit/audit.module';
     ImagesModule,
     CustomersModule,
     AuditModule,
+    CorrelationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
