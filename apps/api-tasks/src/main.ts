@@ -16,7 +16,14 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // An upload is the picture itself; one byte over the limit is refused here, before the app reads it.
   app.useBodyParser('raw', { type: 'image/*', limit: '2mb' });
-  app.enableCors();
+  // Only the BFF calls this API, server to server, so no browser origin is allowed unless the owner lists one.
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (allowedOrigins.length > 0) {
+    app.enableCors({ origin: allowedOrigins });
+  }
 
   const rawPort = process.env.PORT;
   const parsedPort = rawPort ? parseInt(rawPort, 10) : NaN;

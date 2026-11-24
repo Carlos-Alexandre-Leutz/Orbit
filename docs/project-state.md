@@ -100,7 +100,7 @@ O dono tem um SSD de 1 TB para projetos de IA e pode mover os dados do Docker pa
 
 ## Riscos conhecidos (detalhes nos documentos dos PBIs)
 
-- `POST /auth/anonymous` é público e cria uma linha por chamada; não há limite de requisições em login nem em cadastro; os tokens de recuperação de senha ficam em texto puro; a API da loja ainda tem `enableCors()` aberto e a porta publicada.
+- `POST /auth/anonymous` é público e cria uma linha por chamada. Login, cadastro e recuperação de senha têm limite por e-mail, em memória (5 senhas erradas em 15 min; 3 pedidos de recuperação e 5 cadastros por hora; [#428](https://github.com/Carlos-Alexandre-Leutz/Orbit/issues/428)), mas ainda não há limite por IP (o IP do cliente não chega à API) nem segundo fator na área do dono. Os tokens de recuperação agora ficam só como hash. A API da loja não envia CORS sem `ALLOWED_ORIGINS`, mas a porta continua publicada pelo compose.
 - As mensagens de erro da API e os e-mails ainda estão em português e as páginas em inglês; o produto deve ser todo em inglês, então falta traduzir (a regra está no `AGENTS.md`).
 - Ainda não verificado: o deploy da staging (o placeholder só escreve uma nota; o QA é atualizado pelo job `redeploy`, que depende dos secrets do dono), o acerto de cache do Turborepo no CI, o cookie `Secure` em https, o layout no celular e a expiração de 24 horas de uma conta de visitante.
 
