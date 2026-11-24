@@ -347,8 +347,11 @@ model AuditEntry {
   // The model and the prompt version behind an agent step (PBI-17, PBI-22); null for a plain call.
   model         String?
   promptVersion String?
+  // The request this step belongs to (PBI-12); null outside a request.
+  correlationId String?
 
   @@index([actorId, occurredAt])
+  @@index([correlationId])
   @@index([tool, occurredAt])
   @@map("audit_log")
 }

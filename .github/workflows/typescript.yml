@@ -11,6 +11,7 @@ jobs:
       NEXT_PUBLIC_BFF_URL: http://localhost:3001
       DATABASE_URL: postgresql://orbit:orbit-ci@localhost:5432/orbit_ci?schema=public
       JWT_SECRET: ci-only-secret-not-used-anywhere-else
+      MONGO_URL: mongodb://localhost:27017/orbit_ci
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -25,6 +26,10 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
 

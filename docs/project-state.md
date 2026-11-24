@@ -30,6 +30,7 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 72 | Plataforma de lojas pronta para o QA: conta única, onboarding, pagamento por loja (Stripe e Mercado Pago), área do dono, mensalidade do lojista, entrega (endereço, previsão, rastreio, nota fiscal), termos e privacidade ([`pbi/PBI-72.md`](pbi/PBI-72.md)). |
 | 73 | Mensalidade do lojista com formulário de cartão dentro do Orbit (sem conta no Mercado Pago), e-mail cobrado escolhido pelo lojista, alerta de teste grátis ao publicar sem plano ([`pbi/PBI-73.md`](pbi/PBI-73.md)). Falta `ORBIT_BILLING_MP_PUBLIC_KEY` na API do QA. |
 | 11 | Log de auditoria que só aceita inserção (primeiro PBI do épico E3): tabela `audit_log`, `AuditService.record`, gatilhos que recusam `UPDATE`, `DELETE` e `TRUNCATE`, teste no PostgreSQL ([`pbi/PBI-11.md`](pbi/PBI-11.md), [ADR-010](adr/ADR-010-append-only-audit-log.md)). Em pull request; nenhuma ferramenta grava nele ainda. |
+| 12 | ID de correlação na API e no BFF, propagado para auditoria, e-mail e pagamentos; traces de execução no MongoDB ([`pbi/PBI-12.md`](pbi/PBI-12.md)). Em pull request, depende do PBI-11. |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 
