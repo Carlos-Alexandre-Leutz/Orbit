@@ -327,6 +327,8 @@ enum AuditOutcome {
   SUCCESS
   FAILURE
   DENIED
+  // A tool that needs a human was held until someone approves it (PBI-13).
+  PENDING_APPROVAL
 }
 
 // The append-only record of what an actor did through a tool (PBI-11, ADR-010). A database trigger rejects every
@@ -384,4 +386,26 @@ model LlmCall {
   @@index([createdAt])
   @@index([correlationId])
   @@index([model, createdAt])
+}
+
+enum ToolRunStatus {
+  STARTED
+  COMPLETED
+  FAILED
+}
+
+// One execution of a tool that changes data, claimed by its idempotency key (PBI-18): the same actor, tool and
+// key never runs twice, and a repeat gets the stored answer. A FAILED run may be tried again with the same key.
+model ToolRun {
+  id             String        @id @default(uuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  actorId        String
+  tool           String
+  idempotencyKey String
+  status         ToolRunStatus @default(STARTED)
+  result         Json?
+  error          String?
+
+  @@unique([actorId, tool, idempotencyKey])
 }
