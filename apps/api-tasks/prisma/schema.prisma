@@ -322,3 +322,33 @@ model Plan {
   currency   String   @default("BRL")
   updatedAt  DateTime @updatedAt
 }
+
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+  DENIED
+}
+
+// The append-only record of what an actor did through a tool (PBI-11, ADR-010). A database trigger rejects every
+// UPDATE, DELETE and TRUNCATE, so a row is written once and never changes. There is no foreign key to User on
+// purpose: deleting an account must not touch, or be blocked by, the record of what that account did.
+model AuditEntry {
+  id            String       @id @default(uuid())
+  occurredAt    DateTime     @default(now())
+  // Null when no signed-in user acted (the system, a webhook, a visitor before login).
+  actorId       String?
+  actorRole     Role?
+  tool          String
+  parameters    Json         @default("{}")
+  result        Json         @default("{}")
+  outcome       AuditOutcome
+  // Who approved a tool that needs a human (PBI-13).
+  approverId    String?
+  // The model and the prompt version behind an agent step (PBI-17, PBI-22); null for a plain call.
+  model         String?
+  promptVersion String?
+
+  @@index([actorId, occurredAt])
+  @@index([tool, occurredAt])
+  @@map("audit_log")
+}
