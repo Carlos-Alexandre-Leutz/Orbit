@@ -1,33 +1,31 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
-import { Type } from 'class-transformer';
+import { randomUUID } from 'node:crypto';
 import {
-  ArrayMaxSize,
-  IsArray,
-  IsIn,
+  Body,
+  Controller,
+  Logger,
+  NotFoundException,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
+import {
+  IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
-  ValidateNested,
 } from 'class-validator';
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../auth/authenticated-user';
 import { Auth } from '../auth/roles.decorator';
 import { AgentEvent } from './agent';
+import { ConversationMemory } from '../memory/conversation-memory';
 import { Orchestrator } from './orchestrator';
-
-class TurnDto {
-  @IsIn(['user', 'assistant']) role: 'user' | 'assistant';
-  @IsString() @MaxLength(2000) content: string;
-}
 
 export class ChatDto {
   @IsString() @MinLength(1) @MaxLength(2000) message: string;
-  /** Earlier turns, kept by the page until the server keeps them (PBI-21). */
-  @IsArray()
-  @ArrayMaxSize(10)
-  @ValidateNested({ each: true })
-  @Type(() => TurnDto)
-  history: TurnDto[] = [];
+  /** Continues a conversation of this user. Leave out to start a new one: its id comes back in the first event. */
+  @IsOptional() @IsUUID() conversationId?: string;
 }
 
 /** One server-sent event: `event: <type>` and the JSON of the event. */
@@ -43,7 +41,12 @@ export function formatEvent(event: AgentEvent): string {
 @Controller('chat')
 @Auth('CUSTOMER', 'SELLER')
 export class ChatController {
-  constructor(private readonly orchestrator: Orchestrator) {}
+  private readonly logger = new Logger(ChatController.name);
+
+  constructor(
+    private readonly orchestrator: Orchestrator,
+    private readonly memory: ConversationMemory,
+  ) {}
 
   @Post('stream')
   async stream(
@@ -51,6 +54,16 @@ export class ChatController {
     @Req() request: AuthenticatedRequest,
     @Res() response: Response,
   ) {
+    const userId = request.user.id;
+    // Continuing a chat needs one that exists and is this user's; anyone else's looks missing.
+    if (
+      dto.conversationId &&
+      !(await this.memory.get(userId, dto.conversationId))
+    ) {
+      throw new NotFoundException('Conversation not found');
+    }
+    const conversationId = dto.conversationId ?? randomUUID();
+    const context = await this.memory.contextFor(userId, conversationId);
     response.status(200).set({
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
@@ -58,13 +71,20 @@ export class ChatController {
       'X-Accel-Buffering': 'no',
     });
     response.flushHeaders();
+    response.write(formatEvent({ type: 'conversation', id: conversationId }));
     try {
-      await this.orchestrator.handle({
-        actor: { id: request.user.id, role: request.user.role },
+      const result = await this.orchestrator.handle({
+        actor: { id: userId, role: request.user.role },
         message: dto.message,
-        history: dto.history,
+        history: context.history,
+        summary: context.summary,
         emit: (event) => response.write(formatEvent(event)),
       });
+      await this.memory
+        .remember(userId, conversationId, dto.message, result.message)
+        .catch((error: Error) =>
+          this.logger.warn(`Could not remember the chat: ${error.message}`),
+        );
     } catch {
       response.write(
         formatEvent({

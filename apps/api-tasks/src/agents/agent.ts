@@ -19,6 +19,7 @@ export interface AgentLimits {
 
 /** What the chat shows while an agent works. Tool inputs are left out: they may hold an address. */
 export type AgentEvent =
+  | { type: 'conversation'; id: string }
   | { type: 'status'; text: string }
   | { type: 'tool_call'; tool: string }
   | { type: 'tool_result'; tool: string; ok: boolean; code?: string }

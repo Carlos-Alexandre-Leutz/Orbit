@@ -17,19 +17,15 @@ import type { OutgoingHttpHeaders } from 'node:http';
 import type { FastifyReply } from 'fastify';
 import { currentCorrelationId } from '../correlation';
 
-export class ChatTurn {
-  @ApiProperty({ enum: ['user', 'assistant'] }) role: 'user' | 'assistant';
-  @ApiProperty() content: string;
-}
-
 export class ChatBody {
   @ApiProperty({ maxLength: 2000 }) message: string;
   @ApiProperty({
-    type: [ChatTurn],
     required: false,
-    description: 'Up to 10 earlier turns',
+    format: 'uuid',
+    description:
+      'Continues a conversation; leave out to start one (its id is in the first event)',
   })
-  history?: ChatTurn[];
+  conversationId?: string;
 }
 
 /**
