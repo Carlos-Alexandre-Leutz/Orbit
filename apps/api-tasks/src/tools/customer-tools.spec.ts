@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Role } from '@prisma/client';
 import { createCustomerTools } from './customer-tools';
 import { ToolInputError } from './tool';
