@@ -219,6 +219,16 @@ export function createCustomerTools(deps: {
         input.delivery,
         input.address,
       ),
+    async approvalSummary(input, ctx) {
+      const cart = (await deps.cart.view(ctx.actor.id, input.storeId)) as {
+        itemCount: number;
+        totalCents: number;
+      };
+      return {
+        description: `Buy ${cart.itemCount} item(s) for ${(cart.totalCents / 100).toFixed(2)} (${input.delivery === 'PICKUP' ? 'pickup' : 'shipping'})`,
+        amountCents: cart.totalCents,
+      };
+    },
     // The address is personal data: the audit log keeps only that one was given.
     auditInput: (input) => ({
       storeId: input.storeId,
@@ -270,6 +280,16 @@ export function createCustomerTools(deps: {
         id: ctx.actor.id,
         role: Role.CUSTOMER,
       }),
+    async approvalSummary(input, ctx) {
+      const order = (await deps.orders.get(input.orderId, {
+        id: ctx.actor.id,
+        role: Role.CUSTOMER,
+      })) as { id: string; status: string; totalCents: number };
+      return {
+        description: `Cancel order ${order.id.slice(0, 8)} (${order.status}, total ${(order.totalCents / 100).toFixed(2)})`,
+        amountCents: order.totalCents,
+      };
+    },
     auditInput: (input) => ({ orderId: input.orderId }),
     auditOutput: (output) => ({
       status: (output as { status: string }).status,

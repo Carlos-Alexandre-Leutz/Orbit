@@ -33,6 +33,7 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 12 | ID de correlação na API e no BFF, propagado para auditoria, e-mail e pagamentos; traces de execução no MongoDB ([`pbi/PBI-12.md`](pbi/PBI-12.md)). Em pull request, depende do PBI-11. |
 | 17 | Interface LLM: porta com Gemini (nunca rodou), falso e "indisponível"; timeout, retry, fallback, saída estruturada validada, registro de tokens e custo, cache ([`pbi/PBI-17.md`](pbi/PBI-17.md), [ADR-011](adr/ADR-011-llm-behind-a-port.md)). Em pull request, depende do PBI-12. |
 | 18 | Camada de ferramentas: contrato, registro, executor (papel, validação, idempotência, aprovação, auditoria) e seis ferramentas do cliente ([`pbi/PBI-18.md`](pbi/PBI-18.md), [ADR-012](adr/ADR-012-tool-layer.md)). Em pull request, depende dos PBIs 11, 12 e 17; as ferramentas com aprovação ficam retidas até o PBI-13. |
+| 13 | Aprovação humana: tabela `Approval`, fluxo propor, decidir e executar (`/approvals`), confirmação do valor acima do limite, validade ([`pbi/PBI-13.md`](pbi/PBI-13.md), [ADR-013](adr/ADR-013-human-approval.md)). Em pull request, depende dos PBIs 11, 12, 17 e 18. |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 

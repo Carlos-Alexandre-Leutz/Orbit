@@ -409,3 +409,39 @@ model ToolRun {
 
   @@unique([actorId, tool, idempotencyKey])
 }
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  EXECUTED
+}
+
+// A call to a tool that needs a human (PBI-13): proposed by the agent, decided by a person, then executed.
+// The same (actor, tool, key) is the same proposal. `input` is what the tool will run with, so it may hold
+// personal data such as an address; it is never shown in a list, only a short summary is.
+model Approval {
+  id             String         @id @default(uuid())
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime
+  actorId        String
+  actorRole      Role
+  tool           String
+  idempotencyKey String
+  input          Json
+  // What a person reads before deciding, such as "Buy 2 items for 100.00".
+  summary        String
+  // The money at stake in cents, when there is any.
+  amountCents    Int?
+  // True above the high-value limit: the approver must type the amount back (`confirmAmountCents`).
+  needsAmountConfirmation Boolean @default(false)
+  status         ApprovalStatus @default(PENDING)
+  approverId     String?
+  decidedAt      DateTime?
+  reason         String?
+  correlationId  String?
+
+  @@unique([actorId, tool, idempotencyKey])
+  @@index([actorId, status])
+}

@@ -86,12 +86,17 @@ export class ToolExecutor {
       );
     }
     let approverId: string | undefined;
+    let approvalId: string | undefined;
     if (tool.requiresApproval) {
+      const summary = (await tool.approvalSummary?.(input, context)) ?? {
+        description: `Run ${name}`,
+      };
       const decision = await this.approvals.check({
         actor: context.actor,
         tool: name,
         input,
         idempotencyKey: key,
+        summary,
       });
       if (decision.status === 'pending') {
         await this.write(tool, context, input, 'PENDING_APPROVAL', {
@@ -114,6 +119,7 @@ export class ToolExecutor {
         );
       }
       approverId = decision.approverId;
+      approvalId = decision.approvalId;
     }
 
     const claimed = await this.claim(context.actor.id, name, key);
@@ -126,6 +132,7 @@ export class ToolExecutor {
     }
     const result = await this.run(tool, input, context, approverId);
     await this.finish(claimed.id, result);
+    if (approvalId && result.ok) await this.approvals.complete(approvalId);
     return result;
   }
 

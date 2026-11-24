@@ -31,6 +31,11 @@ export interface Tool<I = unknown, O = unknown> {
   auditInput?(input: I): Record<string, unknown>;
   /** What goes to the audit log in place of the output. */
   auditOutput?(output: O): Record<string, unknown>;
+  /** What a person reads before approving: a sentence and the money at stake, if any. */
+  approvalSummary?(
+    input: I,
+    context: ToolContext,
+  ): Promise<{ description: string; amountCents?: number }>;
 }
 
 export class ToolInputError extends Error {}
@@ -53,7 +58,7 @@ export type ToolResult =
     };
 
 export type ApprovalDecision =
-  | { status: 'approved'; approverId: string }
+  | { status: 'approved'; approverId: string; approvalId?: string }
   | { status: 'pending'; approvalId?: string }
   | { status: 'rejected'; reason?: string };
 
@@ -67,7 +72,14 @@ export abstract class ApprovalGate {
     tool: string;
     input: unknown;
     idempotencyKey: string;
+    summary: { description: string; amountCents?: number };
   }): Promise<ApprovalDecision>;
+
+  /** Called after an approved call ran with success, so the approval is not used twice. */
+  complete(approvalId: string): Promise<void> {
+    void approvalId;
+    return Promise.resolve();
+  }
 }
 
 export class HoldingApprovalGate extends ApprovalGate {
