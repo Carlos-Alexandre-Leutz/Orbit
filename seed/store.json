@@ -1,0 +1,255 @@
+{
+  "simulated": true,
+  "note": "Fictional store for the Orbit portfolio project. Names, products and people are invented; there is no real customer data.",
+  "store": {
+    "name": "Orbit Supply Co.",
+    "currency": "USD"
+  },
+  "categories": [
+    {
+      "slug": "kitchen",
+      "name": "Kitchen"
+    },
+    {
+      "slug": "garden",
+      "name": "Garden"
+    },
+    {
+      "slug": "office",
+      "name": "Office"
+    },
+    {
+      "slug": "fitness",
+      "name": "Fitness"
+    },
+    {
+      "slug": "pets",
+      "name": "Pets"
+    },
+    {
+      "slug": "lighting",
+      "name": "Lighting"
+    }
+  ],
+  "products": [
+    {
+      "sku": "KIT-001",
+      "name": "Cast iron skillet, 26 cm",
+      "description": "Pre-seasoned skillet that goes from stove to oven.",
+      "category": "kitchen",
+      "price_cents": 3490,
+      "stock": 40
+    },
+    {
+      "sku": "KIT-002",
+      "name": "Bamboo cutting board",
+      "description": "Large board with a juice groove, easy to clean.",
+      "category": "kitchen",
+      "price_cents": 2190,
+      "stock": 65
+    },
+    {
+      "sku": "KIT-003",
+      "name": "Glass storage set, 6 pieces",
+      "description": "Airtight lids, safe for oven and freezer.",
+      "category": "kitchen",
+      "price_cents": 2890,
+      "stock": 50
+    },
+    {
+      "sku": "KIT-004",
+      "name": "Manual coffee grinder",
+      "description": "Adjustable burr grinder for filter or espresso.",
+      "category": "kitchen",
+      "price_cents": 3990,
+      "stock": 25
+    },
+    {
+      "sku": "GAR-001",
+      "name": "Stainless pruning shears",
+      "description": "Sharp bypass blades with a non-slip handle.",
+      "category": "garden",
+      "price_cents": 1890,
+      "stock": 70
+    },
+    {
+      "sku": "GAR-002",
+      "name": "Self-watering planter, medium",
+      "description": "Reservoir keeps soil moist for up to two weeks.",
+      "category": "garden",
+      "price_cents": 2490,
+      "stock": 45
+    },
+    {
+      "sku": "GAR-003",
+      "name": "Cotton garden gloves, pair",
+      "description": "Breathable gloves with reinforced fingertips.",
+      "category": "garden",
+      "price_cents": 790,
+      "stock": 120
+    },
+    {
+      "sku": "GAR-004",
+      "name": "Compost bin, 60 L",
+      "description": "Lidded bin with a ventilated base.",
+      "category": "garden",
+      "price_cents": 5990,
+      "stock": 18
+    },
+    {
+      "sku": "OFF-001",
+      "name": "Adjustable laptop stand",
+      "description": "Folds flat, raises the screen to eye level.",
+      "category": "office",
+      "price_cents": 2790,
+      "stock": 55
+    },
+    {
+      "sku": "OFF-002",
+      "name": "Dotted notebook, A5",
+      "description": "160 pages of thick paper with a lay-flat spine.",
+      "category": "office",
+      "price_cents": 1190,
+      "stock": 150
+    },
+    {
+      "sku": "OFF-003",
+      "name": "Wireless mouse",
+      "description": "Quiet clicks and a rechargeable battery.",
+      "category": "office",
+      "price_cents": 1990,
+      "stock": 80
+    },
+    {
+      "sku": "OFF-004",
+      "name": "Desk organizer, wood",
+      "description": "Five compartments for pens, cards and phone.",
+      "category": "office",
+      "price_cents": 2290,
+      "stock": 35
+    },
+    {
+      "sku": "FIT-001",
+      "name": "Resistance bands, set of 5",
+      "description": "Five strengths with a carry bag.",
+      "category": "fitness",
+      "price_cents": 1690,
+      "stock": 90
+    },
+    {
+      "sku": "FIT-002",
+      "name": "Non-slip yoga mat",
+      "description": "6 mm cushioning with a carrying strap.",
+      "category": "fitness",
+      "price_cents": 2490,
+      "stock": 60
+    },
+    {
+      "sku": "FIT-003",
+      "name": "Adjustable jump rope",
+      "description": "Ball bearings and foam handles.",
+      "category": "fitness",
+      "price_cents": 990,
+      "stock": 100
+    },
+    {
+      "sku": "FIT-004",
+      "name": "Insulated water bottle, 750 ml",
+      "description": "Keeps drinks cold for a day.",
+      "category": "fitness",
+      "price_cents": 2190,
+      "stock": 85
+    },
+    {
+      "sku": "PET-001",
+      "name": "Stainless steel pet bowl",
+      "description": "Non-tip base, dishwasher safe.",
+      "category": "pets",
+      "price_cents": 1290,
+      "stock": 75
+    },
+    {
+      "sku": "PET-002",
+      "name": "Cotton rope dog toy",
+      "description": "Knotted rope for tugging and chewing.",
+      "category": "pets",
+      "price_cents": 890,
+      "stock": 110
+    },
+    {
+      "sku": "PET-003",
+      "name": "Cat scratching post",
+      "description": "Sisal-wrapped post with a stable base.",
+      "category": "pets",
+      "price_cents": 3290,
+      "stock": 30
+    },
+    {
+      "sku": "PET-004",
+      "name": "Reflective dog leash, 1.5 m",
+      "description": "Padded handle and reflective stitching.",
+      "category": "pets",
+      "price_cents": 1790,
+      "stock": 55
+    },
+    {
+      "sku": "LIG-001",
+      "name": "LED desk lamp",
+      "description": "Three colour temperatures and a touch dimmer.",
+      "category": "lighting",
+      "price_cents": 3490,
+      "stock": 40
+    },
+    {
+      "sku": "LIG-002",
+      "name": "Warm string lights, 10 m",
+      "description": "Indoor and outdoor, low voltage.",
+      "category": "lighting",
+      "price_cents": 1990,
+      "stock": 95
+    },
+    {
+      "sku": "LIG-003",
+      "name": "Rechargeable book light",
+      "description": "Clip-on light with a flexible neck.",
+      "category": "lighting",
+      "price_cents": 1290,
+      "stock": 70
+    },
+    {
+      "sku": "LIG-004",
+      "name": "Motion-sensor night light",
+      "description": "Plugs into a socket, turns on in the dark.",
+      "category": "lighting",
+      "price_cents": 990,
+      "stock": 130
+    }
+  ],
+  "users": [
+    {
+      "email": "admin@example.com",
+      "name": "Demo Admin",
+      "role": "admin"
+    },
+    {
+      "email": "seller@example.com",
+      "name": "Demo Seller",
+      "role": "seller"
+    },
+    {
+      "email": "customer.one@example.com",
+      "name": "Demo Customer One",
+      "role": "customer"
+    },
+    {
+      "email": "customer.two@example.com",
+      "name": "Demo Customer Two",
+      "role": "customer"
+    },
+    {
+      "email": "customer.three@example.com",
+      "name": "Demo Customer Three",
+      "role": "customer"
+    }
+  ]
+}

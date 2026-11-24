@@ -1,0 +1,28 @@
+name: commitlint
+
+on:
+  pull_request:
+    branches: [main, staging, 'pbi/**']
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies only
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile --ignore-scripts --filter orbit
+
+      - name: Test the commit rules
+        run: pnpm test:commitlint
+
+      - name: Lint the commits of this pull request
+        run: pnpm exec commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose

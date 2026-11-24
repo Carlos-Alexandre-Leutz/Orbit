@@ -1,0 +1,324 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+model User {
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  name                 String?
+  password             String
+  role                 Role      @default(CUSTOMER)
+  // Temporary visitor accounts (demo mode): no usable password, deleted or refused after expiresAt.
+  isAnonymous          Boolean   @default(false)
+  expiresAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+  carts                Cart[]
+  orders               Order[]
+  store                Store?
+  adminActions         AdminAction[]
+  storeCustomers       StoreCustomer[]
+  addresses            Address[]
+}
+
+// A delivery address of a customer, saved when an order uses it; it belongs to the account, so every store can offer it.
+model Address {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipientName  String
+  recipientPhone String
+  postalCode     String
+  street         String
+  number         String
+  complement     String?
+  district       String
+  city           String
+  state          String
+  lastUsedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([userId, lastUsedAt])
+}
+
+// A store belongs to one seller (for now) and lives at the link /<slug>. Products, carts and orders
+// get a storeId in the next tasks of PBI-59.
+model Store {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String   @default("")
+  tagline      String  @default("")
+  // A hex color such as #2563eb, validated by the API; it paints buttons and links of the storefront.
+  primaryColor String  @default("#2563eb")
+  logoImageId  String?
+  // The banners of the storefront, shown in order in a carousel when there is more than one (at most 5, see store-config.ts).
+  bannerImageIds String[] @default([])
+  contactEmail String  @default("")
+  contactPhone String  @default("")
+  // A new store is a draft until its owner publishes it; the stores that existed before are published.
+  published    Boolean @default(true)
+  // The look of the storefront: classic, bold or minimal (see store-config.ts).
+  template     String  @default("classic")
+  // What the seller said they want to do, asked once when the store is created.
+  sellingModes String[] @default([])
+  // Shipping: a flat fee, free above a total, and whether customers may pick the order up.
+  shippingFlatCents     Int     @default(0)
+  freeShippingOverCents Int?
+  pickupEnabled         Boolean @default(false)
+  // How long the store takes to deliver: days to prepare an order, then the shortest and longest trip (business days).
+  handlingDays          Int     @default(1)
+  deliveryDaysMin       Int     @default(3)
+  deliveryDaysMax       Int     @default(7)
+  // Trip days per destination state, which replace the general trip days: { "SC": { "min": 8, "max": 15 } }.
+  deliveryByState       Json    @default("{}")
+  // Payment methods the store accepts; only "card" (test mode) works for now.
+  paymentMethods String[] @default(["card"])
+  // The seller's own payment provider (see ADR-008): "stripe" or "mercadopago". The public key is shown to
+  // browsers; the secret key and the webhook secret are encrypted (credential-cipher.ts) and never leave the API.
+  paymentProvider    String?
+  paymentPublicKey   String?
+  paymentCredentials String?
+  // What the Orbit owner charges this seller (ADR-009): the plan (see admin/plans.ts) and until when it is paid.
+  planId          String    @default("pro")
+  paidUntil       DateTime?
+  // A suspended store disappears from the storefront and takes no new payments; only an admin lifts it.
+  suspendedAt     DateTime?
+  suspendedReason String?
+  // The monthly subscription at Mercado Pago (ADR-009): its id, its last known status (pending, authorized,
+  // paused, cancelled) and when the 30 free days end. Orbit never keeps the card, only these.
+  subscriptionId     String?
+  subscriptionStatus String?
+  trialEndsAt        DateTime?
+  // What the seller shows in the strip under the banner: [{ id, text? }], at most four (see store-config.ts).
+  highlights   Json    @default("[]")
+  ownerId     String   @unique
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  products    Product[]
+  carts       Cart[]
+  orders      Order[]
+  customers   StoreCustomer[]
+  images      Image[]
+  categories  Category[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// A category belongs to the store whose owner created it (a seller sells pants, shoes, blouses...). The slug is
+// unique inside a store. Categories with no store are the old shared ones, kept only for data that predates this.
+model Category {
+  id        String    @id @default(uuid())
+  slug      String
+  name      String
+  storeId   String?
+  store     Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products  Product[]
+  createdAt DateTime  @default(now())
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  // The store that sells it. A SKU is unique inside a store, so two stores may use the same one.
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  sku         String
+  name        String
+  description String   @default("")
+  // Money is kept in cents so no rounding error can appear; the store has one currency.
+  priceCents  Int
+  stock       Int      @default(0)
+  // Removing a product only hides it: past and future orders keep pointing at it.
+  active      Boolean  @default(true)
+  // The ids of its images, in the order of the gallery (the first one is the cover of the card).
+  imageIds    String[] @default([])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cartItems CartItem[]
+  OrderItem OrderItem[]
+
+  @@unique([storeId, sku])
+  @@index([categoryId])
+  @@index([active, name])
+}
+
+// One cart per customer and store. Prices are not stored here: the cart always shows the product's current price,
+// and the price is frozen only when an order is placed.
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, storeId])
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// An order is a record of what was bought, at the prices of that moment. Only its status changes afterwards.
+model Order {
+  id             String      @id @default(uuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // An order belongs to exactly one store: the one whose cart it came from.
+  storeId        String
+  store          Store       @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  status         OrderStatus @default(PENDING_PAYMENT)
+  currency       String      @default("USD")
+  // The total of the items plus the shipping, in cents.
+  totalCents     Int
+  shippingCents  Int         @default(0)
+  // SHIPPING (delivered, with the store's fee) or PICKUP (collected at the store).
+  deliveryMethod String      @default("SHIPPING")
+  // Where a SHIPPING order goes, copied from the customer at checkout (see shipping-address.ts); null for a pickup.
+  shippingAddress Json?
+  // Set by the seller when the order is shipped.
+  trackingCode   String?
+  // The link to the tax invoice (nota fiscal), added by the seller once the order is paid.
+  invoiceUrl     String?
+  // The delivery window promised at checkout, from the store's days (see delivery-estimate.ts).
+  estimatedFrom  DateTime?
+  estimatedTo    DateTime?
+  items          OrderItem[]
+  paidAt         DateTime?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+  // The provider's id of the payment that paid this order; set once, when the order becomes PAID.
+  paymentRef     String?
+  // The provider's id of the refund, set once a cancelled paid order was refunded.
+  refundRef      String?
+  // Chosen by the client when it places the order: a retry with the same key returns the same order.
+  idempotencyKey String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([storeId, createdAt])
+}
+
+// The name, SKU and price are copied from the product when the order is placed, so a later price change or
+// a removed product never rewrites an old order.
+model OrderItem {
+  id         String  @id @default(uuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sku        String
+  name       String
+  priceCents Int
+  quantity   Int
+
+  @@unique([orderId, productId])
+  @@index([productId])
+}
+
+// One row per payment-provider event already applied. The provider may send the same event more than once,
+// and the unique id makes a repeat do nothing.
+model ProcessedPaymentEvent {
+  id          String   @id
+  processedAt DateTime @default(now())
+}
+
+// The link between a customer and a store they joined or bought from. The account is global, but a seller
+// only ever sees the customers linked to their own store, and consent to marketing is given per store.
+model StoreCustomer {
+  id               String    @id @default(uuid())
+  storeId          String
+  store            Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketingConsent Boolean   @default(false)
+  consentAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@unique([storeId, userId])
+  @@index([userId])
+}
+
+// An uploaded picture of a store (logo, cover, product photos). Kept in the database behind the ImageStorage port,
+// so it survives deploys on hosts whose disk is not kept.
+model Image {
+  id          String   @id @default(uuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  contentType String
+  size        Int
+  data        Bytes
+  createdAt   DateTime @default(now())
+
+  @@index([storeId])
+}
+
+// What an admin did to a store (record a payment, suspend, reactivate): who, what and when. Never deleted with the store.
+model AdminAction {
+  id        String   @id @default(uuid())
+  adminId   String
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Restrict)
+  // Null for what is not about one store, such as a change of the plan price.
+  storeId   String?
+  action    String
+  detail    Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+}
+
+// The price of each plan, edited by an admin (ADR-009). `priceCents` is in the cents of `currency`.
+model Plan {
+  id         String   @id
+  name       String
+  priceCents Int
+  currency   String   @default("BRL")
+  updatedAt  DateTime @updatedAt
+}

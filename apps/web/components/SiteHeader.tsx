@@ -1,0 +1,86 @@
+import Link from 'next/link';
+import { getCurrentUser } from '@/lib/auth';
+import { getCart } from '@/lib/cart';
+import { imageSrc } from '@/lib/images';
+import { menuFor } from '@/lib/menu';
+import { getStore } from '@/lib/stores';
+import { LogoutButton } from './LogoutButton';
+
+/** `storeSlug` is the store whose page this is, when it is a store page; the menu follows it. */
+export async function SiteHeader({ storeSlug }: { storeSlug?: string }) {
+  const user = await getCurrentUser();
+  const store = storeSlug ? await getStore(storeSlug) : null;
+  const cart =
+    (user?.role === 'CUSTOMER' || user?.role === 'SELLER') && store
+      ? await getCart(store.slug)
+      : null;
+  return (
+    <header className="border-b border-gray-700">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center gap-6">
+          {store ? (
+            <Link
+              href={`/${store.slug}`}
+              className="flex items-center gap-2 text-lg font-bold"
+            >
+              {store.logoImageId && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageSrc(store.logoImageId)}
+                  alt=""
+                  className="h-8 w-8 rounded object-cover"
+                />
+              )}
+              {store.name}
+            </Link>
+          ) : (
+            <Link href="/" className="text-lg font-bold">
+              Orbit
+            </Link>
+          )}
+          <nav aria-label="Main" className="flex gap-4 text-sm">
+            {menuFor(user?.role, {
+              store,
+              cartCount: cart?.itemCount ?? 0,
+              ownStore: user?.store,
+            }).map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="hover:underline"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          {user ? (
+            <>
+              <span>
+                {user.name || user.email}
+                {/* One Orbit account shops and sells, so only the staff account is marked. */}
+              </span>
+              <LogoutButton />
+            </>
+          ) : (
+            <>
+              <Link
+                href={store ? `/${store.slug}/login` : '/login'}
+                className="hover:underline"
+              >
+                Sign in
+              </Link>
+              <Link
+                href={store ? `/${store.slug}/register` : '/sell'}
+                className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
+              >
+                {store ? 'Sign up' : 'Create account'}
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

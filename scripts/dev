@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+# Daily helpers that keep the output short, so a session spends little time and few tokens.
+#
+#   scripts/dev test                       run only the checks the changed files need
+#   scripts/dev pr "feat: message" [paths] branch, commit, push and open a pull request to staging
+#   scripts/dev up [--built]               start the Docker stack in dependency order, reloading on save (the owner runs it)
+#   scripts/dev classify                   read paths on stdin, print the checks they need (used by the tests)
+#   scripts/dev help
+#
+# `test` compares with origin/staging (changes in the working tree included). The CI still runs
+# everything and decides the merge; this only catches silly mistakes before the push.
+# `up` starts db, mongo and ml, then recreates the API, the BFF and the web in that order. It never stops or removes anything. It is for the owner: an AI session must not run it.
+# `pr` never pushes to main or staging, never adds an attribution trailer and never merges.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+BASE=origin/staging
+LOG_LINES=40
+
+usage() { sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; }
+
+# Node 20 is required by pnpm and by the commit hook; the machine default is 16.
+ensure_node() {
+  local major
+  major=$(node -v 2>/dev/null | sed 's/^v\([0-9]*\).*/\1/' || true)
+  if [[ -z "$major" || "$major" -lt 20 ]]; then
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    # shellcheck disable=SC1091
+    [[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1 && nvm use 20 >/dev/null 2>&1 || true
+    major=$(node -v 2>/dev/null | sed 's/^v\([0-9]*\).*/\1/' || true)
+  fi
+  if [[ -z "$major" || "$major" -lt 20 ]]; then
+    echo "Node 20 or newer is required (run: nvm use 20)." >&2
+    exit 1
+  fi
+}
+
+# Prints one line per group of checks needed by the paths read on stdin: ts, python, scripts, commitlint.
+classify() {
+  local ts=0 py=0 scripts=0 commitlint=0 path
+  while IFS= read -r path; do
+    [[ -z "$path" ]] && continue
+    case "$path" in
+      apps/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json) ts=1 ;;
+    esac
+    case "$path" in
+      services/ml/*|ruff.toml|scripts/*.py|tests/*.py) py=1 ;;
+    esac
+    case "$path" in
+      commitlint.config.mjs|tests/commitlint.test.mjs|.husky/*) commitlint=1 ;;
+    esac
+    # Every other file (docs, README, index.html, workflows, seed) is covered by the cheap script tests.
+    case "$path" in
+      apps/*|services/ml/*) ;;
+      *) scripts=1 ;;
+    esac
+  done
+  [[ $ts -eq 1 ]] && echo ts
+  [[ $py -eq 1 ]] && echo python
+  [[ $scripts -eq 1 ]] && echo scripts
+  [[ $commitlint -eq 1 ]] && echo commitlint
+  return 0
+}
+
+changed_files() {
+  { git diff --name-only "$BASE" 2>/dev/null; git ls-files --others --exclude-standard; } | sort -u
+}
+
+# Runs a command quietly: one line when it passes, the tail of the output when it fails.
+run() {
+  local label="$1"; shift
+  local log start rc=0
+  log=$(mktemp)
+  start=$(date +%s)
+  "$@" >"$log" 2>&1 || rc=$?
+  local seconds=$(( $(date +%s) - start ))
+  if [[ $rc -eq 0 ]]; then
+    echo "ok    $label (${seconds}s)"
+    rm -f "$log"
+    return 0
+  fi
+  echo "FAIL  $label (${seconds}s), last $LOG_LINES lines:"
+  tail -n "$LOG_LINES" "$log"
+  echo "full log: $log"
+  return 1
+}
+
+cmd_test() {
+  ensure_node
+  git fetch -q origin staging 2>/dev/null || echo "note: could not fetch origin/staging, comparing with the local copy"
+  local files groups failed=0
+  files=$(changed_files)
+  if [[ -z "$files" ]]; then
+    echo "Nothing changed compared with $BASE. Nothing to run."
+    return 0
+  fi
+  groups=$(printf '%s\n' "$files" | classify)
+  echo "changed files: $(printf '%s\n' "$files" | wc -l | tr -d ' ')   checks: $(echo $groups | tr ' ' ',')"
+
+  if grep -qx ts <<<"$groups"; then
+    run "typescript (lint, test, build on what changed)" \
+      pnpm exec turbo run lint test build --filter="...[$BASE]" || failed=1
+  fi
+  if grep -qx python <<<"$groups"; then
+    if command -v ruff >/dev/null; then
+      run "ruff" ruff check services/ml scripts tests || failed=1
+    else
+      echo "skip  ruff (not installed), left to the CI"
+    fi
+    if git diff --name-only "$BASE" | grep -q '^services/ml/' && command -v pytest >/dev/null; then
+      run "pytest services/ml" bash -c 'cd services/ml && pytest -q' || failed=1
+    fi
+  fi
+  if grep -qx scripts <<<"$groups" || grep -qx python <<<"$groups"; then
+    run "script and docs tests" pnpm test:scripts || failed=1
+  fi
+  if grep -qx commitlint <<<"$groups"; then
+    run "commitlint tests" pnpm test:commitlint || failed=1
+  fi
+  echo "left to the CI: the Docker build, the full stack and anything outside these checks."
+  return $failed
+}
+
+cmd_pr() {
+  local message="" tested="Left to the CI (the checks run on this pull request)." paths=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --tested) tested="$2"; shift 2 ;;
+      *) if [[ -z "$message" ]]; then message="$1"; else paths+=("$1"); fi; shift ;;
+    esac
+  done
+  if [[ ! "$message" =~ ^(feat|fix|docs|test|chore|refactor)(\([a-z0-9-]+\))?:\ .+ ]]; then
+    echo "The message must follow Conventional Commits, for example: docs: add the QA link" >&2
+    exit 1
+  fi
+  ensure_node
+
+  local current branch type slug
+  current=$(git branch --show-current)
+  if [[ -z "$current" || "$current" == main || "$current" == staging ]]; then
+    type=${message%%[:(]*}
+    slug=$(echo "${message#*: }" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]\{1,\}/-/g; s/^-//; s/-$//' | cut -c1-40 | sed 's/-$//')
+    branch="$type/$slug"
+    git fetch -q origin staging
+    git checkout -q -b "$branch" "$BASE"
+  else
+    branch="$current"
+  fi
+
+  if [[ ${#paths[@]} -gt 0 ]]; then git add -- "${paths[@]}"; else git add -A; fi
+  if git diff --cached --quiet; then
+    echo "Nothing staged to commit." >&2
+    exit 1
+  fi
+  git status --short
+  git commit -q -m "$message"
+  git push -q -u origin "$branch" 2>&1 | grep -v '^remote:' || true
+
+  local repo url
+  repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+  url=$(gh api -X POST "repos/$repo/pulls" -f title="$message" -f head="$branch" -f base=staging \
+    -f body="## What
+$message
+
+## How it was tested
+$tested
+
+## AI
+Written with AI assistance." --jq .html_url)
+  echo "branch: $branch"
+  echo "pull request: $url"
+  echo "The merge is the owner's."
+}
+
+cmd_up() {
+  # Default: the development stack (code mounted, reloads on save). `--built`: the images built from the code.
+  local DC=(docker compose -f docker-compose.dev.yml) build=(--build)
+  if [[ "${1:-}" == "--built" ]]; then DC=(docker compose); build=(); fi
+  local port busy attempt
+  for port in 3000 3001 3002; do
+    busy=$(ss -ltnp 2>/dev/null | grep -E ":$port " | grep -v docker || true)
+    if [[ -n "$busy" ]]; then
+      echo "Port $port is already in use by a process outside Docker:" >&2
+      echo "$busy" >&2
+      echo "Stop it first (nothing was changed)." >&2
+      exit 1
+    fi
+  done
+
+  echo "1/4 database, mongo and ml"
+  "${DC[@]}" up -d --wait db mongo ml
+
+  if ! "${DC[@]}" exec -T ml python -c "import socket; socket.create_connection(('db', 5432), timeout=4)" >/dev/null 2>&1; then
+    echo "The containers cannot reach each other (db:5432 timed out)." >&2
+    echo "bridge-nf-call-iptables is $(cat /proc/sys/net/bridge/bridge-nf-call-iptables 2>/dev/null || echo unknown)." >&2
+    echo "If it is 1, run: sudo sysctl net.bridge.bridge-nf-call-iptables=0 (it resets on reboot)." >&2
+    exit 1
+  fi
+
+  # The app containers are recreated, not restarted: an old container kept a network setup from before
+  # the database was recreated and could not reach it (P1001), while a new one could. They hold no data.
+  echo "2/4 API"
+  for attempt in 1 2; do
+    if "${DC[@]}" up -d "${build[@]}" --force-recreate --wait api-tasks; then break; fi
+    echo "Attempt $attempt failed. Last log lines:" >&2
+    "${DC[@]}" logs --tail 6 api-tasks 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >&2 || true
+    if [[ "$attempt" -eq 2 ]]; then
+      echo "The API did not start. See: docker compose logs -t api-tasks" >&2
+      exit 1
+    fi
+    sleep 5
+  done
+
+  echo "3/4 BFF"
+  "${DC[@]}" up -d "${build[@]}" --force-recreate --wait bff
+  echo "4/4 web"
+  "${DC[@]}" up -d "${build[@]}" --force-recreate --wait frontend
+  echo "Stack is up: web http://localhost:3000, BFF http://localhost:3001, API http://localhost:3002"
+}
+
+case "${1:-help}" in
+  test) cmd_test ;;
+  pr) shift; cmd_pr "$@" ;;
+  up) shift; cmd_up "$@" ;;
+  classify) classify ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; exit 1 ;;
+esac

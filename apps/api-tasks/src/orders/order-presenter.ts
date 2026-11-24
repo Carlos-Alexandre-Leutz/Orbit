@@ -1,0 +1,42 @@
+import { Prisma } from '@prisma/client';
+
+export const WITH_ITEMS = {
+  items: { orderBy: { name: 'asc' as const } },
+  store: { select: { slug: true, name: true } },
+};
+export type OrderWithItems = Prisma.OrderGetPayload<{
+  include: typeof WITH_ITEMS;
+}>;
+
+/** What the API shows of an order. */
+export function presentOrder(order: OrderWithItems) {
+  return {
+    id: order.id,
+    status: order.status,
+    store: order.store,
+    currency: order.currency,
+    totalCents: order.totalCents,
+    shippingCents: order.shippingCents,
+    deliveryMethod: order.deliveryMethod,
+    // Only the customer, the store's seller and admins reach an order, so the address is shown with it.
+    shippingAddress: order.shippingAddress,
+    trackingCode: order.trackingCode,
+    invoiceUrl: order.invoiceUrl,
+    estimatedFrom: order.estimatedFrom,
+    estimatedTo: order.estimatedTo,
+    items: order.items.map((item) => ({
+      productId: item.productId,
+      sku: item.sku,
+      name: item.name,
+      priceCents: item.priceCents,
+      quantity: item.quantity,
+      lineTotalCents: item.priceCents * item.quantity,
+    })),
+    createdAt: order.createdAt,
+    paidAt: order.paidAt,
+    shippedAt: order.shippedAt,
+    deliveredAt: order.deliveredAt,
+    cancelledAt: order.cancelledAt,
+    refunded: order.refundRef !== null,
+  };
+}

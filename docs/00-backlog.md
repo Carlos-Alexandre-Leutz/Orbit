@@ -31,6 +31,12 @@ main        ← production (only receives releases from staging)
 - T: Write `CONTRIBUTING.md` with gitflow, branch names and commit rules
 - T: Add commitlint and a hook that rejects `Co-authored-by`
 - T: Add a script that imports this backlog as issues
+- T: Ignore Python cache files
+- T: Link issues as GitHub sub-issues and drop the PBI prefix from task titles
+- T: Spread the web interface over the PBIs that feed it
+- T: Add the support tickets with AI triage idea to the backlog
+- T: Keep decisions, questions and the project state in the repository, not in the chat
+- T: Add the parked cart recovery and WhatsApp ideas to the backlog
 
 ### PBI-02 [F1] Base from the SaaS template
 - T: Copy the template into the repository and record its origin in the README
@@ -59,12 +65,28 @@ main        ← production (only receives releases from staging)
 - T: Add automatic deploy to staging (placeholder until E11)
 - T: Add caching and track pipeline time
 
+### PBI-62 [F1] Work flow and daily scripts
+- T: Write the work flow document in Portuguese and point AGENTS.md at it
+- T: Add `scripts/dev` (`test` for what changed, `pr` to open the pull request) with tests
+- T: Record the scripts in the AI rules and in the flow document
+
+### PBI-63 [F1] E-mail sending for the QA environment
+- T: Send e-mail through a transport port with an SMTP adapter and an HTTP adapter for the owner's mail API
+- T: Fix the forgot and reset password pages and the API answer when the e-mail cannot be sent
+- T: Record the mail sender in the AI rules and in the docs
+
+### PBI-64 [F1] Automatic QA deploy
+- T: Trigger the Render redeploy of the three QA services after the images are published and the database is migrated
+- T: Add tests that fail if the QA deploy trigger is removed
+- T: Document the QA deploy and the rule that it is never removed (ADR, AI rules, flow document)
+
 ## E2. Store domain [must]
 
 ### PBI-06 [F1] Users, roles and authentication
 - T: Model users and roles (customer, seller, admin)
 - T: Add role guards to the API
 - T: Add temporary anonymous users (base for demo mode)
+- T: Keep helper scripts out of the API build output
 
 ### PBI-07 [F1] Product catalog
 - T: Add the Prisma model for product, stock and category
@@ -72,9 +94,18 @@ main        ← production (only receives releases from staging)
 - T: Add simple text search
 - T: Add API tests
 
+### PBI-55 [F1] Web session and catalog pages
+- T: Add the web session (cookie set by the web server) with login, logout and protected routes
+- T: Build the shared layout with a menu that follows the user's role
+- T: Build the catalog pages (list with search, filters and paging, product detail)
+- T: Build the seller product management pages
+- T: Add a "simulated data / test payments" banner
+
 ### PBI-08 [F1] Cart
 - T: Add the cart model and endpoints
 - T: Enforce rules (stock, quantity, limits)
+- T: Build the cart page
+- T: Create the cart safely when the first requests arrive together
 - T: [cut] Use Redis for cart and idempotency keys
 
 ### PBI-09 [F1] Orders and test payment
@@ -83,12 +114,32 @@ main        ← production (only receives releases from staging)
 - T: Make order creation and payment idempotent
 - T: Implement order cancellation rules
 - T: Add transactional email through a test provider
+- T: Build the checkout and order pages
+
+### PBI-59 [F1] Stores and ownership
+- T: Add the store model (name, unique link, owner) and the reserved links
+- T: Let a new seller create a store at sign-up
+- T: Scope products to a store and move the existing data to a demo store
+- T: Scope the cart and the orders to a store and keep sellers away from the cart
+- T: Add isolation tests (a seller never reads or changes another store)
+
+### PBI-60 [F1] Storefront at the store link
+- T: Build the public store page with search and the product pages under the store link
+- T: Move the cart, checkout and order pages under the store link
+- T: Show a clear page for a store that does not exist or has no products
+- T: Make the menu follow the role (customer: cart and orders; seller: panel)
+
+### PBI-61 [F1] Seller panel
+- T: Build the panel layout for the seller's own store
+- T: Move the product management pages into the panel
+- T: List the store's orders and let the seller ship and deliver them
+- T: Edit the store's name and description
+- T: Add the panel start page with a summary of orders and low stock
+- T: Add a "publish your store" checklist
 
 ### PBI-10 [F1] Web interface
-- T: Build the layout and catalog, cart and orders pages
 - T: Build the chat page with streaming
-- T: Build the seller pages (products, sales, stock)
-- T: Add a "simulated data / test payments" banner
+- T: Build the seller sales and stock pages
 
 ## E3. Audit and governance [must]
 
@@ -313,13 +364,92 @@ main        ← production (only receives releases from staging)
 - T: Set the GitHub About text and topics
 - T: Release `v1.0.0` (staging → main)
 
+## E13. Cart recovery and WhatsApp (parked, to refine later) [cut]
+
+Reminders only: these PBIs have no tasks and no acceptance criteria yet. The ideas, the Meta rules they must satisfy and a first ordering are in [`docs/ideas/cart-recovery-whatsapp.md`](ideas/cart-recovery-whatsapp.md). Meta's WhatsApp rules come first: no message is sent before consent, opt-out, approved templates and the 24-hour window exist. Pricing idea: one monthly plan, no usage limits, no commission.
+
+### PBI-47 [F4] WhatsApp channel and Meta compliance
+### PBI-48 [F4] Store platform connection and webhooks
+### PBI-49 [F4] Abandoned cart detection and recovery flow
+### PBI-50 [F4] One-click recovery link and recovered-sale attribution
+### PBI-51 [F4] Pending Pix and boleto recovery
+### PBI-52 [F4] Recovery dashboard, test mode and message audit trail
+### PBI-53 [F4] Replenishment prediction and campaign
+### PBI-54 [F4] Monthly subscription
+
+## E14. Support tickets with AI triage (parked, to refine later) [cut]
+
+Reminders only: these PBIs have no tasks and no acceptance criteria yet. The idea, the rules it must respect (an AI never deploys to `main` by itself, ticket text is data, every action is audited and side effects are approved by a person) and the open questions are in [`docs/ideas/support-tickets-ai.md`](ideas/support-tickets-ai.md).
+
+### PBI-56 [F4] Support ticket screens inside the system
+### PBI-57 [F4] AI triage of a ticket against the documentation
+### PBI-58 [F4] From a confirmed bug to a fix, a QA pull request, an approved release and the reply
+
+## E15. E-commerce platform [must]
+
+The basic online-store platform that the agent work sits on: sellers sign up and set up a store, customers shop and keep one account across stores. Decisions in [ADR-007](adr/ADR-007-sign-up-flows-and-global-customer-account.md). PBI-61 (seller panel) belongs to this epic's work but stays under E2, where its issue already is.
+
+### PBI-71 [F1] E-commerce platform plan
+- T: Write the e-commerce plan (ADR-007, backlog and project state)
+
+### PBI-65 [F1] Sign-up flows
+- T: Add the seller sign-up page at `/sell` and remove the "I want to sell" checkbox
+- T: Add customer sign-up and login inside the store, returning the customer to that store
+- T: Allow one role per e-mail and say so in the sign-up messages
+- T: Reserve the new top-level links (`sell`, `account`) and update the menu
+
+### PBI-70 [F1] Global customer account
+- T: Link each customer to the stores they joined or bought from
+- T: Show a seller only their own store's customers and the data of their orders, with isolation tests
+- T: Build the `/account` page with the orders of every store
+- T: Record marketing consent per store
+- T: Let a customer delete their account
+
+### PBI-66 [F1] Store appearance
+- T: Add logo, cover, main color, tagline and contact to the store
+- T: Build the store settings page in the panel
+- T: Apply the store's look to the storefront and to the store's sign-in pages
+- T: Add tests for color and image validation
+
+### PBI-67 [F1] Product images and stock
+- T: Add the product image model and an image storage port with a local disk adapter
+- T: Upload images in the product form and show a gallery on the product page
+- T: Warn about low stock in the panel and mark sold-out products in the storefront
+- T: Add tests for image type and size limits
+
+### PBI-68 [F1] Storefront and platform look
+- T: Build the storefront home with cover, category navigation and product cards with photos
+- T: Redesign the product page and the cart page
+- T: Build the platform home page that invites sellers to create a store
+- T: Check the pages on a phone
+
+### PBI-69 [F1] Simulated payment
+- T: Build the simulated payment screen (approve or decline with test cards) on top of the fake payment provider
+- T: Show the test payment mode in the panel and on the order pages
+- T: Document how the real payment provider replaces the simulation
+
+### PBI-72 [F1] Store platform ready for QA
+- T: Deliver the store platform work done since PR #414 (paid stores, delivery, legal pages and the owner area) in one change
+
+### PBI-73 [F1] Seller billing with a card form inside Orbit
+- T: Replace the Mercado Pago redirect with a card form on the billing page, so no Mercado Pago account is needed
+- T: Let the seller choose the e-mail that Mercado Pago bills, prefilled with the account e-mail
+- T: Offer the free trial when a seller publishes a store that has no plan yet
+- T: Hide the "My store" link from the admin
+
 ---
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 11, 12, 17, 18, 08, 09, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, 73, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
+- First deploy (a basic store online, before the agent work): 01 to 09, 55, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, then 42 and 43 with the owner. What else must come first (backups, hardening, rate limits) is an open question in `open-questions.md`.
+- Parked, refine later: 47 to 54 (cart recovery and WhatsApp), 56 to 58 (support tickets with AI triage)
+- To refine (no number yet): seller payouts, where each seller pastes the keys of their own Stripe or Mercado Pago account and pays the provider fees, so the owner pays nothing per sale (see ADR-008). The code is written but was never run against a real account; it still needs a PBI, a run with test accounts and a currency per store. It comes before fraud validation and before real card payments.
+- To refine (no number yet): fraud validation on purchase. The owner will check an order for signs of fraud before it is paid or shipped. What counts as a signal, whether it blocks or only flags, and who reviews a flagged order are still open. It sits on top of the real payment provider, so it comes after the Stripe test-mode integration.
+- To refine (no number yet): seller subscription. The code charges the monthly plan (R$ 15, with 30 free days) through Orbit's own Mercado Pago account and suspends a store whose card keeps failing (see ADR-009); it was never run against Mercado Pago. It still needs a PBI, a run with a test account, plan limits and a way for the seller to cancel inside Orbit.
+- To refine (no number yet): disputes and buyer complaints. A buyer who does not receive an order needs a way to report it; the platform notifies the seller and waits for an answer, and a store that does not answer can be suspended (the draft state `published=false`, as an admin action). Money is refunded by the seller from their own provider account, and a card chargeback is opened by the buyer at their bank, not by Orbit (see ADR-008). Needs terms of use that say Orbit is an intermediary and the seller answers for the product and the refund. Related to the parked E14 (support tickets).
 
 Cut order if needed: Redis, second connector, MCP, stockout-risk model.

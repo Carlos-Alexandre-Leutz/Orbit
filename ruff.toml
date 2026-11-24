@@ -1,0 +1,10 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "B"]
+
+[lint.per-file-ignores]
+# Existing scripts and tests use long lines; only the ML service is held to the line length.
+"scripts/*" = ["E501"]
+"tests/*" = ["E501"]

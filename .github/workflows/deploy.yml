@@ -1,0 +1,21 @@
+name: deploy
+
+# Placeholder until the production infrastructure and automatic deployment exist
+# (PBI-42 and PBI-43). It deploys nothing and uses no secrets: it only records, on every
+# push to `staging`, that a deploy would happen here. The template's Render hooks were removed.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record the missing deployment
+        run: |
+          {
+            echo "### Staging deploy: not configured yet"
+            echo "Commit \`${GITHUB_SHA}\` reached \`staging\`. Nothing was deployed: the target server"
+            echo "arrives with PBI-42 and PBI-43."
+          } >> "$GITHUB_STEP_SUMMARY"

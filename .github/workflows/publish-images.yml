@@ -1,0 +1,137 @@
+name: publish-images
+
+# Builds the app images on GitHub and publishes them to GHCR so the QA environment on
+# Render only has to pull them. Runs on every push to `staging` and on demand.
+#
+# orbit-apps: runs the API and the BFF (the start command differs per service).
+# orbit-web:  the same Dockerfile, built with the public address of the QA BFF, because
+#             NEXT_PUBLIC_BFF_URL is baked into the web build. Set it as the repository
+#             variable QA_BFF_URL (Settings > Secrets and variables > Actions > Variables).
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: publish (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [apps, web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name and tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/orbit-${{ matrix.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Check the BFF address for the web image
+        if: matrix.name == 'web'
+        env:
+          QA_BFF_URL: ${{ vars.QA_BFF_URL }}
+        run: |
+          if [ -z "$QA_BFF_URL" ]; then
+            echo "::error::Set the repository variable QA_BFF_URL (public address of the QA BFF) before publishing the web image."
+            exit 1
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ${{ matrix.name == 'web' && format('NEXT_PUBLIC_BFF_URL={0}', vars.QA_BFF_URL) || 'NEXT_PUBLIC_BFF_URL=http://localhost:3001' }}
+          cache-from: type=gha,scope=publish-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.name }}
+
+  # Applies the pending Prisma migrations to the QA database (Neon). Render does not run
+  # `&&` chains in a start command, so the migrations cannot run when the API starts.
+  # It runs inside the image just published, so it uses the migrations of this commit.
+  # Needs the repository secret NEON_DATABASE_URL: the direct (not pooled) connection string.
+  migrate:
+    name: migrate (QA database)
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the database secret
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          if [ -z "$NEON_DATABASE_URL" ]; then
+            echo "::error::Set the repository secret NEON_DATABASE_URL (direct connection string of the QA database)."
+            exit 1
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply the migrations
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          image="ghcr.io/${OWNER,,}/orbit-apps:sha-${GITHUB_SHA::7}"
+          docker run --rm -e DATABASE_URL "$image" \
+            pnpm --filter @orbit/api-tasks exec prisma migrate deploy
+
+  # Tells Render to pull the images just published and restart the three QA services.
+  # Render does not watch GHCR: without this job the QA keeps running the old image after
+  # every merge. DO NOT REMOVE: see docs/qa-deploy.md and docs/adr/ADR-006-qa-auto-deploy.md.
+  # The deploy hooks are secrets (Render > service > Settings > Deploy Hook):
+  # RENDER_QA_API_HOOK, RENDER_QA_BFF_HOOK, RENDER_QA_WEB_HOOK. A missing secret is a
+  # warning, not a failure, so the images and the migrations still count as published.
+  redeploy:
+    name: redeploy (QA on Render)
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the Render deploy hooks
+        env:
+          RENDER_QA_API_HOOK: ${{ secrets.RENDER_QA_API_HOOK }}
+          RENDER_QA_BFF_HOOK: ${{ secrets.RENDER_QA_BFF_HOOK }}
+          RENDER_QA_WEB_HOOK: ${{ secrets.RENDER_QA_WEB_HOOK }}
+        run: |
+          failed=0
+          for name in API BFF WEB; do
+            var="RENDER_QA_${name}_HOOK"
+            hook="${!var}"
+            if [ -z "$hook" ]; then
+              echo "::warning::The secret $var is not set: the QA $name service was not redeployed."
+              echo "- $name: **not redeployed** (secret $var missing)" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            if curl -fsS -X POST "$hook" > /dev/null; then
+              echo "- $name: redeploy requested" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::Render refused the deploy hook of the QA $name service."
+              echo "- $name: **hook failed**" >> "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+          done
+          exit $failed
