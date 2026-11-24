@@ -15,6 +15,7 @@ import { ImagesModule } from './images/images.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuditModule } from './audit/audit.module';
 import { CorrelationModule } from './correlation/correlation.module';
+import { LlmModule } from './llm/llm.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CorrelationModule } from './correlation/correlation.module';
     CustomersModule,
     AuditModule,
     CorrelationModule,
+    LlmModule,
   ],
   controllers: [AppController],
   providers: [AppService],
