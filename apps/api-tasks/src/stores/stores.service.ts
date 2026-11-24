@@ -391,4 +391,142 @@ export class StoresService {
       ),
     };
   }
+
+  /**
+   * Sales of the seller's store in the last `days` days (1 to 90): revenue, orders, units, the revenue of each
+   * day (days with no sale included, so a chart has no gaps) and the five products that earned the most.
+   * Only paid orders count: paid, shipped and delivered, dated by the payment.
+   */
+  async salesOf(userId: string, days = 30) {
+    const store = await this.ofSeller(userId);
+    const span = Math.min(90, Math.max(1, Math.floor(days) || 30));
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const from = new Date(today.getTime() - (span - 1) * 86_400_000);
+    const orders = await this.prisma.order.findMany({
+      where: {
+        storeId: store.id,
+        status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
+        paidAt: { gte: from },
+      },
+      select: {
+        paidAt: true,
+        totalCents: true,
+        items: {
+          select: {
+            productId: true,
+            sku: true,
+            name: true,
+            quantity: true,
+            priceCents: true,
+          },
+        },
+      },
+    });
+    const byDay = new Map<string, { revenueCents: number; orders: number }>();
+    for (let i = 0; i < span; i++) {
+      byDay.set(
+        new Date(from.getTime() + i * 86_400_000).toISOString().slice(0, 10),
+        {
+          revenueCents: 0,
+          orders: 0,
+        },
+      );
+    }
+    const products = new Map<
+      string,
+      {
+        productId: string;
+        sku: string;
+        name: string;
+        units: number;
+        revenueCents: number;
+      }
+    >();
+    let revenueCents = 0;
+    let units = 0;
+    for (const order of orders) {
+      revenueCents += order.totalCents;
+      const day = byDay.get((order.paidAt as Date).toISOString().slice(0, 10));
+      if (day) {
+        day.revenueCents += order.totalCents;
+        day.orders += 1;
+      }
+      for (const item of order.items) {
+        units += item.quantity;
+        const line = products.get(item.productId) ?? {
+          productId: item.productId,
+          sku: item.sku,
+          name: item.name,
+          units: 0,
+          revenueCents: 0,
+        };
+        line.units += item.quantity;
+        line.revenueCents += item.priceCents * item.quantity;
+        products.set(item.productId, line);
+      }
+    }
+    return {
+      days: span,
+      revenueCents,
+      orders: orders.length,
+      units,
+      averageOrderCents: orders.length
+        ? Math.round(revenueCents / orders.length)
+        : 0,
+      byDay: [...byDay].map(([date, value]) => ({ date, ...value })),
+      topProducts: [...products.values()]
+        .sort((a, b) => b.revenueCents - a.revenueCents)
+        .slice(0, 5),
+    };
+  }
+
+  /**
+   * The products on sale from the least stock to the most, with what sold in the last 30 days and, from
+   * that pace, about how many days the stock lasts (null when nothing sold, so there is no pace to go by).
+   */
+  async stockOf(userId: string) {
+    const store = await this.ofSeller(userId);
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    const [products, sold] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { storeId: store.id, active: true },
+        orderBy: [{ stock: 'asc' }, { name: 'asc' }],
+        take: 200,
+        select: {
+          id: true,
+          sku: true,
+          name: true,
+          stock: true,
+          priceCents: true,
+        },
+      }),
+      this.prisma.orderItem.groupBy({
+        by: ['productId'],
+        where: {
+          order: {
+            storeId: store.id,
+            status: { in: ['PAID', 'SHIPPED', 'DELIVERED'] },
+            paidAt: { gte: since },
+          },
+        },
+        _sum: { quantity: true },
+      }),
+    ]);
+    const soldBy = new Map(
+      sold.map((row) => [row.productId, row._sum.quantity ?? 0]),
+    );
+    return {
+      lowStockLimit: LOW_STOCK,
+      items: products.map((p) => {
+        const sold30 = soldBy.get(p.id) ?? 0;
+        return {
+          ...p,
+          status: p.stock === 0 ? 'OUT' : p.stock <= LOW_STOCK ? 'LOW' : 'OK',
+          sold30,
+          daysLeft: sold30 > 0 ? Math.floor(p.stock / (sold30 / 30)) : null,
+        };
+      }),
+    };
+  }
 }

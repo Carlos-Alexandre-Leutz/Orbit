@@ -38,6 +38,7 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 19 | Roteador de intenção: modelo pequeno com saída estruturada, limiar de confiança (rota, perguntar ou humano), rotas por papel, toda decisão auditada ([`pbi/PBI-19.md`](pbi/PBI-19.md)). Em pull request, depende dos PBIs 11 a 18. A qualidade da classificação não foi medida. |
 | 20 | Orquestrador e agente do cliente: laço com limites de passos e custo, `POST /chat/stream` em eventos (BFF repassa), agente em todo passo auditado ([`pbi/PBI-20.md`](pbi/PBI-20.md)). Em pull request, depende dos PBIs 11 a 19. Nunca rodou com um modelo de verdade. |
 | 21 | Memória de curto prazo: conversas no MongoDB isoladas por usuário, janela com resumo automático, `GET/DELETE /conversations`, `conversationId` no chat, apagar a conta apaga as conversas ([`pbi/PBI-21.md`](pbi/PBI-21.md)). Em pull request, depende dos PBIs 11 a 20. |
+| 10 | Interface web: página `/assistant` com chat em stream e cartão de aprovação; `/panel/sales` e `/panel/stock` no painel do lojista ([`pbi/PBI-10.md`](pbi/PBI-10.md)). Em pull request, depende dos PBIs 11 a 21. As telas não foram vistas num navegador. |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 

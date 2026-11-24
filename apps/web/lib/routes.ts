@@ -7,6 +7,7 @@ const SITE_PAGES = new Set([
   'account',
   'api',
   'admin',
+  'assistant',
   'cart',
   'catalog',
   'checkout',
@@ -28,6 +29,7 @@ const SITE_PAGES = new Set([
 const STORE_PRIVATE = new Set(['cart', 'checkout', 'orders']);
 const SITE_PRIVATE = new Set([
   'account',
+  'assistant',
   'dashboard',
   'panel',
   'seller',
