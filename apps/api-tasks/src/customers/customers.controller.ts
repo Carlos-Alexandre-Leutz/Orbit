@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import type { AuthenticatedRequest } from '../auth/authenticated-user';
 import { Auth } from '../auth/roles.decorator';
+import { ConversationMemory } from '../memory/conversation-memory';
 import { ConsentDto } from './dto/consent.dto';
 import { CustomersService } from './customers.service';
 
@@ -17,7 +18,10 @@ import { CustomersService } from './customers.service';
 @Controller('account')
 @Auth('CUSTOMER', 'SELLER')
 export class AccountController {
-  constructor(private readonly customers: CustomersService) {}
+  constructor(
+    private readonly customers: CustomersService,
+    private readonly memory: ConversationMemory,
+  ) {}
 
   @Get('stores')
   stores(@Req() request: AuthenticatedRequest) {
@@ -41,6 +45,8 @@ export class AccountController {
   @HttpCode(204)
   async remove(@Req() request: AuthenticatedRequest) {
     await this.customers.deleteAccount(request.user.id);
+    // The chats go with the account; a failure here must not undo the deletion.
+    await this.memory.deleteAllOf(request.user.id).catch(() => undefined);
   }
 }
 

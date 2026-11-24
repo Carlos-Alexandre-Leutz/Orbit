@@ -22,6 +22,7 @@ export class Orchestrator {
     actor: Actor;
     message: string;
     history?: { role: 'user' | 'assistant'; content: string }[];
+    summary?: string | null;
     emit?: Emit;
   }): Promise<AgentResult> {
     const emit = request.emit ?? (() => undefined);

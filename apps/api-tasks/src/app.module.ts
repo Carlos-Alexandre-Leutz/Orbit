@@ -20,6 +20,7 @@ import { ToolsModule } from './tools/tools.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { RouterModule } from './agents/router/router.module';
 import { AgentsModule } from './agents/agents.module';
+import { MemoryModule } from './memory/memory.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AgentsModule } from './agents/agents.module';
     ToolsModule,
     ApprovalsModule,
     RouterModule,
+    MemoryModule,
     AgentsModule,
   ],
   controllers: [AppController],
