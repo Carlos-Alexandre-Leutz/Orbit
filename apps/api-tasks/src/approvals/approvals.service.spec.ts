@@ -112,6 +112,17 @@ describe('ApprovalsService: proposing', () => {
   });
 });
 
+describe('ApprovalsService: per-tool limit', () => {
+  it('uses the high-value limit the policy gives instead of the global one', async () => {
+    const { service, rows } = setup();
+    await service.request({
+      ...proposal({ amountCents: 600 }),
+      highValueCents: 500,
+    });
+    expect(rows[0].needsAmountConfirmation).toBe(true);
+  });
+});
+
 describe('ApprovalsService: deciding', () => {
   it('approves for the owner, records who, audits it, and the gate then says approved', async () => {
     const { service, rows, audit } = setup();

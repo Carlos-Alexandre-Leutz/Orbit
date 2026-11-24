@@ -45,6 +45,7 @@ export type ToolErrorCode =
   | 'FORBIDDEN'
   | 'INVALID_INPUT'
   | 'IDEMPOTENCY_KEY_REQUIRED'
+  | 'LIMIT_EXCEEDED'
   | 'APPROVAL_REQUIRED'
   | 'APPROVAL_REJECTED'
   | 'IN_PROGRESS'
@@ -73,6 +74,8 @@ export abstract class ApprovalGate {
     input: unknown;
     idempotencyKey: string;
     summary: { description: string; amountCents?: number };
+    /** The policy's own high-value limit for this tool, when it has one. */
+    highValueCents?: number;
   }): Promise<ApprovalDecision>;
 
   /** Called after an approved call ran with success, so the approval is not used twice. */
