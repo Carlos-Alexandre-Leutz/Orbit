@@ -113,7 +113,10 @@ function setup(
       ),
     },
   };
-  const gate = { check: jest.fn().mockResolvedValue(decision) };
+  const gate = {
+    check: jest.fn().mockResolvedValue(decision),
+    complete: jest.fn().mockResolvedValue(undefined),
+  };
   const executor = new ToolExecutor(
     new ToolRegistry([tool]),
     gate,
