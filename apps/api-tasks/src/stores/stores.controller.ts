@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import type { AuthenticatedRequest } from '../auth/authenticated-user';
@@ -54,6 +55,18 @@ export class StoresController {
   @Auth('SELLER')
   summary(@Req() request: AuthenticatedRequest) {
     return this.stores.summaryOf(request.user.id);
+  }
+
+  @Get('mine/sales')
+  @Auth('SELLER')
+  sales(@Req() request: AuthenticatedRequest, @Query('days') days?: string) {
+    return this.stores.salesOf(request.user.id, Number(days) || 30);
+  }
+
+  @Get('mine/stock')
+  @Auth('SELLER')
+  stock(@Req() request: AuthenticatedRequest) {
+    return this.stores.stockOf(request.user.id);
   }
 
   @Get(':slug/categories')

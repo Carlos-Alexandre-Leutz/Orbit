@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Put,
+  Query,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -123,6 +124,32 @@ export class StoresController {
     return callStoreApi(this.http, 'delete', '/stores/mine/payments', {
       authorization,
       fallback: 'Could not disconnect the payment provider',
+    });
+  }
+
+  @Get('mine/sales')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Sales of my store over the last 1 to 90 days (seller only)',
+  })
+  sales(
+    @Query('days') days?: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return callStoreApi(this.http, 'get', '/stores/mine/sales', {
+      authorization,
+      query: { days },
+      fallback: 'Could not load the sales',
+    });
+  }
+
+  @Get('mine/stock')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Stock of my products, lowest first (seller only)' })
+  stock(@Headers('authorization') authorization?: string) {
+    return callStoreApi(this.http, 'get', '/stores/mine/stock', {
+      authorization,
+      fallback: 'Could not load the stock',
     });
   }
 

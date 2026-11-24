@@ -11,6 +11,8 @@ const ALLOWED = new Set([
   'account',
   'stores',
   'billing',
+  'approvals',
+  'conversations',
 ]);
 
 async function forward(

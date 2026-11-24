@@ -7,6 +7,8 @@ const LINKS = [
   { href: '/panel/products', label: 'Products' },
   { href: '/panel/categories', label: 'Categories' },
   { href: '/panel/orders', label: 'Orders' },
+  { href: '/panel/sales', label: 'Sales' },
+  { href: '/panel/stock', label: 'Stock' },
   { href: '/panel/customers', label: 'Customers' },
   { href: '/panel/shipping', label: 'Shipping' },
   { href: '/panel/highlights', label: 'Highlights' },
