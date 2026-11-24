@@ -321,6 +321,9 @@ export class ToolExecutor {
         } as Prisma.InputJsonValue,
         outcome,
         approverId,
+        agent: context.agent,
+        model: context.model,
+        promptVersion: context.promptVersion,
       });
     } catch (error) {
       this.logger.error(`Could not audit ${name}: ${(error as Error).message}`);

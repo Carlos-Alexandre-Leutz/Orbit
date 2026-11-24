@@ -189,6 +189,7 @@ export class IntentRouter {
         outcome,
         model,
         promptVersion: ROUTER_PROMPT_VERSION,
+        agent: 'router',
       });
     } catch {
       // A failed audit write must not stop the conversation; the audit service logs nothing more here.

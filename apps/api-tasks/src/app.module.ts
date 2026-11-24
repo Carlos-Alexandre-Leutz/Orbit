@@ -19,6 +19,7 @@ import { LlmModule } from './llm/llm.module';
 import { ToolsModule } from './tools/tools.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { RouterModule } from './agents/router/router.module';
+import { AgentsModule } from './agents/agents.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RouterModule } from './agents/router/router.module';
     ToolsModule,
     ApprovalsModule,
     RouterModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
