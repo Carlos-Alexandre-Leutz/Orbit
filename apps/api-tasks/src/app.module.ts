@@ -13,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { StoresModule } from './stores/stores.module';
 import { ImagesModule } from './images/images.module';
 import { CustomersModule } from './customers/customers.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CustomersModule } from './customers/customers.module';
     StoresModule,
     ImagesModule,
     CustomersModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],
