@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { BackToTop } from '@/components/BackToTop';
 import { SiteHeader } from '@/components/SiteHeader';
+import { StoreChat } from '@/components/StoreChat';
 import { StoreHeader } from '@/components/StoreHeader';
 import { StoreFooter } from '@/components/StoreFooter';
 import { getCurrentUser } from '@/lib/auth';
@@ -73,6 +74,7 @@ export default async function StoreLayout({
         <>
           {children}
           {store && <StoreFooter store={store} />}
+          {store && !draft && <StoreChat slug={slug} name={store.name} />}
           <BackToTop />
         </>
       )}

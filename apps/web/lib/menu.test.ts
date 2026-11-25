@@ -20,7 +20,6 @@ describe('menuFor', () => {
       '/loja-do-joao',
       '/loja-do-joao/cart',
       '/loja-do-joao/orders',
-      '/assistant',
       '/account',
       '/sell',
     ]);
@@ -36,7 +35,7 @@ describe('menuFor', () => {
   });
 
   it('gives a customer outside a store no cart, because a cart belongs to a store', () => {
-    expect(hrefs('CUSTOMER')).toEqual(['/assistant', '/account', '/sell']);
+    expect(hrefs('CUSTOMER')).toEqual(['/account', '/sell']);
   });
 
   it('gives admins no cart and no orders, even inside a store', () => {
@@ -50,7 +49,6 @@ describe('menuFor', () => {
       '/loja-do-joao',
       '/loja-do-joao/cart',
       '/loja-do-joao/orders',
-      '/assistant',
       '/account',
       '/panel',
     ]);
@@ -58,7 +56,6 @@ describe('menuFor', () => {
 
   it('adds the panel and a link to their own store for a seller', () => {
     expect(hrefs('SELLER', { ownStore: joao })).toEqual([
-      '/assistant',
       '/account',
       '/loja-do-joao',
       '/panel',

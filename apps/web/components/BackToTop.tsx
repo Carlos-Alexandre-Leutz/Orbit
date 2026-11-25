@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 const SHOW_AFTER_PX = 400;
 
-/** A round button, fixed at the bottom right, that takes the page back to the top once it has been scrolled. */
+/** A round button, fixed at the bottom right above the store chat button, that takes the page back to the top once it has been scrolled. */
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
 
@@ -26,7 +26,7 @@ export function BackToTop() {
         ).matches;
         window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
       }}
-      className="fixed bottom-6 right-6 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2"
+      className="fixed bottom-24 right-6 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2"
       style={{
         backgroundColor: 'var(--store-color)',
         color: 'var(--store-on-color)',

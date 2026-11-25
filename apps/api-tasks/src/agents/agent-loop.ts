@@ -44,6 +44,8 @@ export class AgentLoop {
   async run(request: {
     agent: AgentDefinition;
     actor: Actor;
+    /** The store the chat is about; tools read it from the context, so the model cannot pick another. */
+    store?: { id: string; slug: string };
     message: string;
     history?: { role: 'user' | 'assistant'; content: string }[];
     /** What older messages were folded into (data, never instructions). */
@@ -115,6 +117,7 @@ export class AgentLoop {
       emit({ type: 'tool_call', tool: next.tool });
       const result = await this.executor.execute(next.tool, next.arguments, {
         actor,
+        store: request.store,
         idempotencyKey: `${runId}-${step}`,
         agent: agent.name,
         model,

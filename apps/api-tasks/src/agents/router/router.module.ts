@@ -3,7 +3,7 @@ import { AuditService } from '../../audit/audit.service';
 import { LlmService } from '../../llm/llm.service';
 import { IntentRouter, ROUTER_CONFIG, RouterConfig } from './intent-router';
 
-/** The router is called by the orchestrator (PBI-20). */
+/** The router is not called by an agent now (the store chat has one agent); the seller agent (PBI-32) will use it. */
 @Global()
 @Module({
   providers: [

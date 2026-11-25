@@ -1,26 +1,30 @@
 import 'reflect-metadata';
 import { Role } from '@prisma/client';
 import { createCustomerTools } from '../tools/customer-tools';
+import { createStoreTools } from '../tools/store-tools';
 import { Tool } from '../tools/tool';
 import { ToolRegistry } from '../tools/tool-registry';
 import { GovernancePolicy, PolicyDocument } from './governance-policy';
 import { loadPolicy, POLICY_VERSIONS } from './policy-loader';
 import { PolicyError, validatePolicy } from './policy-validator';
 
-const realTools = new ToolRegistry(
-  createCustomerTools({ products: {}, cart: {}, orders: {} } as never),
-);
+const realTools = new ToolRegistry([
+  ...createCustomerTools({ products: {}, cart: {}, orders: {} } as never),
+  ...createStoreTools({ products: {}, stores: {} } as never),
+]);
 const lookup = (name: string) => realTools.get(name);
 const never = () => Promise.resolve(0);
+
+const V1 = { POLICY_VERSION: '1' };
 
 describe('policy version 1 against the real tools', () => {
   it('is valid for the tools that exist', () => {
     expect(() => validatePolicy(POLICY_VERSIONS[1], lookup)).not.toThrow();
-    expect(loadPolicy(lookup, never).version).toBe(1);
+    expect(loadPolicy(lookup, never, V1).version).toBe(1);
   });
 
   it('gives each role exactly the tools it should have', () => {
-    const policy = loadPolicy(lookup, never);
+    const policy = loadPolicy(lookup, never, V1);
     const customerTools = [
       'cart.add_item',
       'cart.view',
@@ -35,7 +39,7 @@ describe('policy version 1 against the real tools', () => {
   });
 
   it('never allows a role to use a tool the tool itself refuses it', () => {
-    const policy = loadPolicy(lookup, never);
+    const policy = loadPolicy(lookup, never, V1);
     for (const role of Object.values(Role)) {
       for (const name of policy.toolsOf(role)) {
         expect(realTools.get(name)?.roles).toContain(role);
@@ -46,7 +50,7 @@ describe('policy version 1 against the real tools', () => {
   it.each([Role.CUSTOMER, Role.SELLER])(
     '%s: can search, shop and buy, buying needs approval',
     async (role) => {
-      const policy = loadPolicy(lookup, never);
+      const policy = loadPolicy(lookup, never, V1);
       const actor = { id: 'u', role };
       expect(
         await policy.check({ actor, tool: 'catalog.search' }),
@@ -62,7 +66,7 @@ describe('policy version 1 against the real tools', () => {
   );
 
   it('refuses every tool to an admin and any tool that is not listed', async () => {
-    const policy = loadPolicy(lookup, never);
+    const policy = loadPolicy(lookup, never, V1);
     expect(
       await policy.check({
         actor: { id: 'a', role: Role.ADMIN },
@@ -78,7 +82,7 @@ describe('policy version 1 against the real tools', () => {
   });
 
   it('caps the amount of a purchase', async () => {
-    const policy = loadPolicy(lookup, never);
+    const policy = loadPolicy(lookup, never, V1);
     const actor = { id: 'u', role: Role.CUSTOMER };
     expect(
       await policy.check({
@@ -94,6 +98,39 @@ describe('policy version 1 against the real tools', () => {
         amountCents: 1_000_001,
       }),
     ).toMatchObject({ allowed: false, code: 'LIMIT_EXCEEDED' });
+  });
+});
+
+describe('policy version 2 against the real tools', () => {
+  it('is valid and is the newest version', () => {
+    expect(() => validatePolicy(POLICY_VERSIONS[2], lookup)).not.toThrow();
+    expect(loadPolicy(lookup, never).version).toBe(2);
+  });
+
+  it('gives a visitor only the store tools and nobody a way to buy', async () => {
+    const policy = loadPolicy(lookup, never);
+    expect(policy.toolsOf(Role.CUSTOMER).sort()).toEqual([
+      'store.delivery_estimate',
+      'store.info',
+      'store.search_products',
+    ]);
+    expect(policy.toolsOf(Role.SELLER)).toEqual([]);
+    expect(policy.toolsOf(Role.ADMIN)).toEqual([]);
+    expect(
+      await policy.check({
+        actor: { id: 'visitor:1', role: Role.CUSTOMER },
+        tool: 'orders.place',
+      }),
+    ).toMatchObject({ allowed: false, code: 'FORBIDDEN' });
+  });
+
+  it('never allows a role to use a tool the tool itself refuses it', () => {
+    const policy = loadPolicy(lookup, never);
+    for (const role of Object.values(Role)) {
+      for (const name of policy.toolsOf(role)) {
+        expect(realTools.get(name)?.roles).toContain(role);
+      }
+    }
   });
 });
 
