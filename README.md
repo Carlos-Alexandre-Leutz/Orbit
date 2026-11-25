@@ -41,16 +41,17 @@ Open https://carlos-alexandre-leutz.github.io/Orbit/ and wait for the page to wa
 
 Use any e-mail you can read (password recovery sends a real e-mail) and a throwaway password.
 
-**Test card (Stripe test mode):**
+**Test card (Mercado Pago test mode).** Where a card form asks for a payer e-mail, use the Mercado Pago test user `test_user_8835720489044059430@testuser.com`. Mercado Pago in test mode only accepts a test payer ("Both payer and collector must be real or test users"). Then use Mercado Pago's published test card:
 
 | Field | Value |
 |---|---|
-| Card number | `4242 4242 4242 4242` |
-| Expiry | any future date, for example `12/34` |
-| CVC | any 3 digits, for example `123` |
-| Name / ZIP | anything |
+| Card number | `5031 4332 1540 6351` (Mastercard) |
+| Expiry | `11/30` |
+| CVV | `123` |
+| Cardholder name | `APRO` (approves the payment; `OTHE` is declined) |
+| Document (CPF) | `12345678909` |
 
-Never type a real card number or a password you use elsewhere. The card only works in a store whose seller has put Stripe **test** keys in the panel; Mercado Pago stores need Mercado Pago's own test cards and test users.
+Never type a real card number or a password you use elsewhere. The same applies to the seller plan form. A store that receives with Stripe instead needs Stripe's test card `4242 4242 4242 4242`, and only works if its seller put Stripe **test** keys in the panel.
 
 ## Base from the SaaS template
 
