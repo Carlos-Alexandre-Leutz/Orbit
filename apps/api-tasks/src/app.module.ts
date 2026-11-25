@@ -15,6 +15,12 @@ import { ImagesModule } from './images/images.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuditModule } from './audit/audit.module';
 import { CorrelationModule } from './correlation/correlation.module';
+import { LlmModule } from './llm/llm.module';
+import { ToolsModule } from './tools/tools.module';
+import { ApprovalsModule } from './approvals/approvals.module';
+import { RouterModule } from './agents/router/router.module';
+import { AgentsModule } from './agents/agents.module';
+import { MemoryModule } from './memory/memory.module';
 
 @Module({
   imports: [
@@ -31,6 +37,12 @@ import { CorrelationModule } from './correlation/correlation.module';
     CustomersModule,
     AuditModule,
     CorrelationModule,
+    LlmModule,
+    ToolsModule,
+    ApprovalsModule,
+    RouterModule,
+    MemoryModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

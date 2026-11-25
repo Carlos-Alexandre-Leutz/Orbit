@@ -18,6 +18,8 @@ export interface AuditRecord {
   approverId?: string | null;
   model?: string | null;
   promptVersion?: string | null;
+  /** The agent that took the step. */
+  agent?: string | null;
   /** Defaults to the ID of the request being served. */
   correlationId?: string | null;
 }
@@ -50,6 +52,7 @@ export class AuditService {
         approverId: entry.approverId ?? null,
         model: entry.model ?? null,
         promptVersion: entry.promptVersion ?? null,
+        agent: entry.agent ?? null,
         correlationId: entry.correlationId ?? currentCorrelationId() ?? null,
       },
     });

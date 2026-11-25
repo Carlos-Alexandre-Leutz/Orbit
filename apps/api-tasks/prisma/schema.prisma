@@ -327,6 +327,8 @@ enum AuditOutcome {
   SUCCESS
   FAILURE
   DENIED
+  // A tool that needs a human was held until someone approves it (PBI-13).
+  PENDING_APPROVAL
 }
 
 // The append-only record of what an actor did through a tool (PBI-11, ADR-010). A database trigger rejects every
@@ -349,9 +351,99 @@ model AuditEntry {
   promptVersion String?
   // The request this step belongs to (PBI-12); null outside a request.
   correlationId String?
+  // The agent that took the step, such as `router` or `customer_agent` (PBI-20); null for a plain call.
+  agent         String?
 
   @@index([actorId, occurredAt])
   @@index([correlationId])
   @@index([tool, occurredAt])
   @@map("audit_log")
+}
+
+enum LlmCallOutcome {
+  SUCCESS
+  FAILURE
+}
+
+// One call to a language model (PBI-17): which model, how many tokens, what it cost and how long it took.
+// A retry or a fallback is a row of its own, and so is an answer served from the cache (`cached`).
+model LlmCall {
+  id            String         @id @default(uuid())
+  createdAt     DateTime       @default(now())
+  // The request this call belongs to (PBI-12); null outside one.
+  correlationId String?
+  // What the caller wanted, such as `router` or `customer_agent`.
+  purpose       String
+  model         String
+  outcome       LlmCallOutcome
+  cached        Boolean        @default(false)
+  inputTokens   Int            @default(0)
+  outputTokens  Int            @default(0)
+  // Millionths of a US dollar, from the price table; 0 for a cached answer or an unpriced model.
+  costMicroUsd  Int            @default(0)
+  latencyMs     Int            @default(0)
+  // The error message of a failed call; never the prompt.
+  error         String?
+
+  @@index([createdAt])
+  @@index([correlationId])
+  @@index([model, createdAt])
+}
+
+enum ToolRunStatus {
+  STARTED
+  COMPLETED
+  FAILED
+}
+
+// One execution of a tool that changes data, claimed by its idempotency key (PBI-18): the same actor, tool and
+// key never runs twice, and a repeat gets the stored answer. A FAILED run may be tried again with the same key.
+model ToolRun {
+  id             String        @id @default(uuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  actorId        String
+  tool           String
+  idempotencyKey String
+  status         ToolRunStatus @default(STARTED)
+  result         Json?
+  error          String?
+
+  @@unique([actorId, tool, idempotencyKey])
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  EXECUTED
+}
+
+// A call to a tool that needs a human (PBI-13): proposed by the agent, decided by a person, then executed.
+// The same (actor, tool, key) is the same proposal. `input` is what the tool will run with, so it may hold
+// personal data such as an address; it is never shown in a list, only a short summary is.
+model Approval {
+  id             String         @id @default(uuid())
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime
+  actorId        String
+  actorRole      Role
+  tool           String
+  idempotencyKey String
+  input          Json
+  // What a person reads before deciding, such as "Buy 2 items for 100.00".
+  summary        String
+  // The money at stake in cents, when there is any.
+  amountCents    Int?
+  // True above the high-value limit: the approver must type the amount back (`confirmAmountCents`).
+  needsAmountConfirmation Boolean @default(false)
+  status         ApprovalStatus @default(PENDING)
+  approverId     String?
+  decidedAt      DateTime?
+  reason         String?
+  correlationId  String?
+
+  @@unique([actorId, tool, idempotencyKey])
+  @@index([actorId, status])
 }
