@@ -1,4 +1,8 @@
 import {
+  correlationHeaders,
+  correlationMetadata,
+} from '../correlation/correlation';
+import {
   ChargeRequest,
   ChargeResult,
   InvalidSignatureError,
@@ -46,6 +50,7 @@ export class MercadoPagoPaymentProvider extends PaymentProvider {
         Authorization: `Bearer ${this.accessToken}`,
         'Content-Type': 'application/json',
         ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
+        ...correlationHeaders(),
       },
       body: body ? JSON.stringify(body) : undefined,
     });
@@ -72,7 +77,7 @@ export class MercadoPagoPaymentProvider extends PaymentProvider {
         payer: { email: request.payerEmail },
         description: `Order ${request.orderId}`,
         external_reference: request.orderId,
-        metadata: { orderId: request.orderId },
+        metadata: { orderId: request.orderId, ...correlationMetadata() },
       },
       request.idempotencyKey,
     );

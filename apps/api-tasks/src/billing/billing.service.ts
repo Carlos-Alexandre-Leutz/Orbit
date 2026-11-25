@@ -1,3 +1,4 @@
+import { correlationHeaders } from '../correlation/correlation';
 import {
   ConflictException,
   Injectable,
@@ -52,6 +53,7 @@ export class BillingService {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        ...correlationHeaders(),
       },
       body: body ? JSON.stringify(body) : undefined,
     });

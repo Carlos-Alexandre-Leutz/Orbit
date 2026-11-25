@@ -1,3 +1,4 @@
+import { correlationHeaders } from '../correlation/correlation';
 import { MailMessage, MailTransport } from './mail-transport';
 
 /**
@@ -17,6 +18,7 @@ export class HttpMailTransport implements MailTransport {
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Token': this.token,
+        ...correlationHeaders(),
       },
       body: JSON.stringify({ to, subject, message: text }),
       signal: AbortSignal.timeout(this.timeoutMs),

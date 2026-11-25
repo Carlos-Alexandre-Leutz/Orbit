@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuditOutcome, Prisma, Role } from '@prisma/client';
+import { currentCorrelationId } from '../correlation/correlation';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** What one audited step records. Only `tool` and `outcome` are required. */
@@ -17,6 +18,8 @@ export interface AuditRecord {
   approverId?: string | null;
   model?: string | null;
   promptVersion?: string | null;
+  /** Defaults to the ID of the request being served. */
+  correlationId?: string | null;
 }
 
 /**
@@ -47,6 +50,7 @@ export class AuditService {
         approverId: entry.approverId ?? null,
         model: entry.model ?? null,
         promptVersion: entry.promptVersion ?? null,
+        correlationId: entry.correlationId ?? currentCorrelationId() ?? null,
       },
     });
   }

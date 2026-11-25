@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { currentCorrelationId } from './correlation';
 
 interface UpstreamError {
   response?: { status?: number; data?: { message?: string | string[] } };
@@ -24,8 +25,10 @@ export async function callStoreApi(
   },
 ): Promise<unknown> {
   const url = `${process.env.TASKS_API_URL}${path}`;
+  const correlationId = currentCorrelationId();
   const config = {
     headers: {
+      ...(correlationId ? { 'X-Correlation-Id': correlationId } : {}),
       ...(options.authorization
         ? { Authorization: options.authorization }
         : {}),

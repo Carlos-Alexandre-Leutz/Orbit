@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { AuditOutcome, Role } from '@prisma/client';
+import { runWithCorrelation } from '../correlation/correlation';
 import { AuditService } from './audit.service';
 
 function setup() {
@@ -36,6 +37,7 @@ describe('AuditService', () => {
         approverId: 'u2',
         model: 'gemini-test',
         promptVersion: 'v1',
+        correlationId: null,
       },
     });
   });
@@ -54,6 +56,7 @@ describe('AuditService', () => {
         approverId: null,
         model: null,
         promptVersion: null,
+        correlationId: null,
       },
     });
   });
@@ -78,6 +81,16 @@ describe('AuditService', () => {
     } as never);
     expect(txCreate).toHaveBeenCalledTimes(1);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('takes the correlation ID of the request being served', async () => {
+    const { service, create } = setup();
+    await runWithCorrelation('req-12345678', () =>
+      service.record({ tool: 'cart.add_item', outcome: 'SUCCESS' }),
+    );
+    expect(create.mock.calls[0][0].data).toMatchObject({
+      correlationId: 'req-12345678',
+    });
   });
 
   it('has no way to change or remove an entry', () => {

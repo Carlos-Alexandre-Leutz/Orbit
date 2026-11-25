@@ -6,6 +6,7 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { validateEnv } from './config/validate-env';
+import { registerCorrelation } from './correlation';
 
 async function bootstrap() {
   validateEnv();
@@ -16,6 +17,7 @@ async function bootstrap() {
     // The payment webhook is forwarded with the exact bytes the provider signed.
     { rawBody: true },
   );
+  registerCorrelation(app.getHttpAdapter().getInstance());
   // An upload is the picture itself: Fastify keeps it as bytes, up to the same 2 MB the store API allows.
   app
     .getHttpAdapter()
@@ -33,6 +35,7 @@ async function bootstrap() {
     origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    exposedHeaders: ['X-Correlation-Id'],
   });
 
   const config = new DocumentBuilder()
