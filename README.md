@@ -1,11 +1,56 @@
 # Orbit
+
+> **Try it live and log in here: https://carlos-alexandre-leutz.github.io/Orbit/**
+> The QA services sleep when idle, so the first visit can take about a minute while the page wakes them up and sends you to the login. See [Try it](#try-it-qa-login-and-test-card) for what to use there.
+
 Orbit is a conversational commerce agent: customers and sellers run a store through chat, with governed agent workflows, a full audit trail, RAG and scikit-learn forecasting. It is a portfolio project: the data is simulated and payments are in test mode. See [`docs/01-requirements.md`](docs/01-requirements.md) for what it must do.
 
-## Status
+## What it does today
 
-Early foundation. The repository currently holds the planning docs and the base code
-imported from a SaaS template. No Orbit-specific feature is implemented yet.
-See [`docs/00-backlog.md`](docs/00-backlog.md) for the plan.
+The store platform is running in the QA environment. The conversational agent is not built yet (see the next section).
+
+- **Accounts.** One Orbit account works in every store. Sellers sign up at `/sell`; customers sign up and log in inside a store (`/<store>/register`, `/<store>/login`). Roles (customer, seller, admin), signed sessions, password recovery by e-mail, and `/account` with the customer's orders across stores.
+- **Storefronts.** Each store lives at its own link, `/<store>`, with search, categories, product pages with photo galleries, a cart and checkout. Orbit does not list stores: you reach a store only through its link.
+- **Seller panel (`/panel`).** Summary and checklist, products and stock (with low-stock and sold-out warnings), orders (ship and deliver), customers, and store settings: logo, cover, color, slogan and contact.
+- **Orders and payments in test mode.** Order state machine, idempotent payments behind a port, cancellation with refund, confirmation e-mail. Each seller receives payments with their own provider (Stripe or Mercado Pago, keys pasted in the panel and stored encrypted).
+- **Delivery.** Shipping address, tracking code, an estimated arrival window computed in business days from the store's handling and delivery days (optionally per destination state), and a link to the seller's invoice. There is no ZIP-code quote and no carrier integration.
+- **Seller plan.** A monthly plan (R$ 15, 30 days free) charged by Orbit's own Mercado Pago account, with the card typed into Orbit's form. A store opens to the public only with an active plan.
+- **Owner area.** A hidden admin area that registers each store's plan by hand and records every action in an audit table. It never shows payment keys.
+- **Terms and privacy.** `/terms` and `/privacy` are templates that still need a lawyer's review.
+
+Limits you should know about: the Stripe and Mercado Pago adapters have never run against a real provider account, and the screens have not been checked at every screen width. Details and evidence are in [`docs/project-state.md`](docs/project-state.md) and [`docs/pbi/`](docs/pbi).
+
+## What it will do
+
+Not implemented yet; this is the plan, tracked in [`docs/00-backlog.md`](docs/00-backlog.md):
+
+- **Chat with the store.** Customers and sellers operate the store by conversation: search, cart, orders and store management through an agent.
+- **Governed agent tools.** Everything an agent can do is a validated tool with per-role permissions and idempotency; tools with side effects need human approval. External content (products, reviews, documents) is treated as data, never as instructions.
+- **Full audit trail** of what the agents did and why.
+- **RAG** over store documents and policies.
+- **Forecasting with scikit-learn** (demand and sales), with time-based splits, a baseline to beat and honest reporting of the results.
+
+## Try it (QA login and test card)
+
+Open https://carlos-alexandre-leutz.github.io/Orbit/ and wait for the page to wake the services up. Everything there is simulated and no real money moves.
+
+**Account.** There is no shared public login. Create your own test account, which takes a minute:
+
+- As a seller: go to `/sell`, sign up and build a store in `/panel`.
+- As a customer: open a store link, then use that store's `/register` page.
+
+Use any e-mail you can read (password recovery sends a real e-mail) and a throwaway password.
+
+**Test card (Stripe test mode):**
+
+| Field | Value |
+|---|---|
+| Card number | `4242 4242 4242 4242` |
+| Expiry | any future date, for example `12/34` |
+| CVC | any 3 digits, for example `123` |
+| Name / ZIP | anything |
+
+Never type a real card number or a password you use elsewhere. The card only works in a store whose seller has put Stripe **test** keys in the panel; Mercado Pago stores need Mercado Pago's own test cards and test users.
 
 ## Base from the SaaS template
 
@@ -15,8 +60,8 @@ The monorepo base comes from
 
 - `apps/web`: Next.js (App Router), Tailwind CSS, login, register, password reset and a dashboard shell.
 - `apps/bff`: NestJS backend-for-frontend with Swagger at `/docs`.
-- `apps/api-tasks`: NestJS core API with Prisma, PostgreSQL, register, login and password recovery by e-mail (no token-based session yet).
-- Docker Compose files, and a deploy workflow that is disabled until the deployment PBIs.
+- `apps/api-tasks`: NestJS core API with Prisma and PostgreSQL.
+- Docker Compose files.
 
 What came from the template and what was added is tracked in
 [`docs/template-origin.md`](docs/template-origin.md).
@@ -24,11 +69,8 @@ What came from the template and what was added is tracked in
 ## QA environment
 
 The QA link is https://carlos-alexandre-leutz.github.io/Orbit/
-The QA services run on Render's free plan and sleep when idle. Open the
-[wake-up page](https://carlos-alexandre-leutz.github.io/Orbit/) ([`index.html`](index.html)): it calls
-every service and sends you to the login once they all answer, which can take about a minute.
-The page is served by GitHub Pages from the repository root and the Render addresses inside it
-must be filled in first (see the `SERVICES` list in `index.html`).
+The QA services run on Render's free plan and sleep when idle. The page is a
+[wake-up page](index.html): it calls every service and sends you to the login once they all answer, which can take about a minute. It is served by GitHub Pages from the repository root. How the QA deploys itself is in [`docs/qa-deploy.md`](docs/qa-deploy.md).
 
 ## Local development
 
