@@ -437,11 +437,18 @@ The basic online-store platform that the agent work sits on: sellers sign up and
 - T: Offer the free trial when a seller publishes a store that has no plan yet
 - T: Hide the "My store" link from the admin
 
+### PBI-74 [F1] Friendly error messages and alerts
+- T: Map provider and API error codes (such as `unsupported_credit_card_for_recurring_payment` and `local_rate_limited`) to plain English messages the user can act on, in one shared module
+- T: Make the API answer errors in one shape (`statusCode`, a stable `code` and a safe `message`) and stop passing raw provider text through
+- T: Add an alert component (SweetAlert-style modal or toast) and a `showError` helper in the web app
+- T: Use the alert in the card forms (billing and checkout), sign-in, sign-up and the panel forms instead of the inline red text
+- T: Add tests for the code-to-message map and for the alert on the error paths
+
 ---
 
 ## Suggested execution order
 
-- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, 73, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
+- F1: 01, 02, 03, 04, 05, 06, 07, 55, 08, 09, 59, 60, 71, 65, 70, 61, 66, 67, 68, 69, 72, 73, 74, 11, 12, 17, 18, 13, 14, 19, 20, 21, 10
 - F2: 22, 23, 24, 25, 26, 27, 28, 37, 38, 39, 42
 - F3: 29, 30, 31, 32, 33, 34, 35, 36, 15, 16, 41
 - F4: 40, 43, 44, 45, 46
