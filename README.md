@@ -7,7 +7,7 @@ Orbit is a conversational commerce agent: customers and sellers run a store thro
 
 ## What it does today
 
-The store platform is running in the QA environment. The conversational agent is not built yet (see the next section).
+The store platform is running in the QA environment. The store assistant is built but not released yet (see the next section).
 
 - **Accounts.** One Orbit account works in every store. Sellers sign up at `/sell`; customers sign up and log in inside a store (`/<store>/register`, `/<store>/login`). Roles (customer, seller, admin), signed sessions, password recovery by e-mail, and `/account` with the customer's orders across stores.
 - **Storefronts.** Each store lives at its own link, `/<store>`, with search, categories, product pages with photo galleries, a cart and checkout. Orbit does not list stores: you reach a store only through its link.
@@ -24,7 +24,7 @@ Limits you should know about: the Stripe and Mercado Pago adapters have never ru
 
 Not implemented yet; this is the plan, tracked in [`docs/00-backlog.md`](docs/00-backlog.md):
 
-- **Chat with the store.** Customers and sellers operate the store by conversation: search, cart, orders and store management through an agent.
+- **Chat with the store.** Each store gets an assistant, a button at the bottom right of its pages, that answers visitors about products, prices, shipping and delivery time. It only reads the store's data and cannot place orders. It is built on the `staging` branch and not released yet; it has never run against a real model (no Gemini key).
 - **Governed agent tools.** Everything an agent can do is a validated tool with per-role permissions and idempotency; tools with side effects need human approval. External content (products, reviews, documents) is treated as data, never as instructions.
 - **Full audit trail** of what the agents did and why.
 - **RAG** over store documents and policies.
