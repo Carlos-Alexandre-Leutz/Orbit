@@ -3,6 +3,8 @@ import { Role } from '@prisma/client';
 /** Who runs a tool and with which key. The agent loop builds it from the signed-in user, never from the model. */
 export interface ToolContext {
   actor: { id: string; role: Role };
+  /** The store a public chat is about. The chat sets it from the link, never the model. */
+  store?: { id: string; slug: string };
   /** Required by a tool that changes data: the same key never runs the tool twice. */
   idempotencyKey?: string;
   /** The agent making the call, and the model and prompt behind it: they go to the audit log. */

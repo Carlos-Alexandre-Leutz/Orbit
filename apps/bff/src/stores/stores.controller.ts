@@ -6,6 +6,7 @@ import {
   Headers,
   Param,
   Patch,
+  Post,
   Put,
   Query,
 } from '@nestjs/common';
@@ -31,6 +32,24 @@ export class StoreDto {
 
   @ApiProperty()
   description: string;
+}
+
+export class StoreChatBody {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'Made by the browser; it only groups the limits',
+  })
+  visitorId: string;
+
+  @ApiProperty({ maxLength: 1000 })
+  message: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'The last messages of the conversation, kept by the page',
+    example: [{ role: 'user', content: 'Do you have mugs?' }],
+  })
+  history?: { role: 'user' | 'assistant'; content: string }[];
 }
 
 export class ConnectPaymentBody {
@@ -188,6 +207,23 @@ export class StoresController {
       {
         fallback: 'Erro ao carregar a loja',
       },
+    );
+  }
+
+  @Post(':slug/chat')
+  @ApiOperation({
+    summary:
+      "Ask the store's assistant about its products, prices and delivery",
+  })
+  @ApiResponse({ status: 201, description: 'The answer and its status' })
+  @ApiResponse({ status: 404, description: 'No open store has this link' })
+  @ApiResponse({ status: 429, description: 'Too many questions' })
+  chat(@Param('slug') slug: string, @Body() body: StoreChatBody) {
+    return callStoreApi(
+      this.http,
+      'post',
+      `/stores/${encodeURIComponent(slug)}/chat`,
+      { body, fallback: 'The assistant is unavailable' },
     );
   }
 }

@@ -4,6 +4,8 @@ Onde o projeto está e o que vem a seguir. Uma sessão de IA lê isto primeiro e
 
 ## Onde estamos
 
+**2026-11-25: o chat virou o assistente de cada loja** (branch `feat/store-chat`, ainda sem PR): botão no canto inferior direito da loja, chat público e só de leitura, política v2, variáveis `STORE_CHAT_PER_VISITOR_HOUR` e `STORE_CHAT_PER_STORE_HOUR`. Falta `GEMINI_API_KEY` no QA e ver a tela num navegador. Ficaram sem uso na interface: `/conversations` (BFF e API), as ferramentas de carrinho e pedido, a política v1 e o roteador de intenção.
+
 A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-63, PBI-64 e PBI-65 a PBI-70, PBI-72 e PBI-73, todos com os checks verdes. Cada PBI tem um documento com as evidências e os limites: [`pbi/`](pbi).
 
 | PBI | O que entregou |
@@ -36,9 +38,9 @@ A `staging` tem os PBI-01 a PBI-09, PBI-55, PBI-59, PBI-60, PBI-61, PBI-62, PBI-
 | 13 | Aprovação humana: tabela `Approval`, fluxo propor, decidir e executar (`/approvals`), confirmação do valor acima do limite, validade ([`pbi/PBI-13.md`](pbi/PBI-13.md), [ADR-013](adr/ADR-013-human-approval.md)). Em pull request, depende dos PBIs 11, 12, 17 e 18. |
 | 14 | Política de governança versionada (`policy/versions/v1.ts`), validada contra as ferramentas ao subir a API e aplicada pelo executor: papéis, tetos de valor, limites de chamadas, aprovação forçada ([`pbi/PBI-14.md`](pbi/PBI-14.md), [ADR-014](adr/ADR-014-governance-policy.md)). Em pull request, depende dos PBIs 11, 12, 13, 17 e 18. |
 | 19 | Roteador de intenção: modelo pequeno com saída estruturada, limiar de confiança (rota, perguntar ou humano), rotas por papel, toda decisão auditada ([`pbi/PBI-19.md`](pbi/PBI-19.md)). Em pull request, depende dos PBIs 11 a 18. A qualidade da classificação não foi medida. |
-| 20 | Orquestrador e agente do cliente: laço com limites de passos e custo, `POST /chat/stream` em eventos (BFF repassa), agente em todo passo auditado ([`pbi/PBI-20.md`](pbi/PBI-20.md)). Em pull request, depende dos PBIs 11 a 19. Nunca rodou com um modelo de verdade. |
+| 20 | Laço do agente com limites de passos e custo, agente em todo passo auditado e, desde 2026-11-25, o agente da loja (só leitura) atrás de `POST /stores/:slug/chat`, público ([`pbi/PBI-20.md`](pbi/PBI-20.md), [ADR-015](adr/ADR-015-store-chat-for-visitors.md)). Nunca rodou com um modelo de verdade. |
 | 21 | Memória de curto prazo: conversas no MongoDB isoladas por usuário, janela com resumo automático, `GET/DELETE /conversations`, `conversationId` no chat, apagar a conta apaga as conversas ([`pbi/PBI-21.md`](pbi/PBI-21.md)). Em pull request, depende dos PBIs 11 a 20. |
-| 10 | Interface web: página `/assistant` com chat em stream e cartão de aprovação; `/panel/sales` e `/panel/stock` no painel do lojista ([`pbi/PBI-10.md`](pbi/PBI-10.md)). Em pull request, depende dos PBIs 11 a 21. As telas não foram vistas num navegador. |
+| 10 | Interface web: botão de chat do assistente em toda página de loja (substituiu a página `/assistant`, que foi removida em 2026-11-25); `/panel/sales` e `/panel/stock` no painel do lojista ([`pbi/PBI-10.md`](pbi/PBI-10.md)). As telas não foram vistas num navegador. |
 
 Medido em 2026-11-14 na branch do PBI-09 (o backlog tinha 15 épicos, 64 PBIs e 209 tarefas; hoje tem 16 épicos, 71 PBIs e 236 tarefas): API com 212 testes unitários e 68 de integração, BFF 23, web 57, `pnpm test:scripts` 86, `pnpm test:commitlint` 7; o `scripts/import_backlog.py --verify` relatou 260 itens e 0 problemas. Esses números são daquela data e não foram medidos de novo.
 

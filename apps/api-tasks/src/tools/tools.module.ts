@@ -6,25 +6,33 @@ import { ProductsService } from '../catalog/products.service';
 import { OrdersModule } from '../orders/orders.module';
 import { OrdersService } from '../orders/orders.service';
 import { createCustomerTools } from './customer-tools';
+import { createStoreTools } from './store-tools';
+import { StoresModule } from '../stores/stores.module';
+import { StoresService } from '../stores/stores.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GovernancePolicy } from '../policy/governance-policy';
 import { loadPolicy } from '../policy/policy-loader';
 import { ToolExecutor } from './tool-executor';
 import { ToolRegistry } from './tool-registry';
 
-/** The tool layer. Nothing calls it yet: the agent loop (PBI-20) will. The approval gate comes from the ApprovalsModule (PBI-13). */
+/** The tool layer used by the agent loop. The approval gate comes from the ApprovalsModule (PBI-13). */
 @Global()
 @Module({
-  imports: [CatalogModule, CartModule, OrdersModule],
+  imports: [CatalogModule, CartModule, OrdersModule, StoresModule],
   providers: [
     {
       provide: ToolRegistry,
-      inject: [ProductsService, CartService, OrdersService],
+      inject: [ProductsService, CartService, OrdersService, StoresService],
       useFactory: (
         products: ProductsService,
         cart: CartService,
         orders: OrdersService,
-      ) => new ToolRegistry(createCustomerTools({ products, cart, orders })),
+        stores: StoresService,
+      ) =>
+        new ToolRegistry([
+          ...createCustomerTools({ products, cart, orders }),
+          ...createStoreTools({ products, stores }),
+        ]),
     },
     {
       // Checked against the real tools: a policy with a typo stops the API from starting.

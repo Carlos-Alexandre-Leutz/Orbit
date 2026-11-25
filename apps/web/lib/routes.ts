@@ -27,13 +27,7 @@ const SITE_PAGES = new Set([
 ]);
 
 const STORE_PRIVATE = new Set(['cart', 'checkout', 'orders']);
-const SITE_PRIVATE = new Set([
-  'account',
-  'assistant',
-  'dashboard',
-  'panel',
-  'seller',
-]);
+const SITE_PRIVATE = new Set(['account', 'dashboard', 'panel', 'seller']);
 
 /** Pages that only make sense with a session: the cart, checkout and orders of a store, and the staff pages. */
 export function needsSession(pathname: string): boolean {

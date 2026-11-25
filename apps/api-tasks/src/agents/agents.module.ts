@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
 import { LlmService } from '../llm/llm.service';
+import { StoresModule } from '../stores/stores.module';
 import { ToolExecutor } from '../tools/tool-executor';
 import { ToolRegistry } from '../tools/tool-registry';
 import { AgentLoop, AGENT_LIMITS } from './agent-loop';
 import { AgentLimits } from './agent';
-import { ChatController } from './chat.controller';
-import { Orchestrator } from './orchestrator';
+import { StoreChatController } from './store/store-chat.controller';
+import { StoreChatService } from './store/store-chat.service';
 
 @Module({
-  controllers: [ChatController],
+  imports: [StoresModule],
+  controllers: [StoreChatController],
   providers: [
     {
       provide: AGENT_LIMITS,
@@ -27,8 +29,7 @@ import { Orchestrator } from './orchestrator';
         limits: AgentLimits,
       ) => new AgentLoop(llm, executor, registry, limits),
     },
-    Orchestrator,
+    StoreChatService,
   ],
-  exports: [Orchestrator],
 })
 export class AgentsModule {}

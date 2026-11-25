@@ -35,7 +35,6 @@ export function menuFor(
     items.push({ href: `/${store.slug}/orders`, label: 'Orders' });
   }
   if (shops) {
-    items.push({ href: '/assistant', label: 'Assistant' });
     items.push({ href: '/account', label: 'My account' });
   }
   if (role !== 'ADMIN' && ownStore && ownStore.slug !== store?.slug) {

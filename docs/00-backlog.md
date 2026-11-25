@@ -138,7 +138,7 @@ main        ← production (only receives releases from staging)
 - T: Add a "publish your store" checklist
 
 ### PBI-10 [F1] Web interface
-- T: Build the chat page with streaming
+- T: Build the store chat widget (floating button on every store page)
 - T: Build the seller sales and stock pages
 
 ## E3. Audit and governance [must]
@@ -198,8 +198,8 @@ main        ← production (only receives releases from staging)
 
 ### PBI-20 [F1] Orchestrator and customer agent
 - T: Build the agent loop with step and cost limits
-- T: Build the customer support agent (catalog, cart, orders)
-- T: Stream responses to the chat
+- T: Build the store assistant agent (read-only store tools)
+- T: Add the public store chat endpoint with visitor limits
 - T: Record the agent name on every audited step
 
 ### PBI-21 [F1] Short-term memory
